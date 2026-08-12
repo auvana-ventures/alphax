@@ -35,9 +35,10 @@ and must not become mandatory dependencies of `alphax`. Do not create
 
 ## Architecture hypothesis
 
-Phase 0 compares a sensible `dart:io` baseline with libcurl through FFI and a Rust
-HTTP stack. The production choice is an experiment outcome, not a preference. A
-Rust-plus-C++ production boundary requires measurable justification.
+Phase 0 compares a sensible `dart:io` baseline with libcurl through a small C ABI
+and a Rust HTTP stack through its C ABI. The production choice is an experiment
+outcome, not a preference. No C++ engine is part of the Phase 0 design; introducing
+one would require separate evidence and an accepted ADR.
 
 The public Dart API owns requests, responses, middleware, policy, decoding, and
 application integration. Native code owns transport mechanisms, connection

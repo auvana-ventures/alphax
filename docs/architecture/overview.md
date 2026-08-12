@@ -13,9 +13,12 @@ alphax
 AlphaXTransport
           │
           ├── dart:io baseline
-          ├── libcurl multi through FFI
-          └── Rust reqwest/hyper prototype
+          ├── libcurl multi through a small C ABI/FFI bridge
+          └── Rust reqwest/hyper through a C ABI/FFI bridge
 ```
+
+Phase 0 does not use a C++ engine. A future C++ boundary would be a separate
+architectural proposal and would require benchmark evidence plus an accepted ADR.
 
 The `alphax` package is pure Dart and has no Flutter SDK dependency. It must not
 know whether a request is handled by Dart, C/libcurl, Rust, or a future platform

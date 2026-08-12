@@ -13,8 +13,8 @@ Rules:
 - Benchmark before optimizing or selecting a native transport.
 - Keep `alphax` pure Dart and transport-independent.
 - Do not add `alphax_flutter` until Flutter-only integration exists.
-- Do not introduce unnecessary dependencies or a Rust-plus-C++ stack without
-  measured justification and an accepted ADR.
+- Do not introduce C++ or a Rust-plus-C++ stack without measured justification and
+  an accepted ADR. Phase 0 native prototypes use a C ABI for libcurl and Rust.
 - Avoid moving large payloads repeatedly across FFI.
 - Never silently retry unsafe HTTP mutations.
 - Preserve secure TLS defaults and redact credentials/body data in diagnostics.

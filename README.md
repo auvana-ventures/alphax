@@ -43,7 +43,8 @@ transport implementation selected by Phase 0 evidence
 
 The public contract is transport-independent. Large transfers should prefer bounded
 native buffers and direct native-to-file paths where the selected transport supports
-them. See [architecture documentation](docs/architecture/overview.md).
+them. The Phase 0 native prototypes use a small C ABI for libcurl and Rust FFI; no
+C++ engine is part of the current design. See [architecture documentation](docs/architecture/overview.md).
 
 ## Package map
 

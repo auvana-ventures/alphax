@@ -63,7 +63,7 @@ Codex, with maintainer review required before transport selection or Phase 1.
 - [x] Create benchmark task record and define the benchmark-only contract.
 - [x] Finalize deterministic server endpoints, health, and streaming surface.
 - [*] Implement equivalent Dart, libcurl/FFI, and Rust/FFI benchmark adapters; Dart IO
-  baseline is complete, native candidates remain in progress.
+  and libcurl baselines are complete, Rust remains in progress.
 - [ ] Add correctness suite covering request, stream, transfer, timeout, cancel,
   and redirect behavior.
 - [ ] Add warmup, measured iterations, percentile statistics, raw samples, and
@@ -90,8 +90,8 @@ Planned commands:
 
 ## Next Action
 
-Add the libcurl/FFI adapter against the shared benchmark contract, then add the Rust
-adapter without making a production transport selection.
+Add the correctness matrix across all three adapters, then add benchmark statistics
+and scenario execution without making a production transport selection.
 
 ## Blockers
 
@@ -114,3 +114,7 @@ Pending benchmark implementation and first comparable macOS dataset.
   unselected.
 - 2026-08-12: Added and validated the Dart IO adapter, including buffered requests,
   streaming events, cancellation, and the shared benchmark entry point.
+- 2026-08-12: Added and validated the libcurl C ABI/FFI adapter for buffered and
+  streaming requests, direct file transfers, timeout, and cancellation. Rust adapter
+  implementation is present and under final cross-candidate review; no C++ engine or
+  production transport has been selected.
