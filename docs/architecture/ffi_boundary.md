@@ -35,11 +35,29 @@ native producer → bounded queue → Dart consumer
 The production queue must have a configured upper bound. The current benchmark
 prototypes use `NativeCallable.listener` plus a Dart `StreamController`; callbacks
 are copied into owned Dart chunks. Round 2 instrumentation measures producer and
-consumer chunk counts, callback volume, and observed queued bytes. It currently
-shows that the FFI prototypes continue native callback delivery while a Dart
-consumer is paused, so their queue capacity and pause/resume latency are
-unavailable rather than bounded. This is an explicit production gap and those
-slow-consumer duration results are not equivalent to the Dart IO backpressure path.
+consumer chunk counts, callback volume, and observed queued bytes. Round 3 adds a
+configured native credit window: Dart acknowledges each copied chunk after the
+downstream stream consumer resumes; native delivery emits no more than the
+outstanding credit and waits when the window is exhausted. Cancellation
+broadcasts to that wait and wakes the underlying event loop. This ABI is
+benchmark-only and is not a production AlphaX API decision.
+
+The experimental settings are per native-client instance. The current default
+for reproducible experiments is a 64 KiB chunk target and four chunk credits,
+while the Round 3 sweep also tests 16/32/64/128/256 KiB targets. The effective
+capacity is reported with every stream result. Rust batches reqwest chunks to the
+target; libcurl accumulates callback fragments up to the target before sending
+one FFI notification. At most one in-progress native batch is held in addition
+to the acknowledged window, and that memory is included in native accounting.
+
+The Dart bridge copies native-owned callback buffers before returning them to the
+native allocator. It reports Dart-side pending bytes separately from native
+in-flight bytes. Native results include maximum in-flight chunks, maximum
+buffered bytes, FFI notification count, credit exhaustion, pause/resume wait
+latency, acknowledgements, and in-flight bytes at native completion. A slow
+consumer therefore cannot create an arbitrarily growing native queue, although
+the Dart stream controller remains an implementation detail rather than a
+production queue contract.
 
 ## Cancellation and shutdown
 
@@ -73,8 +91,8 @@ prototype performs each async request on a native worker thread with a per-reque
 multi/easy handle plus shared DNS state. It intentionally does not share libcurl's
 connection pool between those independent multi handles: libcurl documents the
 connection pool as a thread-safety exception for the share API. A client-owned
-multi/event-loop design would be required before claiming cross-request native
-connection reuse. Its event loop uses
+multi/socket event-loop design is still required before claiming cross-request
+native connection reuse. Its event loop uses
 `curl_multi_timeout` to obtain libcurl's next deadline and `curl_multi_poll` for
 readiness; it no longer sleeps on an unconditional one-second poll timeout. The
 Rust prototype owns a

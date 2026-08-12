@@ -52,7 +52,7 @@ cargo build --release --manifest-path prototypes/rust_http/Cargo.toml
 ALPHAX_CURL_LIBRARY="$PWD/prototypes/libcurl_ffi/libalphax_curl.dylib" \
 ALPHAX_RUST_LIBRARY="$PWD/prototypes/rust_http/target/release/libalphax_rust_http.dylib" \
   dart run benchmarks/runner/bin/run_benchmarks.dart \
-  --warmup 3 --iterations 10 --output benchmarks/results
+  --warmup 3 --iterations 30 --output benchmarks/results
 ```
 
 Use `.so` paths on Linux. The runner starts an ephemeral deterministic server when
@@ -63,15 +63,16 @@ comparative performance samples for a candidate that fails. Raw output is stored
 
 The local profile includes 1 KB/10 KB/100 KB cold and warm-labelled request samples,
 10/50/100/250-request concurrency, 10 MB/100 MB upload and download, streaming,
-slow-consumer streaming, separate JSON decode/parse timings, and cancellation while
-waiting, streaming, downloading, and uploading. Native candidates keep shared
-connection state where their prototype supports it: libcurl uses a shared
-DNS cache through `CURLSH` and keeps an independent connection pool per request
-multi handle; Rust uses a shared reqwest client backed by a long-lived Tokio
-runtime. The libcurl prototype does not share its connection pool across those
-independent multi handles because that configuration crashed under 250-way
-concurrency. Numeric connection reuse is therefore reported from server
-observations rather than inferred from warm latency.
+slow-consumer streaming, sequential connection reuse, separate JSON decode/parse
+timings, and cancellation while waiting, streaming, downloading, and uploading.
+Native candidates keep shared connection state where their prototype supports it:
+libcurl uses a shared DNS cache through `CURLSH` and keeps an independent
+connection pool per request multi handle; Rust uses a shared reqwest client backed
+by a long-lived Tokio runtime. The libcurl prototype does not share its connection
+pool across those independent multi handles because that configuration crashed
+under 250-way concurrency. Numeric connection reuse is therefore reported from
+server observations rather than inferred from warm latency, and libcurl reuse
+remains a Round 3 limitation rather than a transport conclusion.
 
 By default, the runner starts a fresh deterministic server and a fresh child
 process for each candidate, then merges only complete candidate documents. This
@@ -80,7 +81,8 @@ another candidate's measurements. Supplying `--base-url` opts into an externally
 managed server for controlled experiments.
 
 The default run uses three warmup iterations and ten measured iterations for every
-scenario. Raw records retain every sample. Summaries include mean, p50, p95, and
+scenario; decision-sensitive Round 3 runs use at least 30. Raw records retain
+every sample. Summaries include mean, p50, p95, and
 standard deviation; p99 is reported only when a scenario has at least twenty
 measured samples, otherwise it is explicitly unavailable.
 
@@ -104,9 +106,11 @@ For libcurl, `upload_bytes_read` is the number of bytes returned by the file-rea
 callback, while `upload_bytes_submitted` and the first/last submitted-byte
 timestamps come from libcurl's transfer-progress counters. This keeps file
 preparation and callback activity separate from bytes reported as sent by the
-transport. FFI stream diagnostics also retain buffered bytes at native completion
-before the Dart consumer drains the queue; the current FFI queues are reported as
-unbounded prototype queues.
+transport. FFI stream diagnostics retain the configured chunk target, credit-window
+capacity, maximum native in-flight bytes, Dart pending bytes, notification count,
+credit exhaustion, pause/resume latency, and cancellation/resource observations.
+The native candidates use an experimental bounded credit/ack flow model; settings
+are benchmark configuration, not a production AlphaX API or default.
 
 The initial libcurl upload anomaly was traced to `Expect: 100-continue`: the local
 Dart server does not send an interim 100 response, so libcurl waited its default
@@ -114,6 +118,46 @@ one-second expectation timeout before sending the body. The prototype now disabl
 that optional handshake for file uploads, which preserves the complete-body
 contract and removes the fixed delay. This is a prototype measurement correction,
 not evidence that libcurl is the production transport.
+
+The five native batching targets can be compared reproducibly with:
+
+```text
+for size in 16384 32768 65536 131072 262144; do
+  ALPHAX_CURL_LIBRARY="$PWD/prototypes/libcurl_ffi/libalphax_curl.dylib" \
+  ALPHAX_RUST_LIBRARY="$PWD/prototypes/rust_http/target/release/libalphax_rust_http.dylib" \
+    dart run benchmarks/runner/bin/run_benchmarks.dart \
+    --stream-chunk-size "$size" --stream-window-chunks 4 \
+    --warmup 3 --iterations 30 \
+    --only stream_2097152_bytes,stream_2097152_bytes_slow_consumer \
+    --output benchmarks/results
+done
+```
+
+Direct native file-transfer samples are labelled
+`network_to_native_to_file` and `file_to_native_to_network` for libcurl/Rust.
+The explicit `download_stream_to_dart_file_*` scenarios label the
+network-to-Dart-stream-to-file path. The runner validates deterministic download
+hashes as well as upload counts and hashes.
+
+The optional `--include-references` flag adds Dio 5.11.0 using its normal default
+adapter. Dio is an ecosystem reference, not an AlphaX candidate. The available
+Dart `nitro` package is a native binding runtime rather than an HTTP client, so a
+maintained, comparable Nitro HTTP implementation was not available for this
+Phase 0 harness and is reported as unavailable rather than benchmarked unfairly.
+
+HTTP/2 is not silently labelled in the local profile. The deterministic Dart
+server is HTTP/1.1-compatible and the libcurl candidate still lacks a
+client-owned shared multi/socket loop. HTTP/2 work remains gated on resolving
+that connection architecture and adding explicit negotiation evidence for every
+participating candidate.
+
+Network profiles are represented as `local`, `good-network`, `typical-mobile`,
+and `poor-mobile` metadata. macOS packet impairment, when available and
+explicitly run by a maintainer, is documented by
+`benchmarks/scripts/network-profile.sh`; it uses `dnctl`/`pfctl`, scopes rules to
+the benchmark TCP port, and requires an explicit `reset`. The benchmark runner
+does not modify host networking automatically. A profile without applied
+impairment must not be presented as a network simulation result.
 
 The first complete macOS local dataset is recorded at:
 
@@ -137,6 +181,12 @@ they do not establish a production-transport decision.
 
 The investigation report for the first Round 2 macOS profile is
 [macos-local-round2-investigation.md](../benchmarks/results/summaries/macos-local-round2-investigation.md).
+
+The Phase 0 Round 3 evaluation is recorded in
+[macos-round3-transport-evaluation.md](../benchmarks/results/summaries/macos-round3-transport-evaluation.md).
+It is preliminary research only: no production transport is selected and no
+HTTP/2 or impaired-network result is claimed where negotiation or shaping was
+unavailable.
 
 Measure release artifact sizes separately:
 

@@ -25,14 +25,22 @@ socket
   → consumer
 ```
 
-In the current FFI prototypes, libcurl and Rust allocate a native chunk, invoke a
+In the Round 3 FFI prototypes, libcurl and Rust allocate a native chunk, invoke a
 listener callback, and Dart copies the callback memory into an owned `List<int>`
-before releasing the native allocation. Round 2 records process RSS/peak-RSS and
-producer/consumer callback counts. It also measures observed queued bytes in the
-Dart `StreamController`; the FFI prototypes currently have no configured queue
-capacity and can buffer the complete response while a slow consumer is paused.
-Pause/resume latency is therefore unavailable for those candidates. This is a
-measured implementation limitation, not a zero-copy or bounded-backpressure claim.
+before releasing the native allocation. Dart acknowledges the chunk only after
+the stream consumer resumes. A per-request native credit window bounds the
+number of FFI-delivered chunks that may remain unacknowledged. The experimental
+default is four 64 KiB chunks; the actual chunk target, window, maximum in-flight
+bytes, notification count, pauses, acknowledgements, and cancellation behavior
+are recorded with each result. These are minimal-copy, bounded-flow experiments,
+not zero-copy claims or production defaults.
+
+There are two distinct memory quantities: native in-flight callback allocations
+and Dart `StreamController` pending bytes. The native credit window bounds the
+producer’s unacknowledged delivery, while the Dart bridge reports pending bytes
+separately. A terminal native result can legitimately show outstanding in-flight
+credits because Dart may still be draining already-delivered events; the native
+handle is nevertheless cleaned up only after its terminal callback returns.
 
 ## Native file download
 
@@ -55,13 +63,14 @@ reported separately.
 | Candidate | Buffered response | Streaming response | Upload | Download |
 | --- | --- | --- | --- | --- |
 | `dart:io` | response chunks → Dart list | response chunks → owned Dart chunks | Dart file stream → request | response chunks → Dart sink |
-| libcurl/FFI | libcurl callback → native allocation → Dart list | native callback allocation → Dart list per chunk | native `FILE*` read callback | native callback → native `FILE*` |
-| Rust/FFI | reqwest bytes → native vector → Dart list | native vector → Dart list per chunk | Tokio `ReaderStream` → reqwest body | reqwest stream → Tokio file |
+| libcurl/FFI | libcurl callback → native allocation → Dart list | bounded native batch/credit window → Dart list per chunk | native `FILE*` read callback | native callback → native `FILE*` |
+| Rust/FFI | reqwest bytes → native vector → Dart list | bounded native vector/credit window → Dart list per chunk | Tokio `ReaderStream` → reqwest body | reqwest stream → Tokio file |
 
 ## Required measurements
 
 - Dart heap peak.
 - Native allocation/process memory peak where available.
-- Chunk size, callback frequency, observed queue depth, and pause behavior.
+- Chunk size, callback frequency, native credit depth, observed Dart queue depth,
+  maximum buffered bytes, and pause/resume behavior.
 - Bytes transferred through Dart for streamed and direct-file paths.
 - Binary-size delta for each native dependency.
