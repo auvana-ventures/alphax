@@ -1,6 +1,6 @@
 # GitHub Actions CI Failures
 
-Status: [*] In Progress
+Status: [x] Completed
 
 ## Goal
 
@@ -45,7 +45,7 @@ Codex, with maintainer review of the CI change.
 - [x] Add benchmark contract/harness tests to the Dart CI job.
 - [x] Fix Linux POSIX mutex feature visibility in the libcurl prototype.
 - [x] Run affected local validation and review the task-owned diff.
-- [ ] Commit, push, and verify a green GitHub Actions run.
+- [x] Commit, push, and verify a green GitHub Actions run.
 
 ## Validation
 
@@ -61,11 +61,11 @@ Passed locally on 2026-08-12:
 - `make -C prototypes/libcurl_ffi test`
 - Rust `cargo test` and release build.
 - `git diff --check`.
-- GitHub Actions CI run on the pushed commit: pending final verification.
+- GitHub Actions CI run 31611116051 on commit `6ccec32`: all jobs passed.
 
 ## Next Action
 
-Commit and push the focused fix, then verify the resulting GitHub Actions run.
+Review the focused CI fix; no further implementation action remains.
 
 ## Blockers
 
@@ -76,8 +76,9 @@ None currently.
 The CI workflow now analyzes each independent Dart package from its own package
 root, tests the benchmark packages, and compiles the libcurl prototype on Linux
 with POSIX 2008 feature visibility enabled before system headers. Local CI-equivalent
-validation passed. GitHub verification is pending. The fix does not change public
-APIs, transport selection, or the no-C++ Phase 0 architecture.
+validation passed. GitHub Actions run 31611116051 passed on all Dart and native
+jobs. The fix does not change public APIs, transport selection, or the no-C++
+Phase 0 architecture.
 
 ## References
 
@@ -85,6 +86,7 @@ APIs, transport selection, or the no-C++ Phase 0 architecture.
 - `tooling/scripts/analyze_dart_packages.sh`
 - `prototypes/libcurl_ffi/native/alphax_curl.c`
 - Failed run: https://github.com/auvana-ventures/alphax/actions/runs/31610293083
+- Passing run: https://github.com/auvana-ventures/alphax/actions/runs/31611116051
 
 ## History
 
@@ -93,3 +95,5 @@ APIs, transport selection, or the no-C++ Phase 0 architecture.
 - 2026-08-12: Added per-package Dart analysis/bootstrap, benchmark tests to CI, and
   POSIX 2008 feature visibility for the libcurl C prototype. Local CI-equivalent
   validation passed; pushed for GitHub verification.
+- 2026-08-12: Commit `6ccec32` passed GitHub Actions run 31611116051 across Dart,
+  Ubuntu native, and macOS native jobs.
