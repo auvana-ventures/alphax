@@ -1,6 +1,6 @@
 # AlphaX
 
-AlphaX is an experimental, high-performance networking engine for Dart and Flutter
+AlphaX is an experimental networking engine for Dart and Flutter
 focused on efficient transport, modern HTTP protocols, streaming, observability,
 and resilience.
 
