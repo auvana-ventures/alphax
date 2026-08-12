@@ -23,8 +23,11 @@ dart run benchmarks/server/server.dart --port 8080
 Endpoints include `/health`, `/bytes/{size}`, `/json/{size}`,
 `/stream/{chunks}/{chunkSize}`, `/echo`, `/upload?expected={bytes}`,
 `/delay/{milliseconds}`, `/status/{code}`, `/headers`, and `/redirect/{count}`.
-The upload endpoint returns the received count, an `ok` flag, and an
-`x-alphax-uploaded-bytes` header; a mismatched `expected` count returns 400.
+The upload endpoint returns the received count, a deterministic FNV-1a 64 content
+hash, an `ok` flag, and `x-alphax-uploaded-bytes` plus hash headers; a mismatched
+`expected` count or `expected_hash` returns 400. The response is emitted only
+after the complete request body has been consumed. It also exposes local
+connection identifiers and request counts for reuse observations.
 
 ## Initial client smoke runs
 
@@ -63,9 +66,12 @@ The local profile includes 1 KB/10 KB/100 KB cold and warm-labelled request samp
 slow-consumer streaming, separate JSON decode/parse timings, and cancellation while
 waiting, streaming, downloading, and uploading. Native candidates keep shared
 connection state where their prototype supports it: libcurl uses a shared
-`CURLSH`, and Rust uses a shared reqwest client backed by a long-lived Tokio
-runtime. Numeric connection reuse is still unavailable, so no reuse advantage is
-claimed from warm samples alone.
+DNS cache through `CURLSH` and keeps an independent connection pool per request
+multi handle; Rust uses a shared reqwest client backed by a long-lived Tokio
+runtime. The libcurl prototype does not share its connection pool across those
+independent multi handles because that configuration crashed under 250-way
+concurrency. Numeric connection reuse is therefore reported from server
+observations rather than inferred from warm latency.
 
 By default, the runner starts a fresh deterministic server and a fresh child
 process for each candidate, then merges only complete candidate documents. This
@@ -77,6 +83,37 @@ The default run uses three warmup iterations and ten measured iterations for eve
 scenario. Raw records retain every sample. Summaries include mean, p50, p95, and
 standard deviation; p99 is reported only when a scenario has at least twenty
 measured samples, otherwise it is explicitly unavailable.
+
+Round 2 supports `--only` with comma-separated scenario names so decision-sensitive
+scenarios can be repeated without changing the full profile. Its summary also
+reports min, mean, p50, p90, p95, max, and standard deviation. Scenario labels use
+the following descriptive rule: approximately equivalent at <=5% p50 difference;
+clear difference at >=20% separation with non-overlapping p25-p75 intervals and
+<=10% coefficient of variation for both; likely difference at >=10% separation and
+<=20% coefficient of variation; otherwise inconclusive. These labels are not a
+synthetic overall score.
+
+Upload timing starts before file length/stat preparation for every candidate and
+ends after response-body completion plus the candidate completion notification.
+Connection establishment is included. Raw upload records distinguish file
+preparation, first/last submitted byte, server body-read duration, response
+headers, response completion, native completion notification, and the Dart Future
+boundary where the candidate exposes those timestamps.
+
+For libcurl, `upload_bytes_read` is the number of bytes returned by the file-read
+callback, while `upload_bytes_submitted` and the first/last submitted-byte
+timestamps come from libcurl's transfer-progress counters. This keeps file
+preparation and callback activity separate from bytes reported as sent by the
+transport. FFI stream diagnostics also retain buffered bytes at native completion
+before the Dart consumer drains the queue; the current FFI queues are reported as
+unbounded prototype queues.
+
+The initial libcurl upload anomaly was traced to `Expect: 100-continue`: the local
+Dart server does not send an interim 100 response, so libcurl waited its default
+one-second expectation timeout before sending the body. The prototype now disables
+that optional handshake for file uploads, which preserves the complete-body
+contract and removes the fixed delay. This is a prototype measurement correction,
+not evidence that libcurl is the production transport.
 
 The first complete macOS local dataset is recorded at:
 
@@ -90,14 +127,28 @@ candidates. CPU utilization, Dart heap peak, native allocation peak, numeric
 connection-reuse counts, and network-condition simulation were unavailable in
 this profile and are not inferred from the recorded RSS or timing fields.
 
+Round 2 retains the original dataset and writes a separate dirty-worktree run with
+the commit hash and selected-scenario metadata in the result filename. Its
+decision-sensitive profile uses at least 30 measured samples after warmup for
+100/250 concurrency, 100 MB download, 10/100 MB upload, and slow-consumer
+scenarios. Process CPU/RSS, server-observed connection identifiers, upload hashes,
+native lifecycle timestamps, and variance classifications are reported separately;
+they do not establish a production-transport decision.
+
+The investigation report for the first Round 2 macOS profile is
+[macos-local-round2-investigation.md](../benchmarks/results/summaries/macos-local-round2-investigation.md).
+
 Measure release artifact sizes separately:
 
 ```text
 ./benchmarks/scripts/measure-binary-size.sh
 ```
 
-This reports a Dart AOT executable baseline and stripped native shared-library
-artifact sizes. It does not compare raw build-directory sizes.
+This reports stripped release application artifacts, AlphaX incremental application
+size relative to the Dart baseline, bundled native-library size, and dynamic
+dependency lists. System-provided libraries are disclosed but are not added to
+bundled native-library bytes. These macOS measurements are not extrapolated to
+Android, iOS, Linux, or Windows.
 
 ## Scenarios
 

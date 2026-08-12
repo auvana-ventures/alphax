@@ -27,11 +27,12 @@ socket
 
 In the current FFI prototypes, libcurl and Rust allocate a native chunk, invoke a
 listener callback, and Dart copies the callback memory into an owned `List<int>`
-before releasing the native allocation. The benchmark runner records process RSS
-observations, bytes, throughput, and cancellation/resource-probe outcomes, but it
-does not yet provide a reliable Dart heap peak or bounded queue-depth measurement.
-Chunk size, queue depth, pause behavior, and peak native/Dart memory remain evidence
-to collect before production use.
+before releasing the native allocation. Round 2 records process RSS/peak-RSS and
+producer/consumer callback counts. It also measures observed queued bytes in the
+Dart `StreamController`; the FFI prototypes currently have no configured queue
+capacity and can buffer the complete response while a slow consumer is paused.
+Pause/resume latency is therefore unavailable for those candidates. This is a
+measured implementation limitation, not a zero-copy or bounded-backpressure claim.
 
 ## Native file download
 
@@ -61,6 +62,6 @@ reported separately.
 
 - Dart heap peak.
 - Native allocation/process memory peak where available.
-- Chunk size and queue depth.
+- Chunk size, callback frequency, observed queue depth, and pause behavior.
 - Bytes transferred through Dart for streamed and direct-file paths.
 - Binary-size delta for each native dependency.

@@ -1,0 +1,79 @@
+{
+  "git_commit": "0674bcb641ef4e40ce576bee2903ee7771193d5e",
+  "git_worktree_dirty": true,
+  "os": "Darwin",
+  "architecture": "arm64",
+  "toolchains": {
+    "dart": "Dart SDK version: 3.12.2 (stable) (Tue Jun 9 01:11:39 2026 -0700) on \"macos_arm64\"",
+    "libcurl": "curl 8.7.1 (x86_64-apple-darwin25.0) libcurl/8.7.1 (SecureTransport) LibreSSL/3.3.6 zlib/1.2.12 nghttp2/1.68.1",
+    "rust": "rustc 1.97.1 (8bab26f4f 2026-07-14)"
+  },
+  "methodology": {
+    "build_mode": "release Dart AOT executables and stripped native shared libraries",
+    "application_artifact": "each candidate app is compiled from its release benchmark entry point; baseline is Dart IO, native candidates include their FFI wrapper",
+    "alpha_x_incremental_size": "candidate stripped application artifact minus stripped Dart baseline application artifact; this is a harness-artifact delta, not a production-app delta",
+    "bundled_native_library_size": "stripped libcurl or Rust shared library copied as a separate distributable file",
+    "dependency_accounting": "dynamic dependency lists are recorded separately; system-provided libraries are not added to bundled native-library bytes",
+    "system_dependency_caveat": "macOS observations are not extrapolated to Android, iOS, Linux, or Windows",
+    "comparability_limit": "equivalent production application packaging is not yet available; compare native payloads and disclosed dependencies separately from the harness executable delta"
+  },
+  "artifacts": {
+    "dart_baseline": {
+      "application_artifact_bytes": 6441368,
+      "alpha_x_incremental_bytes": 0,
+      "bundled_native_library_bytes": 0,
+      "stripped": true,
+      "description": "artifact: Mach-O 64-bit executable arm64",
+      "dynamic_dependencies": [
+        "libSystem.B.dylib (compatibility version 1.0.0, current version 1345.100.2)",
+        "Security (compatibility version 1.0.0, current version 61123.100.169)",
+        "CoreFoundation (compatibility version 150.0.0, current version 2420.0.0)",
+        "libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)",
+        "Foundation (compatibility version 300.0.0, current version 2420.0.0)",
+        "CoreServices (compatibility version 1.0.0, current version 1226.0.0)"
+      ]
+    },
+    "libcurl": {
+      "application_artifact_bytes": 5912984,
+      "alpha_x_incremental_bytes": -528384,
+      "bundled_native_library_bytes": 37144,
+      "stripped": true,
+      "application_description": "artifact: Mach-O 64-bit executable arm64",
+      "native_description": "artifact: Mach-O 64-bit dynamically linked shared library arm64",
+      "application_dynamic_dependencies": [
+        "libSystem.B.dylib (compatibility version 1.0.0, current version 1345.100.2)",
+        "Security (compatibility version 1.0.0, current version 61123.100.169)",
+        "CoreFoundation (compatibility version 150.0.0, current version 2420.0.0)",
+        "libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)",
+        "Foundation (compatibility version 300.0.0, current version 2420.0.0)",
+        "CoreServices (compatibility version 1.0.0, current version 1226.0.0)"
+      ],
+      "native_dynamic_dependencies": [
+        "libalphax_curl.dylib (compatibility version 0.0.0, current version 0.0.0)",
+        "libcurl.4.dylib (compatibility version 7.0.0, current version 9.0.0)",
+        "libSystem.B.dylib (compatibility version 1.0.0, current version 1356.0.0)"
+      ]
+    },
+    "rust": {
+      "application_artifact_bytes": 5912976,
+      "alpha_x_incremental_bytes": -528392,
+      "bundled_native_library_bytes": 3706288,
+      "stripped": true,
+      "application_description": "artifact: Mach-O 64-bit executable arm64",
+      "native_description": "artifact: Mach-O 64-bit dynamically linked shared library arm64",
+      "application_dynamic_dependencies": [
+        "libSystem.B.dylib (compatibility version 1.0.0, current version 1345.100.2)",
+        "Security (compatibility version 1.0.0, current version 61123.100.169)",
+        "CoreFoundation (compatibility version 150.0.0, current version 2420.0.0)",
+        "libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)",
+        "Foundation (compatibility version 300.0.0, current version 2420.0.0)",
+        "CoreServices (compatibility version 1.0.0, current version 1226.0.0)"
+      ],
+      "native_dynamic_dependencies": [
+        "libalphax_rust_http.dylib (compatibility version 0.0.0, current version 0.0.0)",
+        "libiconv.2.dylib (compatibility version 7.0.0, current version 7.0.0)",
+        "libSystem.B.dylib (compatibility version 1.0.0, current version 1356.0.0)"
+      ]
+    }
+  }
+}

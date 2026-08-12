@@ -34,9 +34,12 @@ native producer → bounded queue → Dart consumer
 
 The production queue must have a configured upper bound. The current benchmark
 prototypes use `NativeCallable.listener` plus a Dart `StreamController`; callbacks
-are copied into owned Dart chunks, but the prototype queue is not yet a measured
-bounded backpressure implementation. A paused consumer therefore remains an
-explicit production gap rather than an unsupported performance claim.
+are copied into owned Dart chunks. Round 2 instrumentation measures producer and
+consumer chunk counts, callback volume, and observed queued bytes. It currently
+shows that the FFI prototypes continue native callback delivery while a Dart
+consumer is paused, so their queue capacity and pause/resume latency are
+unavailable rather than bounded. This is an explicit production gap and those
+slow-consumer duration results are not equivalent to the Dart IO backpressure path.
 
 ## Cancellation and shutdown
 
@@ -67,8 +70,16 @@ remain labelled as such in result summaries.
 
 The Dart baseline runs on the Dart isolate and uses `HttpClient`. The libcurl
 prototype performs each async request on a native worker thread with a per-request
-multi/easy handle plus shared libcurl connection state. The Rust prototype owns a
+multi/easy handle plus shared DNS state. It intentionally does not share libcurl's
+connection pool between those independent multi handles: libcurl documents the
+connection pool as a thread-safety exception for the share API. A client-owned
+multi/event-loop design would be required before claiming cross-request native
+connection reuse. Its event loop uses
+`curl_multi_timeout` to obtain libcurl's next deadline and `curl_multi_poll` for
+readiness; it no longer sleeps on an unconditional one-second poll timeout. The
+Rust prototype owns a
 long-lived multi-thread Tokio runtime and reqwest client per Dart transport
 instance; each FFI request is driven through that runtime from a native worker
-thread. Connection reuse is still not reported as a reliable numeric metric by
-either FFI adapter and must remain unavailable in summaries until instrumented.
+thread. Round 2 adds server-side connection identifiers and request counts for
+local observations; these are not protocol-level connection metrics where the
+server cannot identify a client socket.
