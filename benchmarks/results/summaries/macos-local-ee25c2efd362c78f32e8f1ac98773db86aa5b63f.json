@@ -1,0 +1,1312 @@
+{
+  "metadata": {
+    "os": "macos",
+    "os_version": "Version 26.5.2 (Build 25F84)",
+    "architecture": "arm64",
+    "cpu": "Apple M4",
+    "dart": "3.12.2 (stable) (Tue Jun 9 01:11:39 2026 -0700) on \"macos_arm64\"",
+    "flutter": {
+      "frameworkVersion": "3.44.6",
+      "channel": "stable",
+      "repositoryUrl": "https://github.com/flutter/flutter.git",
+      "frameworkRevision": "ee80f08bbf97172ec030b8751ceab557177a34a6",
+      "frameworkCommitDate": "2026-07-08 15:02:06 -0700",
+      "engineRevision": "83675ed27633283e7fc296c8bca22e841224c096",
+      "engineCommitDate": "2026-06-30 16:59:03.000Z",
+      "engineContentHash": "d3a3293399556a85388faf8c6f0723a7a5597aa8",
+      "engineBuildDate": "2026-07-01 00:28:16.871",
+      "dartSdkVersion": "3.12.2",
+      "devToolsVersion": "2.57.0",
+      "flutterVersion": "3.44.6"
+    },
+    "libcurl": "curl 8.7.1 (x86_64-apple-darwin25.0) libcurl/8.7.1 (SecureTransport) LibreSSL/3.3.6 zlib/1.2.12 nghttp2/1.68.1\nRelease-Date: 2024-03-27\nProtocols: dict file ftp ftps gopher gophers http https imap imaps ipfs ipns ldap ldaps mqtt pop3 pop3s rtsp smb smbs smtp smtps telnet tftp\nFeatures: alt-svc AsynchDNS GSS-API HSTS HTTP2 HTTPS-proxy IPv6 Kerberos Largefile libz MultiSSL NTLM SPNEGO SSL threadsafe UnixSockets",
+    "rust": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "build_mode": "Dart VM benchmark; native candidates release library where configured",
+    "network_profile": "localhost; no latency, bandwidth, or packet-loss simulation",
+    "protocol_profile": "HTTP/1.1-compatible local server; candidate negotiation recorded separately",
+    "git_commit": "ee25c2efd362c78f32e8f1ac98773db86aa5b63f",
+    "warmup_iterations": 3,
+    "measured_iterations": 10,
+    "methodology": {
+      "statistics": [
+        "mean",
+        "p50",
+        "p95",
+        "p99",
+        "standard deviation"
+      ],
+      "p99_minimum_sample_count": 20,
+      "raw_samples": true,
+      "json_decode_in_transport_samples": false,
+      "connection_reuse": "candidate behavior is recorded; no reuse claim is inferred",
+      "large_transfer_scope": [
+        10485760,
+        104857600
+      ]
+    },
+    "candidate_process_isolation": true,
+    "candidate_order": [
+      "dart_io",
+      "libcurl_ffi",
+      "rust_reqwest_ffi"
+    ]
+  },
+  "correctness": [
+    {
+      "candidate": "dart_io",
+      "passed": true,
+      "checks": 10,
+      "failures": []
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "passed": true,
+      "checks": 10,
+      "failures": []
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "passed": true,
+      "checks": 10,
+      "failures": []
+    }
+  ],
+  "performance_errors": [],
+  "scenario_summaries": [
+    {
+      "candidate": "dart_io",
+      "scenario": "small_1024_cold",
+      "stats": {
+        "count": 10,
+        "min_us": 964,
+        "mean_us": 1191.4,
+        "p50_us": 1118,
+        "p95_us": 1609,
+        "p99_us": null,
+        "max_us": 1609,
+        "stddev_us": 193.1218268347729,
+        "ttfb_p50_us": 898,
+        "mean_throughput_bytes_per_second": 879909.6796315465,
+        "mean_bytes": 1024.0
+      }
+    },
+    {
+      "candidate": "dart_io",
+      "scenario": "small_1024_warm",
+      "stats": {
+        "count": 10,
+        "min_us": 433,
+        "mean_us": 581.9,
+        "p50_us": 474,
+        "p95_us": 965,
+        "p99_us": null,
+        "max_us": 965,
+        "stddev_us": 190.81061291238493,
+        "ttfb_p50_us": 378,
+        "mean_throughput_bytes_per_second": 1906324.0924183684,
+        "mean_bytes": 1024.0
+      }
+    },
+    {
+      "candidate": "dart_io",
+      "scenario": "small_10240_cold",
+      "stats": {
+        "count": 10,
+        "min_us": 791,
+        "mean_us": 855.5,
+        "p50_us": 832,
+        "p95_us": 949,
+        "p99_us": null,
+        "max_us": 949,
+        "stddev_us": 58.36822765854725,
+        "ttfb_p50_us": 663,
+        "mean_throughput_bytes_per_second": 12023784.28700432,
+        "mean_bytes": 10240.0
+      }
+    },
+    {
+      "candidate": "dart_io",
+      "scenario": "small_10240_warm",
+      "stats": {
+        "count": 10,
+        "min_us": 555,
+        "mean_us": 610.5,
+        "p50_us": 607,
+        "p95_us": 683,
+        "p99_us": null,
+        "max_us": 683,
+        "stddev_us": 43.105104106126454,
+        "ttfb_p50_us": 408,
+        "mean_throughput_bytes_per_second": 16856105.077714756,
+        "mean_bytes": 10240.0
+      }
+    },
+    {
+      "candidate": "dart_io",
+      "scenario": "small_102400_cold",
+      "stats": {
+        "count": 10,
+        "min_us": 3574,
+        "mean_us": 4481.5,
+        "p50_us": 3755,
+        "p95_us": 8383,
+        "p99_us": null,
+        "max_us": 8383,
+        "stddev_us": 1530.6735935528516,
+        "ttfb_p50_us": 2224,
+        "mean_throughput_bytes_per_second": 24690359.839001548,
+        "mean_bytes": 102400.0
+      }
+    },
+    {
+      "candidate": "dart_io",
+      "scenario": "small_102400_warm",
+      "stats": {
+        "count": 10,
+        "min_us": 3301,
+        "mean_us": 3989.6,
+        "p50_us": 3458,
+        "p95_us": 5158,
+        "p99_us": null,
+        "max_us": 5158,
+        "stddev_us": 682.0771510613737,
+        "ttfb_p50_us": 1867,
+        "mean_throughput_bytes_per_second": 26391156.053508904,
+        "mean_bytes": 102400.0
+      }
+    },
+    {
+      "candidate": "dart_io",
+      "scenario": "concurrency_10",
+      "stats": {
+        "count": 10,
+        "min_us": 2567,
+        "mean_us": 3104.0,
+        "p50_us": 3093,
+        "p95_us": 3418,
+        "p99_us": null,
+        "max_us": 3418,
+        "stddev_us": 241.42327973913368,
+        "mean_throughput_bytes_per_second": 3320626.300903139,
+        "mean_bytes": 10240.0
+      }
+    },
+    {
+      "candidate": "dart_io",
+      "scenario": "concurrency_50",
+      "stats": {
+        "count": 10,
+        "min_us": 8543,
+        "mean_us": 11058.6,
+        "p50_us": 11195,
+        "p95_us": 13141,
+        "p99_us": null,
+        "max_us": 13141,
+        "stddev_us": 1287.8146761083287,
+        "mean_throughput_bytes_per_second": 4698346.712037144,
+        "mean_bytes": 51200.0
+      }
+    },
+    {
+      "candidate": "dart_io",
+      "scenario": "concurrency_100",
+      "stats": {
+        "count": 10,
+        "min_us": 12035,
+        "mean_us": 13789.2,
+        "p50_us": 13889,
+        "p95_us": 17781,
+        "p99_us": null,
+        "max_us": 17781,
+        "stddev_us": 1563.6388201883453,
+        "mean_throughput_bytes_per_second": 7511638.930342254,
+        "mean_bytes": 102400.0
+      }
+    },
+    {
+      "candidate": "dart_io",
+      "scenario": "concurrency_250",
+      "stats": {
+        "count": 10,
+        "min_us": 22450,
+        "mean_us": 24550.0,
+        "p50_us": 24080,
+        "p95_us": 28193,
+        "p99_us": null,
+        "max_us": 28193,
+        "stddev_us": 1712.1154166702665,
+        "mean_throughput_bytes_per_second": 10476278.18153282,
+        "mean_bytes": 256000.0
+      }
+    },
+    {
+      "candidate": "dart_io",
+      "scenario": "download_10485760_bytes",
+      "stats": {
+        "count": 10,
+        "min_us": 103351,
+        "mean_us": 123234.6,
+        "p50_us": 121747,
+        "p95_us": 145229,
+        "p99_us": null,
+        "max_us": 145229,
+        "stddev_us": 12634.588890818728,
+        "ttfb_p50_us": 69651,
+        "mean_throughput_bytes_per_second": 85981354.86822417,
+        "mean_bytes": 10485760.0
+      }
+    },
+    {
+      "candidate": "dart_io",
+      "scenario": "download_104857600_bytes",
+      "stats": {
+        "count": 10,
+        "min_us": 861311,
+        "mean_us": 938318.5,
+        "p50_us": 909548,
+        "p95_us": 1013883,
+        "p99_us": null,
+        "max_us": 1013883,
+        "stddev_us": 51434.31023596992,
+        "ttfb_p50_us": 471594,
+        "mean_throughput_bytes_per_second": 112083670.559768,
+        "mean_bytes": 104857600.0
+      }
+    },
+    {
+      "candidate": "dart_io",
+      "scenario": "upload_10485760_bytes",
+      "stats": {
+        "count": 10,
+        "min_us": 7370,
+        "mean_us": 9367.6,
+        "p50_us": 8666,
+        "p95_us": 12689,
+        "p99_us": null,
+        "max_us": 12689,
+        "stddev_us": 1658.663208731658,
+        "ttfb_p50_us": 8632,
+        "mean_throughput_bytes_per_second": 1152506573.4993577,
+        "mean_bytes": 10485760.0
+      }
+    },
+    {
+      "candidate": "dart_io",
+      "scenario": "upload_104857600_bytes",
+      "stats": {
+        "count": 10,
+        "min_us": 70203,
+        "mean_us": 75593.3,
+        "p50_us": 72172,
+        "p95_us": 98770,
+        "p99_us": null,
+        "max_us": 98770,
+        "stddev_us": 7972.422480651662,
+        "ttfb_p50_us": 72120,
+        "mean_throughput_bytes_per_second": 1399634875.745073,
+        "mean_bytes": 104857600.0
+      }
+    },
+    {
+      "candidate": "dart_io",
+      "scenario": "stream_2097152_bytes",
+      "stats": {
+        "count": 10,
+        "min_us": 44096,
+        "mean_us": 45125.8,
+        "p50_us": 45023,
+        "p95_us": 46091,
+        "p99_us": null,
+        "max_us": 46091,
+        "stddev_us": 598.8820919012356,
+        "ttfb_p50_us": 29582,
+        "mean_throughput_bytes_per_second": 46481638.606669374,
+        "mean_bytes": 2097152.0
+      }
+    },
+    {
+      "candidate": "dart_io",
+      "scenario": "stream_2097152_bytes_slow_consumer",
+      "stats": {
+        "count": 10,
+        "min_us": 153222,
+        "mean_us": 156500.0,
+        "p50_us": 156326,
+        "p95_us": 162214,
+        "p99_us": null,
+        "max_us": 162214,
+        "stddev_us": 2473.054710272298,
+        "mean_throughput_bytes_per_second": 13403638.248578388,
+        "mean_bytes": 2097152.0
+      }
+    },
+    {
+      "candidate": "dart_io",
+      "scenario": "json_100000_bytes_network",
+      "stats": {
+        "count": 10,
+        "min_us": 4121,
+        "mean_us": 4988.6,
+        "p50_us": 4444,
+        "p95_us": 6215,
+        "p99_us": null,
+        "max_us": 6215,
+        "stddev_us": 774.9921547990018,
+        "ttfb_p50_us": 2932,
+        "mean_throughput_bytes_per_second": 20513095.386133846,
+        "mean_bytes": 99998.0
+      }
+    },
+    {
+      "candidate": "dart_io",
+      "scenario": "cancellation_waiting",
+      "stats": {
+        "count": 10,
+        "min_us": 30,
+        "mean_us": 64.7,
+        "p50_us": 33,
+        "p95_us": 171,
+        "p99_us": null,
+        "max_us": 171,
+        "stddev_us": 49.73338918674254,
+        "mean_throughput_bytes_per_second": 0.0,
+        "mean_bytes": 0.0
+      }
+    },
+    {
+      "candidate": "dart_io",
+      "scenario": "cancellation_streaming",
+      "stats": {
+        "count": 10,
+        "min_us": 7701,
+        "mean_us": 9078.2,
+        "p50_us": 8960,
+        "p95_us": 10975,
+        "p99_us": null,
+        "max_us": 10975,
+        "stddev_us": 1030.7678497120485,
+        "mean_throughput_bytes_per_second": 0.0,
+        "mean_bytes": 0.0
+      }
+    },
+    {
+      "candidate": "dart_io",
+      "scenario": "cancellation_download",
+      "stats": {
+        "count": 10,
+        "min_us": 24,
+        "mean_us": 49.1,
+        "p50_us": 33,
+        "p95_us": 175,
+        "p99_us": null,
+        "max_us": 175,
+        "stddev_us": 42.7561691455163,
+        "mean_throughput_bytes_per_second": 0.0,
+        "mean_bytes": 0.0
+      }
+    },
+    {
+      "candidate": "dart_io",
+      "scenario": "cancellation_upload",
+      "stats": {
+        "count": 10,
+        "min_us": 84,
+        "mean_us": 123.2,
+        "p50_us": 109,
+        "p95_us": 220,
+        "p99_us": null,
+        "max_us": 220,
+        "stddev_us": 39.137705604697885,
+        "mean_throughput_bytes_per_second": 0.0,
+        "mean_bytes": 0.0
+      }
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "scenario": "small_1024_cold",
+      "stats": {
+        "count": 10,
+        "min_us": 855,
+        "mean_us": 1085.9,
+        "p50_us": 1051,
+        "p95_us": 1471,
+        "p99_us": null,
+        "max_us": 1471,
+        "stddev_us": 203.7750966138895,
+        "ttfb_p50_us": 709,
+        "mean_throughput_bytes_per_second": 973356.0816560676,
+        "mean_bytes": 1024.0
+      }
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "scenario": "small_1024_warm",
+      "stats": {
+        "count": 10,
+        "min_us": 484,
+        "mean_us": 549.1,
+        "p50_us": 559,
+        "p95_us": 668,
+        "p99_us": null,
+        "max_us": 668,
+        "stddev_us": 50.91257212123544,
+        "ttfb_p50_us": 414,
+        "mean_throughput_bytes_per_second": 1880013.1929491467,
+        "mean_bytes": 1024.0
+      }
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "scenario": "small_10240_cold",
+      "stats": {
+        "count": 10,
+        "min_us": 780,
+        "mean_us": 879.9,
+        "p50_us": 847,
+        "p95_us": 1132,
+        "p99_us": null,
+        "max_us": 1132,
+        "stddev_us": 97.73377103130728,
+        "ttfb_p50_us": 642,
+        "mean_throughput_bytes_per_second": 11762506.939546507,
+        "mean_bytes": 10240.0
+      }
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "scenario": "small_10240_warm",
+      "stats": {
+        "count": 10,
+        "min_us": 604,
+        "mean_us": 708.3,
+        "p50_us": 637,
+        "p95_us": 1072,
+        "p99_us": null,
+        "max_us": 1072,
+        "stddev_us": 134.62247212111356,
+        "ttfb_p50_us": 436,
+        "mean_throughput_bytes_per_second": 14867588.486086065,
+        "mean_bytes": 10240.0
+      }
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "scenario": "small_102400_cold",
+      "stats": {
+        "count": 10,
+        "min_us": 4423,
+        "mean_us": 5753.9,
+        "p50_us": 5796,
+        "p95_us": 7171,
+        "p99_us": null,
+        "max_us": 7171,
+        "stddev_us": 1081.0205779725009,
+        "ttfb_p50_us": 2302,
+        "mean_throughput_bytes_per_second": 18465914.493765082,
+        "mean_bytes": 102400.0
+      }
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "scenario": "small_102400_warm",
+      "stats": {
+        "count": 10,
+        "min_us": 4170,
+        "mean_us": 6196.4,
+        "p50_us": 6231,
+        "p95_us": 7978,
+        "p99_us": null,
+        "max_us": 7978,
+        "stddev_us": 1328.304874642866,
+        "ttfb_p50_us": 2244,
+        "mean_throughput_bytes_per_second": 17390750.31613246,
+        "mean_bytes": 102400.0
+      }
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "scenario": "concurrency_10",
+      "stats": {
+        "count": 10,
+        "min_us": 3161,
+        "mean_us": 4158.9,
+        "p50_us": 3823,
+        "p95_us": 7937,
+        "p99_us": null,
+        "max_us": 7937,
+        "stddev_us": 1290.9623890725866,
+        "mean_throughput_bytes_per_second": 2610498.9905337146,
+        "mean_bytes": 10240.0
+      }
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "scenario": "concurrency_50",
+      "stats": {
+        "count": 10,
+        "min_us": 13540,
+        "mean_us": 15887.1,
+        "p50_us": 15006,
+        "p95_us": 19759,
+        "p99_us": null,
+        "max_us": 19759,
+        "stddev_us": 1937.8454246920728,
+        "mean_throughput_bytes_per_second": 3268828.339199419,
+        "mean_bytes": 51200.0
+      }
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "scenario": "concurrency_100",
+      "stats": {
+        "count": 10,
+        "min_us": 17708,
+        "mean_us": 23709.4,
+        "p50_us": 21658,
+        "p95_us": 34916,
+        "p99_us": null,
+        "max_us": 34916,
+        "stddev_us": 5195.998137028149,
+        "mean_throughput_bytes_per_second": 4501253.332580877,
+        "mean_bytes": 102400.0
+      }
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "scenario": "concurrency_250",
+      "stats": {
+        "count": 10,
+        "min_us": 45540,
+        "mean_us": 52026.7,
+        "p50_us": 51644,
+        "p95_us": 59223,
+        "p99_us": null,
+        "max_us": 59223,
+        "stddev_us": 3540.120507835856,
+        "mean_throughput_bytes_per_second": 4943183.243628141,
+        "mean_bytes": 256000.0
+      }
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "scenario": "download_10485760_bytes",
+      "stats": {
+        "count": 10,
+        "min_us": 97843,
+        "mean_us": 107546.4,
+        "p50_us": 104182,
+        "p95_us": 120749,
+        "p99_us": null,
+        "max_us": 120749,
+        "stddev_us": 7135.858311373621,
+        "ttfb_p50_us": 103001,
+        "mean_throughput_bytes_per_second": 97924418.19138063,
+        "mean_bytes": 10485760.0
+      }
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "scenario": "download_104857600_bytes",
+      "stats": {
+        "count": 10,
+        "min_us": 1129460,
+        "mean_us": 1328691.6,
+        "p50_us": 1322794,
+        "p95_us": 1658408,
+        "p99_us": null,
+        "max_us": 1658408,
+        "stddev_us": 148320.18074705816,
+        "ttfb_p50_us": 712033,
+        "mean_throughput_bytes_per_second": 79859239.95660208,
+        "mean_bytes": 104857600.0
+      }
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "scenario": "upload_10485760_bytes",
+      "stats": {
+        "count": 10,
+        "min_us": 1008398,
+        "mean_us": 1011414.5,
+        "p50_us": 1011413,
+        "p95_us": 1013084,
+        "p99_us": null,
+        "max_us": 1013084,
+        "stddev_us": 1666.101332452501,
+        "ttfb_p50_us": 1011380,
+        "mean_throughput_bytes_per_second": 10367449.236420248,
+        "mean_bytes": 10485760.0
+      }
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "scenario": "upload_104857600_bytes",
+      "stats": {
+        "count": 10,
+        "min_us": 1056991,
+        "mean_us": 1088643.6,
+        "p50_us": 1073081,
+        "p95_us": 1195407,
+        "p99_us": null,
+        "max_us": 1195407,
+        "stddev_us": 39623.356188490645,
+        "ttfb_p50_us": 1073051,
+        "mean_throughput_bytes_per_second": 96438942.26951964,
+        "mean_bytes": 104857600.0
+      }
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "scenario": "stream_2097152_bytes",
+      "stats": {
+        "count": 10,
+        "min_us": 40429,
+        "mean_us": 45653.8,
+        "p50_us": 43482,
+        "p95_us": 58736,
+        "p99_us": null,
+        "max_us": 58736,
+        "stddev_us": 5172.734940048639,
+        "ttfb_p50_us": 31951,
+        "mean_throughput_bytes_per_second": 46455990.27868171,
+        "mean_bytes": 2097152.0
+      }
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "scenario": "stream_2097152_bytes_slow_consumer",
+      "stats": {
+        "count": 10,
+        "min_us": 468826,
+        "mean_us": 476370.8,
+        "p50_us": 476536,
+        "p95_us": 483069,
+        "p99_us": null,
+        "max_us": 483069,
+        "stddev_us": 4112.6787085791175,
+        "mean_throughput_bytes_per_second": 4402680.9805663135,
+        "mean_bytes": 2097152.0
+      }
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "scenario": "json_100000_bytes_network",
+      "stats": {
+        "count": 10,
+        "min_us": 4971,
+        "mean_us": 6182.7,
+        "p50_us": 5782,
+        "p95_us": 8062,
+        "p99_us": null,
+        "max_us": 8062,
+        "stddev_us": 917.0605269010329,
+        "ttfb_p50_us": 3164,
+        "mean_throughput_bytes_per_second": 16518540.83573632,
+        "mean_bytes": 99998.0
+      }
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "scenario": "cancellation_waiting",
+      "stats": {
+        "count": 10,
+        "min_us": 58,
+        "mean_us": 99.8,
+        "p50_us": 74,
+        "p95_us": 255,
+        "p99_us": null,
+        "max_us": 255,
+        "stddev_us": 56.81513882760474,
+        "mean_throughput_bytes_per_second": 0.0,
+        "mean_bytes": 0.0
+      }
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "scenario": "cancellation_streaming",
+      "stats": {
+        "count": 10,
+        "min_us": 1034,
+        "mean_us": 2535.5,
+        "p50_us": 1176,
+        "p95_us": 6727,
+        "p99_us": null,
+        "max_us": 6727,
+        "stddev_us": 2066.523663063165,
+        "mean_throughput_bytes_per_second": 0.0,
+        "mean_bytes": 0.0
+      }
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "scenario": "cancellation_download",
+      "stats": {
+        "count": 10,
+        "min_us": 611,
+        "mean_us": 2944.6,
+        "p50_us": 2484,
+        "p95_us": 4700,
+        "p99_us": null,
+        "max_us": 4700,
+        "stddev_us": 1466.5887085341958,
+        "mean_throughput_bytes_per_second": 0.0,
+        "mean_bytes": 0.0
+      }
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "scenario": "cancellation_upload",
+      "stats": {
+        "count": 10,
+        "min_us": 1628,
+        "mean_us": 3645.2,
+        "p50_us": 2930,
+        "p95_us": 7044,
+        "p99_us": null,
+        "max_us": 7044,
+        "stddev_us": 1698.5201088005992,
+        "mean_throughput_bytes_per_second": 0.0,
+        "mean_bytes": 0.0
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "small_1024_cold",
+      "stats": {
+        "count": 10,
+        "min_us": 618,
+        "mean_us": 785.5,
+        "p50_us": 680,
+        "p95_us": 1000,
+        "p99_us": null,
+        "max_us": 1000,
+        "stddev_us": 144.40931410404247,
+        "ttfb_p50_us": 556,
+        "mean_throughput_bytes_per_second": 1347356.1073133615,
+        "mean_bytes": 1024.0
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "small_1024_warm",
+      "stats": {
+        "count": 10,
+        "min_us": 464,
+        "mean_us": 504.6,
+        "p50_us": 491,
+        "p95_us": 587,
+        "p99_us": null,
+        "max_us": 587,
+        "stddev_us": 33.39520923725438,
+        "ttfb_p50_us": 376,
+        "mean_throughput_bytes_per_second": 2037578.7362725358,
+        "mean_bytes": 1024.0
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "small_10240_cold",
+      "stats": {
+        "count": 10,
+        "min_us": 797,
+        "mean_us": 917.8,
+        "p50_us": 836,
+        "p95_us": 1465,
+        "p99_us": null,
+        "max_us": 1465,
+        "stddev_us": 189.22409994501228,
+        "ttfb_p50_us": 610,
+        "mean_throughput_bytes_per_second": 11492804.476610828,
+        "mean_bytes": 10240.0
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "small_10240_warm",
+      "stats": {
+        "count": 10,
+        "min_us": 580,
+        "mean_us": 671.6,
+        "p50_us": 618,
+        "p95_us": 895,
+        "p99_us": null,
+        "max_us": 895,
+        "stddev_us": 92.9593459529487,
+        "ttfb_p50_us": 428,
+        "mean_throughput_bytes_per_second": 15503172.793319976,
+        "mean_bytes": 10240.0
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "small_102400_cold",
+      "stats": {
+        "count": 10,
+        "min_us": 4635,
+        "mean_us": 6367.8,
+        "p50_us": 5929,
+        "p95_us": 8466,
+        "p99_us": null,
+        "max_us": 8466,
+        "stddev_us": 1291.3516020046593,
+        "ttfb_p50_us": 2235,
+        "mean_throughput_bytes_per_second": 16743389.237836158,
+        "mean_bytes": 102400.0
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "small_102400_warm",
+      "stats": {
+        "count": 10,
+        "min_us": 4511,
+        "mean_us": 6172.1,
+        "p50_us": 6026,
+        "p95_us": 7933,
+        "p99_us": null,
+        "max_us": 7933,
+        "stddev_us": 1247.6526319452864,
+        "ttfb_p50_us": 2418,
+        "mean_throughput_bytes_per_second": 17284472.890250884,
+        "mean_bytes": 102400.0
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "concurrency_10",
+      "stats": {
+        "count": 10,
+        "min_us": 2491,
+        "mean_us": 2696.0,
+        "p50_us": 2652,
+        "p95_us": 3143,
+        "p99_us": null,
+        "max_us": 3143,
+        "stddev_us": 189.07617512526534,
+        "mean_throughput_bytes_per_second": 3815540.2034323094,
+        "mean_bytes": 10240.0
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "concurrency_50",
+      "stats": {
+        "count": 10,
+        "min_us": 8092,
+        "mean_us": 9827.9,
+        "p50_us": 9876,
+        "p95_us": 11427,
+        "p99_us": null,
+        "max_us": 11427,
+        "stddev_us": 1098.1362802494052,
+        "mean_throughput_bytes_per_second": 5278401.945315899,
+        "mean_bytes": 51200.0
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "concurrency_100",
+      "stats": {
+        "count": 10,
+        "min_us": 13716,
+        "mean_us": 15326.6,
+        "p50_us": 14505,
+        "p95_us": 20506,
+        "p99_us": null,
+        "max_us": 20506,
+        "stddev_us": 1923.2800212137597,
+        "mean_throughput_bytes_per_second": 6769032.001907341,
+        "mean_bytes": 102400.0
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "concurrency_250",
+      "stats": {
+        "count": 10,
+        "min_us": 23174,
+        "mean_us": 26705.4,
+        "p50_us": 24245,
+        "p95_us": 32547,
+        "p99_us": null,
+        "max_us": 32547,
+        "stddev_us": 3204.1424812264513,
+        "mean_throughput_bytes_per_second": 9718730.02329616,
+        "mean_bytes": 256000.0
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "download_10485760_bytes",
+      "stats": {
+        "count": 10,
+        "min_us": 90656,
+        "mean_us": 94599.9,
+        "p50_us": 94422,
+        "p95_us": 97887,
+        "p99_us": null,
+        "max_us": 97887,
+        "stddev_us": 2161.8721261906308,
+        "ttfb_p50_us": 94382,
+        "mean_throughput_bytes_per_second": 110901647.91316883,
+        "mean_bytes": 10485760.0
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "download_104857600_bytes",
+      "stats": {
+        "count": 10,
+        "min_us": 759062,
+        "mean_us": 810598.8,
+        "p50_us": 768988,
+        "p95_us": 1027700,
+        "p99_us": null,
+        "max_us": 1027700,
+        "stddev_us": 83091.4523002216,
+        "ttfb_p50_us": 758344,
+        "mean_throughput_bytes_per_second": 130521044.80228913,
+        "mean_bytes": 104857600.0
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "upload_10485760_bytes",
+      "stats": {
+        "count": 10,
+        "min_us": 41808,
+        "mean_us": 47798.8,
+        "p50_us": 46981,
+        "p95_us": 53951,
+        "p99_us": null,
+        "max_us": 53951,
+        "stddev_us": 3621.705338649184,
+        "ttfb_p50_us": 46966,
+        "mean_throughput_bytes_per_second": 220646446.1853149,
+        "mean_bytes": 10485760.0
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "upload_104857600_bytes",
+      "stats": {
+        "count": 10,
+        "min_us": 469855,
+        "mean_us": 529150.1,
+        "p50_us": 519875,
+        "p95_us": 650133,
+        "p99_us": null,
+        "max_us": 650133,
+        "stddev_us": 50619.9599712406,
+        "ttfb_p50_us": 519854,
+        "mean_throughput_bytes_per_second": 199842629.19588295,
+        "mean_bytes": 104857600.0
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "stream_2097152_bytes",
+      "stats": {
+        "count": 10,
+        "min_us": 57656,
+        "mean_us": 60230.2,
+        "p50_us": 59267,
+        "p95_us": 70102,
+        "p99_us": null,
+        "max_us": 70102,
+        "stddev_us": 3423.2699221650632,
+        "ttfb_p50_us": 29861,
+        "mean_throughput_bytes_per_second": 34918874.82232677,
+        "mean_bytes": 2097152.0
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "stream_2097152_bytes_slow_consumer",
+      "stats": {
+        "count": 10,
+        "min_us": 266673,
+        "mean_us": 270631.7,
+        "p50_us": 269982,
+        "p95_us": 276842,
+        "p99_us": null,
+        "max_us": 276842,
+        "stddev_us": 2663.7910597492437,
+        "mean_throughput_bytes_per_second": 7749843.988528585,
+        "mean_bytes": 2097152.0
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "json_100000_bytes_network",
+      "stats": {
+        "count": 10,
+        "min_us": 5056,
+        "mean_us": 6689.6,
+        "p50_us": 6613,
+        "p95_us": 10824,
+        "p99_us": null,
+        "max_us": 10824,
+        "stddev_us": 1679.7823787622015,
+        "ttfb_p50_us": 2895,
+        "mean_throughput_bytes_per_second": 15755746.68036603,
+        "mean_bytes": 99998.0
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "cancellation_waiting",
+      "stats": {
+        "count": 10,
+        "min_us": 31,
+        "mean_us": 66.9,
+        "p50_us": 38,
+        "p95_us": 301,
+        "p99_us": null,
+        "max_us": 301,
+        "stddev_us": 78.57665047582519,
+        "mean_throughput_bytes_per_second": 0.0,
+        "mean_bytes": 0.0
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "cancellation_streaming",
+      "stats": {
+        "count": 10,
+        "min_us": 974,
+        "mean_us": 2618.5,
+        "p50_us": 2030,
+        "p95_us": 4868,
+        "p99_us": null,
+        "max_us": 4868,
+        "stddev_us": 1317.5914579261662,
+        "mean_throughput_bytes_per_second": 0.0,
+        "mean_bytes": 0.0
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "cancellation_download",
+      "stats": {
+        "count": 10,
+        "min_us": 647,
+        "mean_us": 3207.3,
+        "p50_us": 1453,
+        "p95_us": 8904,
+        "p99_us": null,
+        "max_us": 8904,
+        "stddev_us": 2610.507768615141,
+        "mean_throughput_bytes_per_second": 0.0,
+        "mean_bytes": 0.0
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "cancellation_upload",
+      "stats": {
+        "count": 10,
+        "min_us": 4668,
+        "mean_us": 7721.7,
+        "p50_us": 7493,
+        "p95_us": 10402,
+        "p99_us": null,
+        "max_us": 10402,
+        "stddev_us": 1673.1644300546195,
+        "mean_throughput_bytes_per_second": 0.0,
+        "mean_bytes": 0.0
+      }
+    }
+  ],
+  "interpretation": [
+    {
+      "scenario": "small_1024_cold",
+      "assessment": "rust_reqwest_ffi has the lowest observed p50; this is scenario-local, not an overall score",
+      "p50_order": [
+        "rust_reqwest_ffi",
+        "libcurl_ffi",
+        "dart_io"
+      ]
+    },
+    {
+      "scenario": "small_1024_warm",
+      "assessment": "approximately equivalent by p50 (within 5% of the fastest observed candidate)",
+      "p50_order": [
+        "dart_io",
+        "rust_reqwest_ffi",
+        "libcurl_ffi"
+      ]
+    },
+    {
+      "scenario": "small_10240_cold",
+      "assessment": "approximately equivalent by p50 (within 5% of the fastest observed candidate)",
+      "p50_order": [
+        "dart_io",
+        "rust_reqwest_ffi",
+        "libcurl_ffi"
+      ]
+    },
+    {
+      "scenario": "small_10240_warm",
+      "assessment": "approximately equivalent by p50 (within 5% of the fastest observed candidate)",
+      "p50_order": [
+        "dart_io",
+        "rust_reqwest_ffi",
+        "libcurl_ffi"
+      ]
+    },
+    {
+      "scenario": "small_102400_cold",
+      "assessment": "dart_io has the lowest observed p50; this is scenario-local, not an overall score",
+      "p50_order": [
+        "dart_io",
+        "libcurl_ffi",
+        "rust_reqwest_ffi"
+      ]
+    },
+    {
+      "scenario": "small_102400_warm",
+      "assessment": "dart_io has the lowest observed p50; this is scenario-local, not an overall score",
+      "p50_order": [
+        "dart_io",
+        "rust_reqwest_ffi",
+        "libcurl_ffi"
+      ]
+    },
+    {
+      "scenario": "concurrency_10",
+      "assessment": "rust_reqwest_ffi has the lowest observed p50; this is scenario-local, not an overall score",
+      "p50_order": [
+        "rust_reqwest_ffi",
+        "dart_io",
+        "libcurl_ffi"
+      ]
+    },
+    {
+      "scenario": "concurrency_50",
+      "assessment": "rust_reqwest_ffi has the lowest observed p50; this is scenario-local, not an overall score",
+      "p50_order": [
+        "rust_reqwest_ffi",
+        "dart_io",
+        "libcurl_ffi"
+      ]
+    },
+    {
+      "scenario": "concurrency_100",
+      "assessment": "approximately equivalent by p50 (within 5% of the fastest observed candidate)",
+      "p50_order": [
+        "dart_io",
+        "rust_reqwest_ffi",
+        "libcurl_ffi"
+      ]
+    },
+    {
+      "scenario": "concurrency_250",
+      "assessment": "approximately equivalent by p50 (within 5% of the fastest observed candidate)",
+      "p50_order": [
+        "dart_io",
+        "rust_reqwest_ffi",
+        "libcurl_ffi"
+      ]
+    },
+    {
+      "scenario": "download_10485760_bytes",
+      "assessment": "rust_reqwest_ffi has the lowest observed p50; this is scenario-local, not an overall score",
+      "p50_order": [
+        "rust_reqwest_ffi",
+        "libcurl_ffi",
+        "dart_io"
+      ]
+    },
+    {
+      "scenario": "download_104857600_bytes",
+      "assessment": "rust_reqwest_ffi has the lowest observed p50; this is scenario-local, not an overall score",
+      "p50_order": [
+        "rust_reqwest_ffi",
+        "dart_io",
+        "libcurl_ffi"
+      ]
+    },
+    {
+      "scenario": "upload_10485760_bytes",
+      "assessment": "dart_io has the lowest observed p50; this is scenario-local, not an overall score",
+      "p50_order": [
+        "dart_io",
+        "rust_reqwest_ffi",
+        "libcurl_ffi"
+      ]
+    },
+    {
+      "scenario": "upload_104857600_bytes",
+      "assessment": "dart_io has the lowest observed p50; this is scenario-local, not an overall score",
+      "p50_order": [
+        "dart_io",
+        "rust_reqwest_ffi",
+        "libcurl_ffi"
+      ]
+    },
+    {
+      "scenario": "stream_2097152_bytes",
+      "assessment": "approximately equivalent by p50 (within 5% of the fastest observed candidate)",
+      "p50_order": [
+        "libcurl_ffi",
+        "dart_io",
+        "rust_reqwest_ffi"
+      ]
+    },
+    {
+      "scenario": "stream_2097152_bytes_slow_consumer",
+      "assessment": "dart_io has the lowest observed p50; this is scenario-local, not an overall score",
+      "p50_order": [
+        "dart_io",
+        "rust_reqwest_ffi",
+        "libcurl_ffi"
+      ]
+    },
+    {
+      "scenario": "json_100000_bytes_network",
+      "assessment": "dart_io has the lowest observed p50; this is scenario-local, not an overall score",
+      "p50_order": [
+        "dart_io",
+        "libcurl_ffi",
+        "rust_reqwest_ffi"
+      ]
+    },
+    {
+      "scenario": "cancellation_waiting",
+      "assessment": "dart_io has the lowest observed p50; this is scenario-local, not an overall score",
+      "p50_order": [
+        "dart_io",
+        "rust_reqwest_ffi",
+        "libcurl_ffi"
+      ]
+    },
+    {
+      "scenario": "cancellation_streaming",
+      "assessment": "libcurl_ffi has the lowest observed p50; this is scenario-local, not an overall score",
+      "p50_order": [
+        "libcurl_ffi",
+        "rust_reqwest_ffi",
+        "dart_io"
+      ]
+    },
+    {
+      "scenario": "cancellation_download",
+      "assessment": "dart_io has the lowest observed p50; this is scenario-local, not an overall score",
+      "p50_order": [
+        "dart_io",
+        "rust_reqwest_ffi",
+        "libcurl_ffi"
+      ]
+    },
+    {
+      "scenario": "cancellation_upload",
+      "assessment": "dart_io has the lowest observed p50; this is scenario-local, not an overall score",
+      "p50_order": [
+        "dart_io",
+        "libcurl_ffi",
+        "rust_reqwest_ffi"
+      ]
+    }
+  ]
+}

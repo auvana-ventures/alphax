@@ -1,6 +1,6 @@
 # Phase 0 Comparable Benchmark Suite
 
-Status: [*] In Progress
+Status: [x] Completed
 
 ## Goal
 
@@ -70,28 +70,31 @@ Codex, with maintainer review required before transport selection or Phase 1.
 - [x] Add initial local scenarios for small requests, concurrency, stream, upload,
   download, and cancellation.
 - [x] Add metadata, memory/copying notes, and binary-size measurement tooling.
-- [ ] Run the first complete comparable macOS dataset and review it for fairness.
-- [ ] Push logical working benchmark commits and stop for maintainer review.
+- [x] Run the first complete comparable macOS dataset and review it for fairness.
+- [x] Push logical working benchmark commits and stop for maintainer review.
 
 ## Validation
 
-Planned commands:
+Passed on 2026-08-12:
 
-- `dart format --set-exit-if-changed .`
-- `dart analyze`
-- `tooling/scripts/test_packages.sh`
-- `tooling/scripts/analyze_prototypes.sh`
-- `make -C prototypes/libcurl_ffi test`
-- `cargo test --manifest-path prototypes/rust_http/Cargo.toml`
-- Deterministic server correctness tests and candidate adapter tests.
-- Reproducible local benchmark runner with raw and summary output.
-- `git diff --check` for each logical commit.
+- `dart format --set-exit-if-changed` across packages, prototypes, and benchmark
+  packages.
+- Benchmark server/runner tests and all package tests.
+- All four package `dart pub publish --dry-run` validations with zero warnings.
+- Dart analysis for all three prototypes and the benchmark server/runner.
+- `make -C prototypes/libcurl_ffi test`, libcurl FFI tests, and macOS smoke test.
+- Rust `cargo test`, release build, Rust FFI tests, and the shared-runtime
+  concurrency test.
+- Dart IO prototype tests.
+- Full macOS local benchmark: 3 warmups, 10 measured iterations, 630 raw samples,
+  all correctness checks passed, no performance errors.
+- `benchmarks/scripts/measure-binary-size.sh` with a tracked raw result.
+- `git diff --check` before each pushed logical commit and final result commit.
 
 ## Next Action
 
-Run the final macOS local profile with the current release native libraries, review
-raw and summarized output for completeness, then perform the consolidated repository
-validation before the next logical commit.
+Review the pushed dataset with the maintainer. Do not proceed to the primary
+transport ADR or Phase 1 until that review is complete.
 
 ## Blockers
 
@@ -99,7 +102,24 @@ None currently.
 
 ## Outcome
 
-Pending benchmark implementation and first comparable macOS dataset.
+Completed and pushed the first comparable macOS localhost dataset. All candidates
+passed 10/10 correctness checks, and all 21 scenarios produced 10 measured samples
+per candidate (630 raw samples total) with no performance errors. Every cancellation
+scenario recorded `cancelled` and `resources_released: true` for all candidates.
+
+The dataset includes small cold/warm requests, 10/50/100/250 concurrency,
+10 MB/100 MB direct-file downloads and uploads, streaming, slow-consumer streaming,
+separate network/UTF-8/JSON timings, and waiting/streaming/download/upload
+cancellation. The binary-size result records a 6,422,048-byte Dart AOT baseline,
+36,752-byte stripped libcurl candidate artifact, and 3,706,256-byte stripped Rust
+candidate artifact under the documented measurement method. These are candidate
+artifact observations, not a production package-size claim.
+
+CPU utilization, Dart heap peak, native allocation peak, numeric connection-reuse
+counts, protocol negotiation parity, and network simulation were unavailable and
+are explicitly not inferred. The local results are not representative of mobile
+network performance. No production transport was selected, no C++ engine was
+introduced, and ADR-0004 remains unaccepted pending review and additional evidence.
 
 ## References
 
@@ -107,6 +127,9 @@ Pending benchmark implementation and first comparable macOS dataset.
 - `docs/prd/12_PHASE_0_IMPLEMENTATION_SPEC.md`, sections 13–19 and 24–30
 - `docs/architecture/ffi_boundary.md`
 - `docs/architecture/memory_model.md`
+- `benchmarks/results/raw/macos-local-ee25c2efd362c78f32e8f1ac98773db86aa5b63f.json`
+- `benchmarks/results/summaries/macos-local-ee25c2efd362c78f32e8f1ac98773db86aa5b63f.md`
+- `benchmarks/results/raw/binary-size-local.json`
 
 ## History
 
@@ -126,3 +149,7 @@ Pending benchmark implementation and first comparable macOS dataset.
 - 2026-08-12: Fixed Rust reqwest shared-client lifecycle by keeping its Tokio runtime
   alive for the lifetime of the FFI client; the 250-concurrency smoke profile now
   completes in isolation.
+- 2026-08-12: Completed the 3-warmup/10-measured macOS localhost profile, reviewed
+  all 630 raw samples for scenario completeness and metadata hygiene, recorded
+  binary-size measurements, and pushed the logical benchmark commits. Stopped for
+  maintainer review; no production transport or C++ engine was selected.

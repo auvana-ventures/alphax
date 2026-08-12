@@ -78,6 +78,18 @@ scenario. Raw records retain every sample. Summaries include mean, p50, p95, and
 standard deviation; p99 is reported only when a scenario has at least twenty
 measured samples, otherwise it is explicitly unavailable.
 
+The first complete macOS local dataset is recorded at:
+
+- [raw samples](../benchmarks/results/raw/macos-local-ee25c2efd362c78f32e8f1ac98773db86aa5b63f.json)
+- [machine-readable summary](../benchmarks/results/summaries/macos-local-ee25c2efd362c78f32e8f1ac98773db86aa5b63f.json)
+- [human-readable summary](../benchmarks/results/summaries/macos-local-ee25c2efd362c78f32e8f1ac98773db86aa5b63f.md)
+- [binary-size measurement](../benchmarks/results/raw/binary-size-local.json)
+
+It contains 630 raw samples: 21 scenarios × 10 measured iterations × 3
+candidates. CPU utilization, Dart heap peak, native allocation peak, numeric
+connection-reuse counts, and network-condition simulation were unavailable in
+this profile and are not inferred from the recorded RSS or timing fields.
+
 Measure release artifact sizes separately:
 
 ```text

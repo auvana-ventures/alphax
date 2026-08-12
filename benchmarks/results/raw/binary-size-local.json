@@ -1,0 +1,9 @@
+{
+  "git_commit": "ee25c2efd362c78f32e8f1ac98773db86aa5b63f",
+  "os": "Darwin",
+  "architecture": "arm64",
+  "methodology": "Dart AOT executable baseline and stripped native shared-library artifacts; build directories excluded",
+  "dart_baseline_bytes": 6422048,
+  "libcurl_candidate_bytes": 36752,
+  "rust_candidate_bytes": 3706256
+}
