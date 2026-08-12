@@ -38,6 +38,7 @@ pub struct AxRustResult {
     pub total_ms: f64,
     pub time_to_first_byte_ms: f64,
     pub error_code: i32,
+    pub connection_id: u64,
 }
 
 /// Callback invoked when response metadata is available.
@@ -101,6 +102,7 @@ pub async fn fetch(client: &Client, url: &str) -> Result<AxRustResult, reqwest::
     let response = client.get(url).send().await?;
     let time_to_first_byte_ms = started.elapsed().as_secs_f64() * 1000.0;
     let status_code = i64::from(response.status().as_u16());
+    let connection_id = response_connection_id(response.headers());
     let bytes_received = response.bytes().await?.len() as u64;
     Ok(AxRustResult {
         status_code,
@@ -108,6 +110,7 @@ pub async fn fetch(client: &Client, url: &str) -> Result<AxRustResult, reqwest::
         total_ms: started.elapsed().as_secs_f64() * 1000.0,
         time_to_first_byte_ms,
         error_code: 0,
+        connection_id,
     })
 }
 
@@ -174,6 +177,7 @@ async fn run_request(
     };
     let status_code = i64::from(response.status().as_u16());
     let time_to_first_byte_ms = started.elapsed().as_secs_f64() * 1000.0;
+    let connection_id = response_connection_id(response.headers());
     let headers = serialize_headers(status_code, response.headers());
     emit_owned_buffer(on_start, status_code, headers, user_data);
 
@@ -230,6 +234,7 @@ async fn run_request(
         total_ms: started.elapsed().as_secs_f64() * 1000.0,
         time_to_first_byte_ms,
         error_code: 0,
+        connection_id,
     }
 }
 
@@ -243,6 +248,14 @@ fn serialize_headers(status_code: i64, headers: &reqwest::header::HeaderMap) -> 
     }
     output.extend_from_slice(b"\r\n");
     output
+}
+
+fn response_connection_id(headers: &reqwest::header::HeaderMap) -> u64 {
+    headers
+        .get("x-alphax-server-connection-id")
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.parse::<u64>().ok())
+        .unwrap_or(0)
 }
 
 fn emit_owned_buffer(
@@ -505,5 +518,5 @@ pub extern "C" fn ax_rust_free_result(pointer: *mut AxRustResult) {
 /// Returns the prototype's C ABI version.
 #[no_mangle]
 pub extern "C" fn ax_rust_ffi_version() -> u32 {
-    2
+    3
 }

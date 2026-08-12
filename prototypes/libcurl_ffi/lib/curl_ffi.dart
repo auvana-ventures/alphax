@@ -42,6 +42,72 @@ final class NativeAxCurlResult extends Struct {
   /// libcurl HTTP version code.
   @Int32()
   external int httpVersion;
+
+  @Uint64()
+  external int requestCreatedNs;
+
+  @Uint64()
+  external int bodyPreparationStartNs;
+
+  @Uint64()
+  external int bodyPreparationEndNs;
+
+  @Uint64()
+  external int easyHandleConfiguredNs;
+
+  @Uint64()
+  external int multiAddHandleNs;
+
+  @Uint64()
+  external int firstUploadCallbackNs;
+
+  @Uint64()
+  external int firstUploadByteNs;
+
+  @Uint64()
+  external int lastUploadByteNs;
+
+  @Uint64()
+  external int serverBodyReadUs;
+
+  @Uint64()
+  external int responseHeadersNs;
+
+  @Uint64()
+  external int responseBodyCompleteNs;
+
+  @Uint64()
+  external int curlDoneNs;
+
+  @Uint64()
+  external int nativeCompletionNotificationNs;
+
+  @Uint64()
+  external int nativeCleanupNs;
+
+  @Uint64()
+  external int eventLoopWaitCount;
+
+  @Uint64()
+  external int eventLoopWaitNs;
+
+  @Uint64()
+  external int eventLoopMaxWaitNs;
+
+  @Uint64()
+  external int uploadCallbackCount;
+
+  @Uint64()
+  external int uploadBytesRead;
+
+  @Uint64()
+  external int uploadBytesSubmitted;
+
+  @Uint64()
+  external int responseCallbackCount;
+
+  @Uint64()
+  external int responseBytesDelivered;
 }
 
 typedef _GetNative = Int32 Function(Pointer<Utf8>, Pointer<NativeAxCurlResult>);
@@ -205,8 +271,12 @@ final class CurlFfiClient implements BenchmarkTransport {
       statusCode: result.statusCode,
       headers: result.headers,
       bodyBytes: body,
-      elapsed: result.elapsed,
+      elapsed: operation.stopwatch.elapsed,
       timeToFirstByte: result.timeToFirstByte,
+      diagnostics: {
+        ...result.diagnostics,
+        'dart_future_completed_us': operation.stopwatch.elapsed.inMicroseconds,
+      },
     );
   }
 
@@ -249,8 +319,12 @@ final class CurlFfiClient implements BenchmarkTransport {
       statusCode: result.statusCode,
       headers: result.headers,
       bodyBytes: responseBody,
-      elapsed: result.elapsed,
+      elapsed: operation.stopwatch.elapsed,
       timeToFirstByte: result.timeToFirstByte,
+      diagnostics: {
+        ...result.diagnostics,
+        'dart_future_completed_us': operation.stopwatch.elapsed.inMicroseconds,
+      },
     );
   }
 
@@ -260,21 +334,31 @@ final class CurlFfiClient implements BenchmarkTransport {
     String filePath, {
     BenchmarkRequestOptions options = const BenchmarkRequestOptions(),
   }) async {
+    final stopwatch = Stopwatch()..start();
+    final filePreparationStopwatch = Stopwatch()..start();
     final bytesToTransfer = await File(filePath).length();
+    filePreparationStopwatch.stop();
     final operation = _createOperation(
       uri: uri,
       requestKind: _requestUploadFile,
       filePath: filePath,
       options: options,
+      stopwatch: stopwatch,
     );
     final completed = await _consumeTransfer(operation);
+    final elapsed = stopwatch.elapsed;
     return BenchmarkTransferResult(
       statusCode: completed.statusCode,
       headers: completed.headers,
       bytesTransferred: bytesToTransfer,
-      elapsed: completed.elapsed,
+      elapsed: elapsed,
       filePath: filePath,
       timeToFirstByte: completed.timeToFirstByte,
+      diagnostics: {
+        ...completed.diagnostics,
+        'dart_file_preparation_us': filePreparationStopwatch.elapsed.inMicroseconds,
+        'dart_future_completed_us': elapsed.inMicroseconds,
+      },
     );
   }
 
@@ -291,13 +375,18 @@ final class CurlFfiClient implements BenchmarkTransport {
       options: options,
     );
     final completed = await _consumeTransfer(operation);
+    final elapsed = operation.stopwatch.elapsed;
     return BenchmarkTransferResult(
       statusCode: completed.statusCode,
       headers: completed.headers,
       bytesTransferred: completed.bytesTransferred,
-      elapsed: completed.elapsed,
+      elapsed: elapsed,
       filePath: filePath,
       timeToFirstByte: completed.timeToFirstByte,
+      diagnostics: {
+        ...completed.diagnostics,
+        'dart_future_completed_us': elapsed.inMicroseconds,
+      },
     );
   }
 
@@ -343,6 +432,7 @@ final class CurlFfiClient implements BenchmarkTransport {
     required BenchmarkRequestOptions options,
     List<int> body = const <int>[],
     String? filePath,
+    Stopwatch? stopwatch,
   }) {
     if (_closed) {
       throw StateError('libcurl transport is closed');
@@ -355,6 +445,7 @@ final class CurlFfiClient implements BenchmarkTransport {
       options: options,
       body: body,
       filePath: filePath,
+      stopwatch: stopwatch,
     );
     controller.onListen = () => _start(operation);
     controller.onCancel = () {
@@ -373,8 +464,9 @@ final class CurlFfiClient implements BenchmarkTransport {
         }),
       );
     }
+    final observedStream = _observeStream(controller.stream, operation);
     if (options.timeout != null) {
-      final timedStream = controller.stream.timeout(
+      final timedStream = observedStream.timeout(
         options.timeout!,
         onTimeout: (sink) {
           operation.timedOut = true;
@@ -386,7 +478,7 @@ final class CurlFfiClient implements BenchmarkTransport {
       );
       operation.stream = timedStream;
     } else {
-      operation.stream = controller.stream;
+      operation.stream = observedStream;
     }
     return operation;
   }
@@ -473,7 +565,9 @@ final class CurlFfiClient implements BenchmarkTransport {
       operation.headers = headers;
       operation.timeToFirstByte = operation.stopwatch.elapsed;
       if (!operation.controller.isClosed && !operation.suppressError) {
-        operation.controller.add(BenchmarkStreamStarted(statusCode: statusCode, headers: headers));
+        operation.controller.add(
+          BenchmarkStreamStarted(statusCode: statusCode, headers: headers),
+        );
       }
     } finally {
       if (pointer != nullptr) {
@@ -490,6 +584,12 @@ final class CurlFfiClient implements BenchmarkTransport {
       }
       final bytes = _copyNativeBuffer(pointer, length);
       operation.bytesReceived += bytes.length;
+      operation.producedChunkCount++;
+      operation.producedBytes += bytes.length;
+      operation.pendingBytes += bytes.length;
+      if (operation.pendingBytes > operation.maxPendingBytes) {
+        operation.maxPendingBytes = operation.pendingBytes;
+      }
       if (!operation.controller.isClosed && !operation.suppressError) {
         operation.controller.add(BenchmarkStreamChunk(bytes));
       }
@@ -506,7 +606,14 @@ final class CurlFfiClient implements BenchmarkTransport {
       return;
     }
     final nativeResult = pointer.ref;
+    operation.nativeCompletionPendingBytes = operation.pendingBytes;
+    operation.nativeCompletionConsumedChunkCount = operation.consumedChunkCount;
+    operation.nativeCompletionConsumedBytes = operation.consumedBytes;
     operation.completed = true;
+    operation.diagnostics = _nativeDiagnostics(nativeResult);
+    _updateStreamDiagnostics(operation);
+    operation.diagnostics['dart_completion_notification_us'] =
+        operation.stopwatch.elapsed.inMicroseconds;
     operation.statusCode = operation.statusCode == 0
         ? nativeResult.statusCode
         : operation.statusCode;
@@ -537,25 +644,37 @@ final class CurlFfiClient implements BenchmarkTransport {
             bytesTransferred: nativeResult.bytesReceived,
             elapsed: operation.stopwatch.elapsed,
             timeToFirstByte: operation.timeToFirstByte,
+            diagnostics: operation.diagnostics,
           ),
         );
       }
-    }
-    if (!operation.controller.isClosed) {
-      unawaited(operation.controller.close());
     }
     final nativeHandle = operation.handle;
     _operations.remove(userData.address);
     calloc.free(userData);
     operation.userData = nullptr;
     operation.handle = nullptr;
-    if (!operation.done.isCompleted) {
-      operation.done.complete();
-    }
     if (nativeHandle != nullptr) {
       // The completion callback runs on the native worker thread. Defer the
       // join/free until the callback has returned to avoid joining ourselves.
-      scheduleMicrotask(() => _requestFree(nativeHandle));
+      scheduleMicrotask(() {
+        _requestFree(nativeHandle);
+        operation.diagnostics['dart_handle_cleanup_returned_us'] =
+            operation.stopwatch.elapsed.inMicroseconds;
+        if (!operation.controller.isClosed) {
+          unawaited(operation.controller.close());
+        }
+        if (!operation.done.isCompleted) {
+          operation.done.complete();
+        }
+      });
+    } else {
+      if (!operation.controller.isClosed) {
+        unawaited(operation.controller.close());
+      }
+      if (!operation.done.isCompleted) {
+        operation.done.complete();
+      }
     }
   }
 
@@ -564,6 +683,90 @@ final class CurlFfiClient implements BenchmarkTransport {
       return const <int>[];
     }
     return List<int>.from(pointer.asTypedList(length));
+  }
+
+  Stream<BenchmarkStreamEvent> _observeStream(
+    Stream<BenchmarkStreamEvent> source,
+    _CurlOperation operation,
+  ) async* {
+    await for (final event in source) {
+      if (event case BenchmarkStreamChunk(:final bytes)) {
+        operation.consumedChunkCount++;
+        operation.consumedBytes += bytes.length;
+        operation.pendingBytes = operation.pendingBytes > bytes.length
+            ? operation.pendingBytes - bytes.length
+            : 0;
+        _updateStreamDiagnostics(operation);
+      }
+      yield event;
+    }
+  }
+
+  static void _updateStreamDiagnostics(_CurlOperation operation) {
+    operation.streamDiagnostics
+      ..['producer_chunk_count'] = operation.producedChunkCount
+      ..['producer_bytes'] = operation.producedBytes
+      ..['consumer_chunk_count'] = operation.consumedChunkCount
+      ..['consumer_bytes'] = operation.consumedBytes
+      ..['max_buffered_bytes'] = operation.maxPendingBytes
+      ..['buffered_bytes_current'] = operation.pendingBytes
+      ..['buffered_bytes_at_native_completion'] = operation.nativeCompletionPendingBytes
+      ..['consumer_chunk_count_at_native_completion'] = operation.nativeCompletionConsumedChunkCount
+      ..['consumer_bytes_at_native_completion'] = operation.nativeCompletionConsumedBytes
+      ..['queue_capacity_bytes'] = null
+      ..['queue_policy'] = 'unbounded Dart StreamController buffer in this prototype'
+      ..['pause_supported'] = false
+      ..['pause_count'] = 0
+      ..['resume_count'] = 0
+      ..['pause_latency_us'] = null
+      ..['resume_latency_us'] = null
+      ..['pause_behavior'] = 'native callback delivery continues while Dart consumer is paused';
+    operation.diagnostics['stream_metrics'] = operation.streamDiagnostics;
+  }
+
+  static Map<String, Object?> _nativeDiagnostics(NativeAxCurlResult result) {
+    int? offsetUs(int timestamp) {
+      if (timestamp == 0 || result.requestCreatedNs == 0 || timestamp < result.requestCreatedNs) {
+        return null;
+      }
+      return ((timestamp - result.requestCreatedNs) / 1000).round();
+    }
+
+    return <String, Object?>{
+      'libcurl_lifecycle': <String, Object?>{
+        'request_created_ns': result.requestCreatedNs,
+        'body_preparation_start_us': offsetUs(result.bodyPreparationStartNs),
+        'body_preparation_end_us': offsetUs(result.bodyPreparationEndNs),
+        'easy_handle_configured_us': offsetUs(result.easyHandleConfiguredNs),
+        'multi_add_handle_us': offsetUs(result.multiAddHandleNs),
+        'first_upload_callback_us': offsetUs(result.firstUploadCallbackNs),
+        'first_upload_byte_us': offsetUs(result.firstUploadByteNs),
+        'last_upload_byte_us': offsetUs(result.lastUploadByteNs),
+        'response_headers_us': offsetUs(result.responseHeadersNs),
+        'response_body_complete_us': offsetUs(result.responseBodyCompleteNs),
+        'curl_done_us': offsetUs(result.curlDoneNs),
+        'native_completion_notification_us': offsetUs(result.nativeCompletionNotificationNs),
+        'native_cleanup_us': offsetUs(result.nativeCleanupNs),
+        'server_body_read_us': result.serverBodyReadUs == 0 ? null : result.serverBodyReadUs,
+      },
+      'libcurl_event_loop': <String, Object?>{
+        'poll_count': result.eventLoopWaitCount,
+        'poll_wait_us': result.eventLoopWaitNs ~/ 1000,
+        'max_poll_wait_us': result.eventLoopMaxWaitNs ~/ 1000,
+      },
+      'libcurl_callbacks': <String, Object?>{
+        'upload_read_callbacks': result.uploadCallbackCount,
+        'upload_bytes_read': result.uploadBytesRead,
+        'upload_bytes_submitted': result.uploadBytesSubmitted,
+        'response_callbacks': result.responseCallbackCount,
+        'response_bytes_delivered': result.responseBytesDelivered,
+      },
+      'libcurl_metrics': <String, Object?>{
+        'curl_total_ms': result.totalMs,
+        'curl_ttfb_ms': result.timeToFirstByteMs,
+        'curl_http_version': result.httpVersion,
+      },
+    };
   }
 
   static Map<String, List<String>> _parseHeaders(List<int> bytes) {
@@ -603,8 +806,9 @@ final class _CurlOperation {
     required this.options,
     required List<int> body,
     required this.filePath,
+    Stopwatch? stopwatch,
   }) : body = List<int>.unmodifiable(body),
-       stopwatch = Stopwatch()..start();
+       stopwatch = stopwatch ?? (Stopwatch()..start());
 
   final StreamController<BenchmarkStreamEvent> controller;
   final Uri uri;
@@ -626,6 +830,17 @@ final class _CurlOperation {
   bool suppressError = false;
   bool completed = false;
   Duration? timeToFirstByte;
+  Map<String, Object?> diagnostics = <String, Object?>{};
+  final Map<String, Object?> streamDiagnostics = <String, Object?>{};
+  int producedChunkCount = 0;
+  int producedBytes = 0;
+  int consumedChunkCount = 0;
+  int consumedBytes = 0;
+  int pendingBytes = 0;
+  int maxPendingBytes = 0;
+  int? nativeCompletionPendingBytes;
+  int? nativeCompletionConsumedChunkCount;
+  int? nativeCompletionConsumedBytes;
 }
 
 /// Result returned by [CurlFfiClient]'s legacy smoke-test ABI.

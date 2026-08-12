@@ -75,8 +75,10 @@ final class BenchmarkResponse {
     required List<int> bodyBytes,
     required this.elapsed,
     this.timeToFirstByte,
+    Map<String, Object?> diagnostics = const <String, Object?>{},
   }) : headers = freezeBenchmarkHeaders(headers),
-       bodyBytes = List<int>.unmodifiable(bodyBytes);
+       bodyBytes = List<int>.unmodifiable(bodyBytes),
+       diagnostics = Map<String, Object?>.unmodifiable(diagnostics);
 
   /// HTTP status code.
   final int statusCode;
@@ -92,6 +94,9 @@ final class BenchmarkResponse {
 
   /// Time to first response byte, when measured.
   final Duration? timeToFirstByte;
+
+  /// Candidate-specific measurement diagnostics, when available.
+  final Map<String, Object?> diagnostics;
 
   /// Returns all values for [name], ignoring case.
   List<String> headerValues(String name) => headers[_normalizeHeaderName(name)] ?? const <String>[];
@@ -113,7 +118,9 @@ final class BenchmarkTransferResult {
     required this.elapsed,
     required this.filePath,
     this.timeToFirstByte,
-  }) : headers = freezeBenchmarkHeaders(headers);
+    Map<String, Object?> diagnostics = const <String, Object?>{},
+  }) : headers = freezeBenchmarkHeaders(headers),
+       diagnostics = Map<String, Object?>.unmodifiable(diagnostics);
 
   /// HTTP status code.
   final int statusCode;
@@ -132,6 +139,9 @@ final class BenchmarkTransferResult {
 
   /// Time to first response byte, when measured.
   final Duration? timeToFirstByte;
+
+  /// Candidate-specific measurement diagnostics, when available.
+  final Map<String, Object?> diagnostics;
 }
 
 /// Base type for streaming benchmark events.
@@ -146,6 +156,7 @@ final class BenchmarkStreamStarted extends BenchmarkStreamEvent {
   const BenchmarkStreamStarted({
     required this.statusCode,
     required this.headers,
+    this.diagnostics = const <String, Object?>{},
   });
 
   /// HTTP status code.
@@ -153,6 +164,9 @@ final class BenchmarkStreamStarted extends BenchmarkStreamEvent {
 
   /// Lowercase response headers.
   final Map<String, List<String>> headers;
+
+  /// Candidate-specific measurement diagnostics, when available.
+  final Map<String, Object?> diagnostics;
 }
 
 /// One owned response chunk.
@@ -173,6 +187,7 @@ final class BenchmarkStreamCompleted extends BenchmarkStreamEvent {
     required this.bytesTransferred,
     required this.elapsed,
     this.timeToFirstByte,
+    this.diagnostics = const <String, Object?>{},
   });
 
   /// HTTP status code.
@@ -189,6 +204,9 @@ final class BenchmarkStreamCompleted extends BenchmarkStreamEvent {
 
   /// Time to first response byte, when measured.
   final Duration? timeToFirstByte;
+
+  /// Candidate-specific measurement diagnostics, when available.
+  final Map<String, Object?> diagnostics;
 }
 
 /// Benchmark-only transport abstraction shared by all candidate adapters.

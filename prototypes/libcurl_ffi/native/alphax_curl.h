@@ -19,6 +19,28 @@ typedef struct AxCurlResult {
   double total_ms;
   int32_t curl_code;
   int32_t http_version;
+  uint64_t request_created_ns;
+  uint64_t body_preparation_start_ns;
+  uint64_t body_preparation_end_ns;
+  uint64_t easy_handle_configured_ns;
+  uint64_t multi_add_handle_ns;
+  uint64_t first_upload_callback_ns;
+  uint64_t first_upload_byte_ns;
+  uint64_t last_upload_byte_ns;
+  uint64_t server_body_read_us;
+  uint64_t response_headers_ns;
+  uint64_t response_body_complete_ns;
+  uint64_t curl_done_ns;
+  uint64_t native_completion_notification_ns;
+  uint64_t native_cleanup_ns;
+  uint64_t event_loop_wait_count;
+  uint64_t event_loop_wait_ns;
+  uint64_t event_loop_max_wait_ns;
+  uint64_t upload_callback_count;
+  uint64_t upload_bytes_read;
+  uint64_t upload_bytes_submitted;
+  uint64_t response_callback_count;
+  uint64_t response_bytes_delivered;
 } AxCurlResult;
 
 typedef struct AxCurlStreamHandle AxCurlStreamHandle;

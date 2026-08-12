@@ -50,7 +50,10 @@ final class BenchmarkStats {
     'count': count,
     'min_us': min,
     'mean_us': mean,
+    'p25_us': percentile(0.25),
     'p50_us': percentile(0.50),
+    'p75_us': percentile(0.75),
+    'p90_us': percentile(0.90),
     'p95_us': percentile(0.95),
     // A p99 from fewer than 20 samples is just the maximum and is not useful
     // as a percentile estimate; retain the field but report it unavailable.

@@ -118,6 +118,9 @@ final class DartIoTransport implements BenchmarkTransport {
       bodyBytes: body,
       elapsed: stopwatch.elapsed,
       timeToFirstByte: timeToFirstByte,
+      diagnostics: <String, Object?>{
+        'dart_future_completed_us': stopwatch.elapsed.inMicroseconds,
+      },
     );
   }
 
@@ -136,11 +139,21 @@ final class DartIoTransport implements BenchmarkTransport {
       final headers = _headers(response.headers);
       final timeToFirstByte = stopwatch.elapsed;
       var bytes = 0;
+      var chunkCount = 0;
+      var consumedChunkCount = 0;
+      var consumedBytes = 0;
+      var maxChunkBytes = 0;
       yield BenchmarkStreamStarted(statusCode: response.statusCode, headers: headers);
       await for (final chunk in response) {
         _throwIfCancelled(options);
         bytes += chunk.length;
+        chunkCount++;
+        if (chunk.length > maxChunkBytes) {
+          maxChunkBytes = chunk.length;
+        }
         yield BenchmarkStreamChunk(chunk);
+        consumedChunkCount++;
+        consumedBytes += chunk.length;
       }
       stopwatch.stop();
       yield BenchmarkStreamCompleted(
@@ -149,6 +162,26 @@ final class DartIoTransport implements BenchmarkTransport {
         bytesTransferred: bytes,
         elapsed: stopwatch.elapsed,
         timeToFirstByte: timeToFirstByte,
+        diagnostics: <String, Object?>{
+          'stream_metrics': <String, Object?>{
+            'producer_chunk_count': chunkCount,
+            'producer_bytes': bytes,
+            'consumer_chunk_count': consumedChunkCount,
+            'consumer_bytes': consumedBytes,
+            'max_observed_chunk_bytes': maxChunkBytes,
+            'max_buffered_bytes': null,
+            'buffered_bytes_at_completion': null,
+            'queue_capacity_bytes': null,
+            'queue_policy': 'Dart HttpClient response subscription controls upstream reads',
+            'pause_supported': true,
+            'pause_count': null,
+            'resume_count': null,
+            'pause_latency_us': null,
+            'resume_latency_us': null,
+            'pause_behavior':
+                'Dart response subscription pauses while the consumer awaits each chunk',
+          },
+        },
       );
     } finally {
       request?.abort();
@@ -181,6 +214,9 @@ final class DartIoTransport implements BenchmarkTransport {
       bodyBytes: responseBody,
       elapsed: stopwatch.elapsed,
       timeToFirstByte: timeToFirstByte,
+      diagnostics: <String, Object?>{
+        'dart_future_completed_us': stopwatch.elapsed.inMicroseconds,
+      },
     );
   }
 
@@ -193,7 +229,9 @@ final class DartIoTransport implements BenchmarkTransport {
     _throwIfCancelled(options);
     final stopwatch = Stopwatch()..start();
     final file = File(filePath);
+    final filePreparationStopwatch = Stopwatch()..start();
     final length = await file.length();
+    filePreparationStopwatch.stop();
     final request = await _open('POST', uri, options);
     onRequest(request);
     request.contentLength = length;
@@ -209,6 +247,10 @@ final class DartIoTransport implements BenchmarkTransport {
       elapsed: stopwatch.elapsed,
       filePath: filePath,
       timeToFirstByte: timeToFirstByte,
+      diagnostics: <String, Object?>{
+        'dart_file_preparation_us': filePreparationStopwatch.elapsed.inMicroseconds,
+        'dart_future_completed_us': stopwatch.elapsed.inMicroseconds,
+      },
     );
   }
 
@@ -243,6 +285,9 @@ final class DartIoTransport implements BenchmarkTransport {
       elapsed: stopwatch.elapsed,
       filePath: filePath,
       timeToFirstByte: timeToFirstByte,
+      diagnostics: <String, Object?>{
+        'dart_future_completed_us': stopwatch.elapsed.inMicroseconds,
+      },
     );
   }
 

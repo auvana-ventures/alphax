@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 
+final _ConnectionTracker _defaultConnectionTracker = _ConnectionTracker();
+
 /// A deterministic HTTP server used only by the Phase 0 benchmark harness.
 final class BenchmarkServer {
   /// Creates a server bound to [host] and [port]. Port zero selects an ephemeral port.
@@ -73,6 +75,11 @@ final class BenchmarkServer {
 /// Handles one request using the deterministic benchmark contract.
 Future<void> handleBenchmarkRequest(HttpRequest request) async {
   final response = request.response;
+  final connection = _defaultConnectionTracker.observe(request);
+  response.headers
+    ..set('x-alphax-server-connection-id', '${connection.id}')
+    ..set('x-alphax-server-connection-request-count', '${connection.requestCount}')
+    ..set('x-alphax-server-connections-established', '${connection.connectionsEstablished}');
   try {
     final segments = request.uri.pathSegments;
     if (segments.isEmpty || segments.first.isEmpty) {
@@ -191,28 +198,89 @@ Future<void> _echo(HttpRequest request, HttpResponse response) async {
 
 Future<void> _countUpload(HttpRequest request, HttpResponse response) async {
   var bytes = 0;
+  var hash = _fnv1aOffset;
   final delay = _durationFromQuery(request.uri.queryParameters['delay_ms']);
+  final bodyStopwatch = Stopwatch()..start();
   await for (final chunk in request) {
     bytes += chunk.length;
+    for (final byte in chunk) {
+      hash = ((hash ^ byte) * _fnv1aPrime) & _fnv1aMask;
+    }
     if (delay > Duration.zero) {
       await Future<void>.delayed(delay);
     }
   }
+  bodyStopwatch.stop();
   final expectedString = request.uri.queryParameters['expected'];
   final expected = expectedString == null ? null : int.tryParse(expectedString);
   if (expectedString != null && expected == null) {
     throw FormatException('Invalid expected byte count: $expectedString');
   }
-  final matches = expected == null || expected == bytes;
+  final expectedHash = request.uri.queryParameters['expected_hash'];
+  final actualHash = hash.toUnsigned(64).toRadixString(16).padLeft(16, '0');
+  final matches =
+      (expected == null || expected == bytes) &&
+      (expectedHash == null || expectedHash == actualHash);
   if (!matches) {
     response.statusCode = HttpStatus.badRequest;
   }
+  response.headers
+    ..set('x-alphax-server-body-read-us', '${bodyStopwatch.elapsed.inMicroseconds}')
+    ..set('x-alphax-upload-hash-algorithm', 'fnv1a64')
+    ..set('x-alphax-upload-fnv1a64', actualHash);
   response.headers.set('x-alphax-uploaded-bytes', '$bytes');
   _writeJsonBody(response, <String, Object>{
     'bytes': bytes,
     'expected': expected ?? bytes,
+    'hash': actualHash,
+    'expected_hash': expectedHash ?? actualHash,
     'ok': matches,
   });
+}
+
+const int _fnv1aOffset = 0xcbf29ce484222325;
+const int _fnv1aPrime = 0x100000001b3;
+const int _fnv1aMask = 0xffffffffffffffff;
+
+/// Computes the deterministic upload hash used by the benchmark contract.
+int fnv1a64(Iterable<int> bytes) {
+  var hash = _fnv1aOffset;
+  for (final byte in bytes) {
+    hash = ((hash ^ byte) * _fnv1aPrime) & _fnv1aMask;
+  }
+  return hash;
+}
+
+final class _ConnectionObservation {
+  const _ConnectionObservation({
+    required this.id,
+    required this.requestCount,
+    required this.connectionsEstablished,
+  });
+
+  final int id;
+  final int requestCount;
+  final int connectionsEstablished;
+}
+
+final class _ConnectionTracker {
+  final Map<String, int> _ids = <String, int>{};
+  final Map<String, int> _requestCounts = <String, int>{};
+
+  _ConnectionObservation observe(HttpRequest request) {
+    final info = request.connectionInfo;
+    final key = info == null
+        ? 'unknown-${identityHashCode(request)}'
+        : '${info.remoteAddress.address}:${info.remotePort}';
+    final id = _ids.putIfAbsent(key, () => _ids.length + 1);
+    final requestCount = (_requestCounts[key] ?? 0) + 1;
+    _requestCounts[key] = requestCount;
+    return _ConnectionObservation(
+      id: id,
+      requestCount: requestCount,
+      connectionsEstablished: _ids.length,
+    );
+  }
 }
 
 void _redirect(HttpResponse response, int count) {

@@ -26,6 +26,10 @@ final class NativeAxRustResult extends Struct {
   /// Prototype error code.
   @Int32()
   external int errorCode;
+
+  /// Benchmark-server connection identifier when the server provides one.
+  @Uint64()
+  external int connectionId;
 }
 
 typedef _RustGetNative = Int32 Function(Pointer<Utf8>, Pointer<NativeAxRustResult>);
@@ -191,8 +195,12 @@ final class RustFfiClient implements BenchmarkTransport {
       statusCode: result.statusCode,
       headers: result.headers,
       bodyBytes: body,
-      elapsed: result.elapsed,
+      elapsed: operation.stopwatch.elapsed,
       timeToFirstByte: result.timeToFirstByte,
+      diagnostics: {
+        ...result.diagnostics,
+        'dart_future_completed_us': operation.stopwatch.elapsed.inMicroseconds,
+      },
     );
   }
 
@@ -231,8 +239,12 @@ final class RustFfiClient implements BenchmarkTransport {
       statusCode: result.statusCode,
       headers: result.headers,
       bodyBytes: responseBody,
-      elapsed: result.elapsed,
+      elapsed: operation.stopwatch.elapsed,
       timeToFirstByte: result.timeToFirstByte,
+      diagnostics: {
+        ...result.diagnostics,
+        'dart_future_completed_us': operation.stopwatch.elapsed.inMicroseconds,
+      },
     );
   }
 
@@ -242,22 +254,32 @@ final class RustFfiClient implements BenchmarkTransport {
     String filePath, {
     BenchmarkRequestOptions options = const BenchmarkRequestOptions(),
   }) async {
+    final stopwatch = Stopwatch()..start();
+    final filePreparationStopwatch = Stopwatch()..start();
     final bytesToTransfer = await File(filePath).length();
+    filePreparationStopwatch.stop();
     final completed = await _consumeTransfer(
       _createOperation(
         uri: uri,
         requestKind: _uploadFileRequest,
         filePath: filePath,
         options: options,
+        stopwatch: stopwatch,
       ),
     );
+    final elapsed = stopwatch.elapsed;
     return BenchmarkTransferResult(
       statusCode: completed.statusCode,
       headers: completed.headers,
       bytesTransferred: bytesToTransfer,
-      elapsed: completed.elapsed,
+      elapsed: elapsed,
       filePath: filePath,
       timeToFirstByte: completed.timeToFirstByte,
+      diagnostics: {
+        ...completed.diagnostics,
+        'dart_file_preparation_us': filePreparationStopwatch.elapsed.inMicroseconds,
+        'dart_future_completed_us': elapsed.inMicroseconds,
+      },
     );
   }
 
@@ -267,21 +289,25 @@ final class RustFfiClient implements BenchmarkTransport {
     String filePath, {
     BenchmarkRequestOptions options = const BenchmarkRequestOptions(),
   }) async {
-    final completed = await _consumeTransfer(
-      _createOperation(
-        uri: uri,
-        requestKind: _downloadFileRequest,
-        filePath: filePath,
-        options: options,
-      ),
+    final operation = _createOperation(
+      uri: uri,
+      requestKind: _downloadFileRequest,
+      filePath: filePath,
+      options: options,
     );
+    final completed = await _consumeTransfer(operation);
+    final elapsed = operation.stopwatch.elapsed;
     return BenchmarkTransferResult(
       statusCode: completed.statusCode,
       headers: completed.headers,
       bytesTransferred: completed.bytesTransferred,
-      elapsed: completed.elapsed,
+      elapsed: elapsed,
       filePath: filePath,
       timeToFirstByte: completed.timeToFirstByte,
+      diagnostics: {
+        ...completed.diagnostics,
+        'dart_future_completed_us': elapsed.inMicroseconds,
+      },
     );
   }
 
@@ -327,6 +353,7 @@ final class RustFfiClient implements BenchmarkTransport {
     required BenchmarkRequestOptions options,
     List<int> body = const <int>[],
     String? filePath,
+    Stopwatch? stopwatch,
   }) {
     if (_closed) {
       throw StateError('Rust transport is closed');
@@ -339,6 +366,7 @@ final class RustFfiClient implements BenchmarkTransport {
       options: options,
       body: body,
       filePath: filePath,
+      stopwatch: stopwatch,
     );
     controller.onListen = () => _start(operation);
     controller.onCancel = () {
@@ -357,8 +385,9 @@ final class RustFfiClient implements BenchmarkTransport {
         }),
       );
     }
+    final observedStream = _observeStream(controller.stream, operation);
     if (options.timeout != null) {
-      operation.stream = controller.stream.timeout(
+      operation.stream = observedStream.timeout(
         options.timeout!,
         onTimeout: (sink) {
           operation.timedOut = true;
@@ -369,7 +398,7 @@ final class RustFfiClient implements BenchmarkTransport {
         },
       );
     } else {
-      operation.stream = controller.stream;
+      operation.stream = observedStream;
     }
     return operation;
   }
@@ -473,6 +502,12 @@ final class RustFfiClient implements BenchmarkTransport {
       }
       final bytes = _copyNativeBuffer(pointer, length);
       operation.bytesReceived += bytes.length;
+      operation.producedChunkCount++;
+      operation.producedBytes += bytes.length;
+      operation.pendingBytes += bytes.length;
+      if (operation.pendingBytes > operation.maxPendingBytes) {
+        operation.maxPendingBytes = operation.pendingBytes;
+      }
       if (!operation.controller.isClosed && !operation.suppressError) {
         operation.controller.add(BenchmarkStreamChunk(bytes));
       }
@@ -489,9 +524,38 @@ final class RustFfiClient implements BenchmarkTransport {
       _freeResult(pointer);
       return;
     }
+    // NativeCallable listeners are dispatched asynchronously. The Rust worker
+    // invokes the start listener before the completion listener, but separate
+    // listener ports can be observed by Dart in the opposite order under high
+    // concurrency. Give an already-queued start callback one event turn to
+    // populate response headers before synthesizing terminal metadata.
+    if (!operation.started && !operation.completionDeferred) {
+      operation.completionDeferred = true;
+      operation.completionQueued = true;
+      Timer.run(() {
+        operation.completionQueued = false;
+        _handleComplete(pointer, errorCode, userData);
+      });
+      return;
+    }
     final nativeResult = pointer.ref;
     final nativeHandle = operation.handle;
+    operation.nativeCompletionPendingBytes = operation.pendingBytes;
+    operation.nativeCompletionConsumedChunkCount = operation.consumedChunkCount;
+    operation.nativeCompletionConsumedBytes = operation.consumedBytes;
     operation.completed = true;
+    operation.diagnostics = <String, Object?>{
+      'rust_metrics': <String, Object?>{
+        'native_total_ms': nativeResult.totalMs,
+        'native_ttfb_ms': nativeResult.timeToFirstByteMs,
+        'native_error_code': errorCode,
+      },
+      'dart_completion_notification_us': operation.stopwatch.elapsed.inMicroseconds,
+    };
+    if (nativeResult.connectionId != 0) {
+      operation.diagnostics['rust_connection_id'] = nativeResult.connectionId;
+    }
+    _updateStreamDiagnostics(operation);
     operation.statusCode = operation.statusCode == 0
         ? nativeResult.statusCode
         : operation.statusCode;
@@ -522,23 +586,35 @@ final class RustFfiClient implements BenchmarkTransport {
             bytesTransferred: nativeResult.bytesReceived,
             elapsed: operation.stopwatch.elapsed,
             timeToFirstByte: operation.timeToFirstByte,
+            diagnostics: operation.diagnostics,
           ),
         );
       }
-    }
-    if (!operation.controller.isClosed) {
-      unawaited(operation.controller.close());
     }
     _freeResult(pointer);
     _operations.remove(userData.address);
     calloc.free(userData);
     operation.userData = nullptr;
     operation.handle = nullptr;
-    if (!operation.done.isCompleted) {
-      operation.done.complete();
-    }
     if (nativeHandle != nullptr) {
-      scheduleMicrotask(() => _requestFree(nativeHandle));
+      scheduleMicrotask(() {
+        _requestFree(nativeHandle);
+        operation.diagnostics['dart_handle_cleanup_returned_us'] =
+            operation.stopwatch.elapsed.inMicroseconds;
+        if (!operation.controller.isClosed) {
+          unawaited(operation.controller.close());
+        }
+        if (!operation.done.isCompleted) {
+          operation.done.complete();
+        }
+      });
+    } else {
+      if (!operation.controller.isClosed) {
+        unawaited(operation.controller.close());
+      }
+      if (!operation.done.isCompleted) {
+        operation.done.complete();
+      }
     }
   }
 
@@ -547,6 +623,45 @@ final class RustFfiClient implements BenchmarkTransport {
       return const <int>[];
     }
     return List<int>.from(pointer.asTypedList(length));
+  }
+
+  Stream<BenchmarkStreamEvent> _observeStream(
+    Stream<BenchmarkStreamEvent> source,
+    _RustOperation operation,
+  ) async* {
+    await for (final event in source) {
+      if (event case BenchmarkStreamChunk(:final bytes)) {
+        operation.consumedChunkCount++;
+        operation.consumedBytes += bytes.length;
+        operation.pendingBytes = operation.pendingBytes > bytes.length
+            ? operation.pendingBytes - bytes.length
+            : 0;
+        _updateStreamDiagnostics(operation);
+      }
+      yield event;
+    }
+  }
+
+  static void _updateStreamDiagnostics(_RustOperation operation) {
+    operation.streamDiagnostics
+      ..['producer_chunk_count'] = operation.producedChunkCount
+      ..['producer_bytes'] = operation.producedBytes
+      ..['consumer_chunk_count'] = operation.consumedChunkCount
+      ..['consumer_bytes'] = operation.consumedBytes
+      ..['max_buffered_bytes'] = operation.maxPendingBytes
+      ..['buffered_bytes_current'] = operation.pendingBytes
+      ..['buffered_bytes_at_native_completion'] = operation.nativeCompletionPendingBytes
+      ..['consumer_chunk_count_at_native_completion'] = operation.nativeCompletionConsumedChunkCount
+      ..['consumer_bytes_at_native_completion'] = operation.nativeCompletionConsumedBytes
+      ..['queue_capacity_bytes'] = null
+      ..['queue_policy'] = 'unbounded Dart StreamController buffer in this prototype'
+      ..['pause_supported'] = false
+      ..['pause_count'] = 0
+      ..['resume_count'] = 0
+      ..['pause_latency_us'] = null
+      ..['resume_latency_us'] = null
+      ..['pause_behavior'] = 'native callback delivery continues while Dart consumer is paused';
+    operation.diagnostics['stream_metrics'] = operation.streamDiagnostics;
   }
 
   static Map<String, List<String>> _parseHeaders(List<int> bytes) {
@@ -586,8 +701,9 @@ final class _RustOperation {
     required this.options,
     required List<int> body,
     required this.filePath,
+    Stopwatch? stopwatch,
   }) : body = List<int>.unmodifiable(body),
-       stopwatch = Stopwatch()..start();
+       stopwatch = stopwatch ?? (Stopwatch()..start());
 
   final StreamController<BenchmarkStreamEvent> controller;
   final Uri uri;
@@ -608,7 +724,20 @@ final class _RustOperation {
   bool timedOut = false;
   bool suppressError = false;
   bool completed = false;
+  bool completionDeferred = false;
+  bool completionQueued = false;
   Duration? timeToFirstByte;
+  Map<String, Object?> diagnostics = <String, Object?>{};
+  final Map<String, Object?> streamDiagnostics = <String, Object?>{};
+  int producedChunkCount = 0;
+  int producedBytes = 0;
+  int consumedChunkCount = 0;
+  int consumedBytes = 0;
+  int pendingBytes = 0;
+  int maxPendingBytes = 0;
+  int? nativeCompletionPendingBytes;
+  int? nativeCompletionConsumedChunkCount;
+  int? nativeCompletionConsumedBytes;
 }
 
 /// Result returned by [RustFfiClient]'s legacy smoke-test ABI.

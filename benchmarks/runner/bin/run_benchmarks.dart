@@ -36,6 +36,7 @@ Future<void> main(List<String> args) async {
       warmupIterations: options.warmupIterations,
       measuredIterations: options.measuredIterations,
       runPerformance: !options.correctnessOnly,
+      onlyScenarios: options.onlyScenarios,
     );
     final failed = run.correctness.where((report) => report['passed'] != true).toList();
     if (options.correctnessOnly) {
@@ -64,15 +65,41 @@ Future<void> main(List<String> args) async {
 Future<Map<String, Object?>> _metadata(Uri baseUri, _RunnerOptions options) async {
   final metadata = await collectBenchmarkMetadata();
   metadata['base_url'] = baseUri.toString();
+  metadata['candidate_process_name'] = options.candidateName ?? 'combined';
   metadata['warmup_iterations'] = options.warmupIterations;
   metadata['measured_iterations'] = options.measuredIterations;
+  metadata['selected_scenarios'] = options.onlyScenarios.toList(growable: false);
   metadata['methodology'] = <String, Object?>{
-    'statistics': <String>['mean', 'p50', 'p95', 'p99', 'standard deviation'],
+    'statistics': <String>[
+      'min',
+      'mean',
+      'p25',
+      'p50',
+      'p75',
+      'p90',
+      'p95',
+      'p99 where n >= 20',
+      'max',
+      'standard deviation',
+    ],
     'p99_minimum_sample_count': 20,
     'raw_samples': true,
     'json_decode_in_transport_samples': false,
     'connection_reuse': 'candidate behavior is recorded; no reuse claim is inferred',
     'large_transfer_scope': <int>[10 * 1024 * 1024, 100 * 1024 * 1024],
+    'timing_boundaries': <String, String>{
+      'upload_start': 'before file length/stat preparation for every candidate',
+      'upload_end': 'after response body completion and candidate/native cleanup notification',
+      'download_start': 'before request creation',
+      'download_end': 'after response bytes are written and file sink closes',
+      'concurrency_start': 'before the first candidate future is created',
+      'concurrency_end': 'after all candidate futures complete',
+    },
+    'upload_validation': 'server byte count plus deterministic FNV-1a 64 content hash',
+    'process_metrics':
+        'macOS ps CPU time/utilization plus Dart RSS/peak RSS; unavailable is reported explicitly',
+    'classification_rule':
+        'approximately equivalent <=5% p50 difference; clear >=20% with non-overlapping p25-p75 and <=10% CV; likely >=10% and <=20% CV; otherwise inconclusive',
   };
   return metadata;
 }
@@ -97,6 +124,11 @@ Future<void> _runIsolatedCandidates(_RunnerOptions options) async {
         '--output',
         childOutput.path,
       ];
+      if (options.onlyScenarios.isNotEmpty) {
+        childArguments
+          ..add('--only')
+          ..add(options.onlyScenarios.join(','));
+      }
       if (options.baseUri != null) {
         childArguments
           ..add('--base-url')
@@ -126,8 +158,16 @@ Future<void> _runIsolatedCandidates(_RunnerOptions options) async {
     }
 
     final firstMetadata = Map<String, Object?>.from(documents.first['metadata']! as Map);
+    final idleBaselines = <String, Object?>{
+      for (final document in documents)
+        (document['metadata']! as Map)['candidate_process_name'] as String:
+            (document['metadata']! as Map)['process_metrics_idle_baseline'],
+    };
     firstMetadata
       ..remove('base_url')
+      ..remove('candidate_process_name')
+      ..remove('process_metrics_idle_baseline')
+      ..['process_metrics_idle_baselines'] = idleBaselines
       ..['candidate_process_isolation'] = true
       ..['candidate_order'] = _candidateNames;
     final run = BenchmarkRun(
@@ -163,7 +203,8 @@ Future<void> _writeRunFiles(BenchmarkRun run, String outputDirectoryPath) async 
   final outputDirectory = Directory(outputDirectoryPath);
   await outputDirectory.create(recursive: true);
   final commit = (run.metadata['git_commit'] as String).replaceAll(RegExp(r'[^A-Za-z0-9_.-]'), '_');
-  final stem = 'macos-local-$commit';
+  final dirtySuffix = run.metadata['git_worktree_dirty'] == true ? '-dirty' : '';
+  final stem = 'macos-local-$commit$dirtySuffix';
   final rawPath = '${outputDirectory.path}/raw/$stem.json';
   final summaryJsonPath = '${outputDirectory.path}/summaries/$stem.json';
   final summaryMarkdownPath = '${outputDirectory.path}/summaries/$stem.md';
@@ -224,6 +265,7 @@ final class _RunnerOptions {
     required this.measuredIterations,
     required this.correctnessOnly,
     required this.candidateName,
+    required this.onlyScenarios,
   });
 
   final Uri? baseUri;
@@ -232,6 +274,7 @@ final class _RunnerOptions {
   final int measuredIterations;
   final bool correctnessOnly;
   final String? candidateName;
+  final Set<String> onlyScenarios;
 
   static _RunnerOptions parse(List<String> args) {
     Uri? baseUri;
@@ -240,6 +283,7 @@ final class _RunnerOptions {
     var measuredIterations = 10;
     var correctnessOnly = false;
     String? candidateName;
+    final onlyScenarios = <String>{};
     for (var index = 0; index < args.length; index++) {
       switch (args[index]) {
         case '--base-url':
@@ -254,6 +298,10 @@ final class _RunnerOptions {
           correctnessOnly = true;
         case '--candidate':
           candidateName = args[++index];
+        case '--only':
+          onlyScenarios
+            ..clear()
+            ..addAll(args[++index].split(',').where((value) => value.isNotEmpty));
         case '--help':
           stdout.writeln('''Usage: dart run bin/run_benchmarks.dart [options]
   --base-url URL      Use an existing benchmark server; otherwise start one
@@ -262,6 +310,7 @@ final class _RunnerOptions {
   --iterations N      Measured iterations (default: 10)
   --correctness-only  Run correctness checks without performance scenarios
   --candidate NAME     Diagnostic filter: dart_io, libcurl_ffi, or rust_reqwest_ffi
+  --only LIST           Comma-separated performance scenario names; correctness always runs
 ''');
           exit(0);
         default:
@@ -278,6 +327,7 @@ final class _RunnerOptions {
       measuredIterations: measuredIterations,
       correctnessOnly: correctnessOnly,
       candidateName: candidateName,
+      onlyScenarios: onlyScenarios,
     );
   }
 }
@@ -294,27 +344,84 @@ List<Map<String, Object?>> _interpretSummaries(List<Map<String, Object?>> summar
     for (final entry in byScenario.entries)
       () {
         final rows = entry.value;
-        final medians = <String, num>{
-          for (final row in rows)
-            if (row['candidate'] is String &&
-                row['stats'] is Map<String, Object?> &&
-                (row['stats']! as Map<String, Object?>)['p50_us'] is num)
-              row['candidate'] as String: (row['stats']! as Map<String, Object?>)['p50_us']! as num,
-        };
-        final ordered = medians.entries.toList()
-          ..sort((left, right) => left.value.compareTo(right.value));
-        final note = ordered.length < 2
+        final comparableRows = rows
+            .where(
+              (row) => row['candidate'] is String && row['stats'] is Map<String, Object?>,
+            )
+            .toList(growable: false);
+        comparableRows.sort(
+          (left, right) => ((left['stats']! as Map<String, Object?>)['p50_us']! as num).compareTo(
+            (right['stats']! as Map<String, Object?>)['p50_us']! as num,
+          ),
+        );
+        final ordered = comparableRows
+            .map((row) => row['candidate'] as String)
+            .toList(growable: false);
+        final classification = _classifyScenario(comparableRows);
+        final note = comparableRows.length < 2
             ? 'only one candidate has measured samples'
-            : ordered[1].value / ordered.first.value <= 1.05
-            ? 'approximately equivalent by p50 (within 5% of the fastest observed candidate)'
-            : '${ordered.first.key} has the lowest observed p50; this is scenario-local, not an overall score';
+            : '${classification['label']}: ${classification['explanation']}';
         return <String, Object?>{
           'scenario': entry.key,
           'assessment': note,
-          'p50_order': ordered.map((item) => item.key).toList(),
+          'classification': classification['label'],
+          'classification_rule': classification['rule'],
+          'p50_order': ordered,
         };
       }(),
   ];
+}
+
+Map<String, String> _classifyScenario(List<Map<String, Object?>> rows) {
+  if (rows.length < 2) {
+    return const <String, String>{
+      'label': 'inconclusive',
+      'explanation': 'fewer than two candidates have measured samples',
+      'rule': 'at least two comparable candidate distributions are required',
+    };
+  }
+  final fastest = rows.first['stats']! as Map<String, Object?>;
+  final runnerUp = rows[1]['stats']! as Map<String, Object?>;
+  final fastestP50 = (fastest['p50_us']! as num).toDouble();
+  final runnerUpP50 = (runnerUp['p50_us']! as num).toDouble();
+  final relativeDifference = runnerUpP50 / fastestP50 - 1;
+  final fastestCv = (fastest['stddev_us']! as num).toDouble() / fastestP50;
+  final runnerUpCv = (runnerUp['stddev_us']! as num).toDouble() / runnerUpP50;
+  final intervalsOverlap =
+      (fastest['p75_us']! as num).toDouble() >= (runnerUp['p25_us']! as num).toDouble() &&
+      (runnerUp['p75_us']! as num).toDouble() >= (fastest['p25_us']! as num).toDouble();
+  const rule =
+      'approximately equivalent when p50 differs <=5%; clear difference requires '
+      '>=20% separation, non-overlapping p25-p75 intervals, and <=10% coefficient '
+      'of variation for both; likely difference requires >=10% separation and <=20% '
+      'coefficient of variation; otherwise inconclusive';
+  if (relativeDifference <= 0.05) {
+    return const <String, String>{
+      'label': 'approximately equivalent',
+      'explanation': 'p50 values differ by at most 5%',
+      'rule': rule,
+    };
+  }
+  if (relativeDifference >= 0.20 && !intervalsOverlap && fastestCv <= 0.10 && runnerUpCv <= 0.10) {
+    return <String, String>{
+      'label': 'clear difference',
+      'explanation': '${rows.first['candidate']} is faster with stable, non-overlapping samples',
+      'rule': rule,
+    };
+  }
+  if (relativeDifference >= 0.10 && fastestCv <= 0.20 && runnerUpCv <= 0.20) {
+    return <String, String>{
+      'label': 'likely difference',
+      'explanation':
+          '${rows.first['candidate']} is faster, but variance or overlap limits confidence',
+      'rule': rule,
+    };
+  }
+  return const <String, String>{
+    'label': 'inconclusive',
+    'explanation': 'the observed separation is not stable enough for a stronger claim',
+    'rule': rule,
+  };
 }
 
 String _markdownSummary(Map<String, Object?> summary) {
@@ -339,13 +446,15 @@ String _markdownSummary(Map<String, Object?> summary) {
     ..writeln()
     ..writeln('## Scenario summaries')
     ..writeln()
-    ..writeln('| Candidate | Scenario | N | p50 (ms) | p95 (ms) | TTFB p50 (ms) | Mean MB/s |')
-    ..writeln('| --- | --- | ---: | ---: | ---: | ---: | ---: |');
+    ..writeln(
+      '| Candidate | Scenario | N | Min (ms) | p50 (ms) | p90 (ms) | p95 (ms) | Max (ms) | SD (ms) | TTFB p50 (ms) | Mean MB/s |',
+    )
+    ..writeln('| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |');
   final scenarios = summary['scenario_summaries'] as List<Object?>;
   for (final item in scenarios.cast<Map<String, Object?>>()) {
     final stats = item['stats'] as Map<String, Object?>;
     buffer.writeln(
-      '| ${item['candidate']} | ${item['scenario']} | ${stats['count']} | ${_milliseconds(stats['p50_us'])} | ${_milliseconds(stats['p95_us'])} | ${_milliseconds(stats['ttfb_p50_us'])} | ${_megabytesPerSecond(stats['mean_throughput_bytes_per_second'])} |',
+      '| ${item['candidate']} | ${item['scenario']} | ${stats['count']} | ${_milliseconds(stats['min_us'])} | ${_milliseconds(stats['p50_us'])} | ${_milliseconds(stats['p90_us'])} | ${_milliseconds(stats['p95_us'])} | ${_milliseconds(stats['max_us'])} | ${_milliseconds(stats['stddev_us'])} | ${_milliseconds(stats['ttfb_p50_us'])} | ${_megabytesPerSecond(stats['mean_throughput_bytes_per_second'])} |',
     );
   }
   buffer

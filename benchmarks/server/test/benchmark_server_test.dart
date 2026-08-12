@@ -41,11 +41,11 @@ void main() {
     final redirect = await _get('/redirect/2');
 
     expect(echo.body, <int>[1, 2, 3]);
-    expect(jsonDecode(utf8.decode(upload.body)), <String, dynamic>{
-      'bytes': 3,
-      'expected': 3,
-      'ok': true,
-    });
+    final uploadJson = jsonDecode(utf8.decode(upload.body)) as Map<String, dynamic>;
+    expect(uploadJson['bytes'], 3);
+    expect(uploadJson['expected'], 3);
+    expect(uploadJson['ok'], true);
+    expect(uploadJson['hash'], isA<String>());
     expect(mismatch.statusCode, 400);
     expect(headers.headers['x-alphax-echo-trace'], contains('trace-1'));
     expect(status.statusCode, 418);

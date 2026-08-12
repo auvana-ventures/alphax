@@ -9,6 +9,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
+#include <time.h>
 
 typedef struct WriteContext {
   AxCurlResult *result;
@@ -16,6 +18,14 @@ typedef struct WriteContext {
 } WriteContext;
 
 static char last_error[256] = "";
+
+static uint64_t monotonic_now_ns(void) {
+  struct timespec timestamp;
+  if (clock_gettime(CLOCK_MONOTONIC, &timestamp) != 0) {
+    return 0;
+  }
+  return (uint64_t)timestamp.tv_sec * 1000000000ULL + (uint64_t)timestamp.tv_nsec;
+}
 
 static size_t write_callback(char *buffer, size_t size, size_t count, void *userdata) {
   WriteContext *context = (WriteContext *)userdata;
@@ -117,8 +127,25 @@ static int perform_request(const char *url, FILE *download, FILE *upload, AxCurl
       break;
     }
     if (running > 0) {
+      long timeout_ms = -1;
+      multi_code = curl_multi_timeout(multi, &timeout_ms);
+      if (multi_code != CURLM_OK) {
+        snprintf(last_error, sizeof(last_error), "curl_multi_timeout failed: %s", curl_multi_strerror(multi_code));
+        result_code = CURLE_FAILED_INIT;
+        break;
+      }
+      if (timeout_ms < 0 || timeout_ms > 1000) {
+        timeout_ms = 1000;
+      }
       int descriptors = 0;
-      multi_code = curl_multi_poll(multi, NULL, 0, 1000, &descriptors);
+      const uint64_t wait_start_ns = monotonic_now_ns();
+      multi_code = curl_multi_poll(multi, NULL, 0, (int)timeout_ms, &descriptors);
+      const uint64_t wait_elapsed_ns = monotonic_now_ns() - wait_start_ns;
+      out->event_loop_wait_count++;
+      out->event_loop_wait_ns += wait_elapsed_ns;
+      if (wait_elapsed_ns > out->event_loop_max_wait_ns) {
+        out->event_loop_max_wait_ns = wait_elapsed_ns;
+      }
       if (multi_code != CURLM_OK) {
         snprintf(last_error, sizeof(last_error), "curl_multi_poll failed: %s", curl_multi_strerror(multi_code));
         result_code = CURLE_FAILED_INIT;
@@ -127,11 +154,14 @@ static int perform_request(const char *url, FILE *download, FILE *upload, AxCurl
     }
   } while (running > 0);
 
+  out->response_body_complete_ns = monotonic_now_ns();
+
   int messages_left = 0;
   CURLMsg *message = NULL;
   while ((message = curl_multi_info_read(multi, &messages_left)) != NULL) {
     if (message->msg == CURLMSG_DONE) {
       result_code = message->data.result;
+      out->curl_done_ns = monotonic_now_ns();
     }
   }
 
@@ -227,6 +257,7 @@ struct AxCurlStreamHandle {
   size_t body_length;
   char *file_path;
   FILE *file;
+  curl_off_t upload_size;
   AxCurlStreamStartCallback on_start;
   AxCurlStreamChunkCallback on_chunk;
   AxCurlStreamCompleteCallback on_complete;
@@ -239,6 +270,7 @@ struct AxCurlStreamHandle {
   int start_emitted;
   int callback_failed;
   AxCurlClient *client;
+  struct curl_slist *request_headers;
 };
 
 static char *duplicate_string(const char *value) {
@@ -291,6 +323,28 @@ static int append_header_bytes(AxCurlStreamHandle *handle, const char *bytes, si
   return 1;
 }
 
+static uint64_t parse_header_uint64(const char *bytes, size_t length, const char *name) {
+  const size_t name_length = strlen(name);
+  if (length <= name_length || strncasecmp(bytes, name, name_length) != 0 ||
+      bytes[name_length] != ':') {
+    return 0;
+  }
+  char value[64];
+  size_t value_length = length - name_length - 1;
+  if (value_length >= sizeof(value)) {
+    value_length = sizeof(value) - 1;
+  }
+  memcpy(value, bytes + name_length + 1, value_length);
+  value[value_length] = '\0';
+  char *start = value;
+  while (*start == ' ' || *start == '\t') {
+    start++;
+  }
+  char *end = NULL;
+  const unsigned long long parsed = strtoull(start, &end, 10);
+  return end == start ? 0 : (uint64_t)parsed;
+}
+
 static size_t async_header_callback(char *buffer,
                                     size_t size,
                                     size_t count,
@@ -300,14 +354,26 @@ static size_t async_header_callback(char *buffer,
   if (length >= 5 && strncmp(buffer, "HTTP/", 5) == 0) {
     handle->header_length = 0;
     handle->header_status_code = 0;
-    const char *status_start = strchr(buffer + 5, ' ');
+    char line[256];
+    const size_t line_length = length < sizeof(line) - 1 ? length : sizeof(line) - 1;
+    memcpy(line, buffer, line_length);
+    line[line_length] = '\0';
+    const char *status_start = strchr(line + 5, ' ');
     if (status_start != NULL) {
       char *end = NULL;
       const long status = strtol(status_start + 1, &end, 10);
       if (end != status_start + 1 && status >= 0) {
         handle->header_status_code = status;
+        if (status != 100 && handle->result.response_headers_ns == 0) {
+          handle->result.response_headers_ns = monotonic_now_ns();
+        }
       }
     }
+  }
+  const uint64_t server_body_read_us =
+      parse_header_uint64(buffer, length, "x-alphax-server-body-read-us");
+  if (server_body_read_us != 0) {
+    handle->result.server_body_read_us = server_body_read_us;
   }
   if (!append_header_bytes(handle, buffer, length)) {
     handle->callback_failed = 1;
@@ -349,6 +415,8 @@ static size_t async_write_callback(char *buffer,
   if (is_cancelled(handle)) {
     return 0;
   }
+  handle->result.response_callback_count++;
+  handle->result.response_bytes_delivered += length;
   emit_stream_start(handle);
   if (handle->callback_failed) {
     return 0;
@@ -373,6 +441,23 @@ static size_t async_write_callback(char *buffer,
   return length;
 }
 
+static size_t async_read_callback(char *buffer,
+                                  size_t size,
+                                  size_t count,
+                                  void *userdata) {
+  AxCurlStreamHandle *handle = (AxCurlStreamHandle *)userdata;
+  const size_t length = size * count;
+  handle->result.upload_callback_count++;
+  if (handle->result.first_upload_callback_ns == 0) {
+    handle->result.first_upload_callback_ns = monotonic_now_ns();
+  }
+  const size_t bytes_read = fread(buffer, 1, length, handle->file);
+  if (bytes_read > 0) {
+    handle->result.upload_bytes_read += bytes_read;
+  }
+  return bytes_read;
+}
+
 static int async_progress_callback(void *userdata,
                                    curl_off_t download_total,
                                    curl_off_t download_now,
@@ -380,8 +465,17 @@ static int async_progress_callback(void *userdata,
                                    curl_off_t upload_now) {
   (void)download_total;
   (void)download_now;
-  (void)upload_total;
-  (void)upload_now;
+  if (upload_now > 0) {
+    AxCurlStreamHandle *handle = (AxCurlStreamHandle *)userdata;
+    if (handle->result.first_upload_byte_ns == 0) {
+      handle->result.first_upload_byte_ns = monotonic_now_ns();
+    }
+    handle->result.upload_bytes_submitted = (uint64_t)upload_now;
+    if (upload_total > 0 && upload_now >= upload_total &&
+        handle->result.last_upload_byte_ns == 0) {
+      handle->result.last_upload_byte_ns = monotonic_now_ns();
+    }
+  }
   return is_cancelled((AxCurlStreamHandle *)userdata) ? 1 : 0;
 }
 
@@ -432,7 +526,10 @@ static int get_async_file_size(FILE *file, curl_off_t *size) {
 }
 
 static int run_async_request(AxCurlStreamHandle *handle) {
+  const uint64_t request_created_ns = handle->result.request_created_ns;
   memset(&handle->result, 0, sizeof(handle->result));
+  handle->result.request_created_ns = request_created_ns;
+  handle->result.body_preparation_start_ns = monotonic_now_ns();
   const int init_code = ensure_curl_initialized();
   if (init_code != 0) {
     handle->result.curl_code = init_code;
@@ -444,6 +541,7 @@ static int run_async_request(AxCurlStreamHandle *handle) {
     handle->result.curl_code = file_code;
     return file_code;
   }
+  handle->result.body_preparation_end_ns = monotonic_now_ns();
 
   CURLM *multi = curl_multi_init();
   CURL *easy = curl_easy_init();
@@ -501,16 +599,38 @@ static int run_async_request(AxCurlStreamHandle *handle) {
       handle->result.curl_code = CURLE_READ_ERROR;
       return CURLE_READ_ERROR;
     }
+    handle->result.body_preparation_end_ns = monotonic_now_ns();
     curl_easy_setopt(easy, CURLOPT_POST, 1L);
-    curl_easy_setopt(easy, CURLOPT_READFUNCTION, read_callback);
-    curl_easy_setopt(easy, CURLOPT_READDATA, handle->file);
+    curl_easy_setopt(easy, CURLOPT_READFUNCTION, async_read_callback);
+    curl_easy_setopt(easy, CURLOPT_READDATA, handle);
     curl_easy_setopt(easy, CURLOPT_POSTFIELDSIZE_LARGE, file_size);
+    handle->upload_size = file_size;
+    handle->request_headers = curl_slist_append(NULL, "Expect:");
+    if (handle->request_headers == NULL) {
+      set_error("unable to allocate upload request headers");
+      curl_easy_cleanup(easy);
+      curl_multi_cleanup(multi);
+      pthread_mutex_lock(&handle->mutex);
+      handle->multi = NULL;
+      pthread_mutex_unlock(&handle->mutex);
+      if (handle->file != NULL) {
+        fclose(handle->file);
+        handle->file = NULL;
+      }
+      handle->result.curl_code = CURLE_OUT_OF_MEMORY;
+      return CURLE_OUT_OF_MEMORY;
+    }
+    curl_easy_setopt(easy, CURLOPT_HTTPHEADER, handle->request_headers);
   }
+
+  handle->result.easy_handle_configured_ns = monotonic_now_ns();
 
   CURLMcode multi_code = curl_multi_add_handle(multi, easy);
   if (multi_code != CURLM_OK) {
     snprintf(last_error, sizeof(last_error), "curl_multi_add_handle failed: %s", curl_multi_strerror(multi_code));
     curl_easy_cleanup(easy);
+    curl_slist_free_all(handle->request_headers);
+    handle->request_headers = NULL;
     curl_multi_cleanup(multi);
     pthread_mutex_lock(&handle->mutex);
     handle->multi = NULL;
@@ -522,6 +642,7 @@ static int run_async_request(AxCurlStreamHandle *handle) {
     handle->result.curl_code = CURLE_FAILED_INIT;
     return CURLE_FAILED_INIT;
   }
+  handle->result.multi_add_handle_ns = monotonic_now_ns();
 
   int running = 0;
   CURLcode result_code = CURLE_OK;
@@ -533,8 +654,25 @@ static int run_async_request(AxCurlStreamHandle *handle) {
       break;
     }
     if (running > 0) {
+      long timeout_ms = -1;
+      multi_code = curl_multi_timeout(multi, &timeout_ms);
+      if (multi_code != CURLM_OK) {
+        snprintf(last_error, sizeof(last_error), "curl_multi_timeout failed: %s", curl_multi_strerror(multi_code));
+        result_code = CURLE_FAILED_INIT;
+        break;
+      }
+      if (timeout_ms < 0 || timeout_ms > 1000) {
+        timeout_ms = 1000;
+      }
       int descriptors = 0;
-      multi_code = curl_multi_poll(multi, NULL, 0, 1000, &descriptors);
+      const uint64_t wait_start_ns = monotonic_now_ns();
+      multi_code = curl_multi_poll(multi, NULL, 0, (int)timeout_ms, &descriptors);
+      const uint64_t wait_elapsed_ns = monotonic_now_ns() - wait_start_ns;
+      handle->result.event_loop_wait_count++;
+      handle->result.event_loop_wait_ns += wait_elapsed_ns;
+      if (wait_elapsed_ns > handle->result.event_loop_max_wait_ns) {
+        handle->result.event_loop_max_wait_ns = wait_elapsed_ns;
+      }
       if (multi_code != CURLM_OK) {
         snprintf(last_error, sizeof(last_error), "curl_multi_poll failed: %s", curl_multi_strerror(multi_code));
         result_code = CURLE_FAILED_INIT;
@@ -543,11 +681,14 @@ static int run_async_request(AxCurlStreamHandle *handle) {
     }
   } while (running > 0);
 
+  handle->result.response_body_complete_ns = monotonic_now_ns();
+
   int messages_left = 0;
   CURLMsg *message = NULL;
   while ((message = curl_multi_info_read(multi, &messages_left)) != NULL) {
     if (message->msg == CURLMSG_DONE) {
       result_code = message->data.result;
+      handle->result.curl_done_ns = monotonic_now_ns();
     }
   }
   populate_async_metrics(easy, &handle->result);
@@ -558,6 +699,8 @@ static int run_async_request(AxCurlStreamHandle *handle) {
 
   curl_multi_remove_handle(multi, easy);
   curl_easy_cleanup(easy);
+  curl_slist_free_all(handle->request_headers);
+  handle->request_headers = NULL;
   curl_multi_cleanup(multi);
   pthread_mutex_lock(&handle->mutex);
   handle->multi = NULL;
@@ -566,12 +709,14 @@ static int run_async_request(AxCurlStreamHandle *handle) {
     fclose(handle->file);
     handle->file = NULL;
   }
+  handle->result.native_cleanup_ns = monotonic_now_ns();
   return (int)result_code;
 }
 
 static void *async_request_thread(void *userdata) {
   AxCurlStreamHandle *handle = (AxCurlStreamHandle *)userdata;
   const int code = run_async_request(handle);
+  handle->result.native_completion_notification_ns = monotonic_now_ns();
   if (!handle->start_emitted) {
     emit_stream_start(handle);
   }
@@ -614,6 +759,7 @@ ALPHAX_CURL_EXPORT AxCurlStreamHandle *ax_curl_request_start(
     set_error("unable to initialize async request mutex");
     return NULL;
   }
+  handle->result.request_created_ns = monotonic_now_ns();
   handle->url = duplicate_string(url);
   handle->file_path = duplicate_string(file_path);
   handle->request_kind = request_kind;
@@ -688,7 +834,6 @@ ALPHAX_CURL_EXPORT AxCurlClient *ax_curl_client_create(void) {
   }
   client->share = curl_share_init();
   if (client->share == NULL ||
-      curl_share_setopt(client->share, CURLSHOPT_SHARE, CURL_LOCK_DATA_CONNECT) != CURLSHE_OK ||
       curl_share_setopt(client->share, CURLSHOPT_SHARE, CURL_LOCK_DATA_DNS) != CURLSHE_OK ||
       curl_share_setopt(client->share, CURLSHOPT_LOCKFUNC, share_lock) != CURLSHE_OK ||
       curl_share_setopt(client->share, CURLSHOPT_UNLOCKFUNC, share_unlock) != CURLSHE_OK ||

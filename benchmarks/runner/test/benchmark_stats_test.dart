@@ -9,6 +9,7 @@ void main() {
     expect(stats.min, 1);
     expect(stats.max, 9);
     expect(stats.percentile(0.50), 5);
+    expect(stats.percentile(0.90), 9);
     expect(stats.percentile(0.95), 9);
     expect(stats.toJson()['p99_us'], isNull);
     expect(stats.toJson()['mean_us'], 5.0);
