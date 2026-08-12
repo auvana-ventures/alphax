@@ -63,13 +63,13 @@ Codex, with maintainer review required before transport selection or Phase 1.
 - [x] Create benchmark task record and define the benchmark-only contract.
 - [x] Finalize deterministic server endpoints, health, and streaming surface.
 - [x] Implement equivalent Dart, libcurl/FFI, and Rust/FFI benchmark adapters.
-- [ ] Add correctness suite covering request, stream, transfer, timeout, cancel,
+- [x] Add correctness suite covering request, stream, transfer, timeout, cancel,
   and redirect behavior.
-- [ ] Add warmup, measured iterations, percentile statistics, raw samples, and
+- [x] Add warmup, measured iterations, percentile statistics, raw samples, and
   human-readable summaries.
-- [ ] Add initial local scenarios for small requests, concurrency, stream, upload,
+- [x] Add initial local scenarios for small requests, concurrency, stream, upload,
   download, and cancellation.
-- [ ] Add metadata, memory/copying notes, and binary-size measurement tooling.
+- [x] Add metadata, memory/copying notes, and binary-size measurement tooling.
 - [ ] Run the first complete comparable macOS dataset and review it for fairness.
 - [ ] Push logical working benchmark commits and stop for maintainer review.
 
@@ -89,8 +89,9 @@ Planned commands:
 
 ## Next Action
 
-Add the correctness matrix across all three adapters, then add benchmark statistics
-and scenario execution without making a production transport selection.
+Run the final macOS local profile with the current release native libraries, review
+raw and summarized output for completeness, then perform the consolidated repository
+validation before the next logical commit.
 
 ## Blockers
 
@@ -118,3 +119,10 @@ Pending benchmark implementation and first comparable macOS dataset.
 - 2026-08-12: Added and validated the Rust reqwest/hyper C ABI/FFI adapter for
   buffered and streaming requests, direct file transfers, timeout, and cancellation.
   No C++ engine or production transport has been selected.
+- 2026-08-12: Added the correctness matrix, statistical runner, deterministic local
+  scenarios, metadata capture, process/memory observations, binary-size tooling,
+  and raw/summary output generation. Candidate runs are isolated with fresh local
+  server processes to avoid cross-candidate heap/socket/runtime contamination.
+- 2026-08-12: Fixed Rust reqwest shared-client lifecycle by keeping its Tokio runtime
+  alive for the lifetime of the FFI client; the 250-concurrency smoke profile now
+  completes in isolation.

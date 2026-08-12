@@ -38,6 +38,55 @@ ALPHAX_CURL_LIBRARY=prototypes/libcurl_ffi/libalphax_curl.dylib \
 
 The libcurl library extension is `.so` on Linux.
 
+## Reproducible local profile
+
+Build both native release libraries, then run the benchmark package from the
+repository root:
+
+```text
+make -C prototypes/libcurl_ffi
+cargo build --release --manifest-path prototypes/rust_http/Cargo.toml
+ALPHAX_CURL_LIBRARY="$PWD/prototypes/libcurl_ffi/libalphax_curl.dylib" \
+ALPHAX_RUST_LIBRARY="$PWD/prototypes/rust_http/target/release/libalphax_rust_http.dylib" \
+  dart run benchmarks/runner/bin/run_benchmarks.dart \
+  --warmup 3 --iterations 10 --output benchmarks/results
+```
+
+Use `.so` paths on Linux. The runner starts an ephemeral deterministic server when
+`--base-url` is omitted. It performs correctness checks first and does not collect
+comparative performance samples for a candidate that fails. Raw output is stored in
+`benchmarks/results/raw/`; machine-readable and Markdown summaries are stored in
+`benchmarks/results/summaries/`.
+
+The local profile includes 1 KB/10 KB/100 KB cold and warm-labelled request samples,
+10/50/100/250-request concurrency, 10 MB/100 MB upload and download, streaming,
+slow-consumer streaming, separate JSON decode/parse timings, and cancellation while
+waiting, streaming, downloading, and uploading. Native candidates keep shared
+connection state where their prototype supports it: libcurl uses a shared
+`CURLSH`, and Rust uses a shared reqwest client backed by a long-lived Tokio
+runtime. Numeric connection reuse is still unavailable, so no reuse advantage is
+claimed from warm samples alone.
+
+By default, the runner starts a fresh deterministic server and a fresh child
+process for each candidate, then merges only complete candidate documents. This
+prevents one candidate's heap, socket, or native runtime state from contaminating
+another candidate's measurements. Supplying `--base-url` opts into an externally
+managed server for controlled experiments.
+
+The default run uses three warmup iterations and ten measured iterations for every
+scenario. Raw records retain every sample. Summaries include mean, p50, p95, and
+standard deviation; p99 is reported only when a scenario has at least twenty
+measured samples, otherwise it is explicitly unavailable.
+
+Measure release artifact sizes separately:
+
+```text
+./benchmarks/scripts/measure-binary-size.sh
+```
+
+This reports a Dart AOT executable baseline and stripped native shared-library
+artifact sizes. It does not compare raw build-directory sizes.
+
 ## Scenarios
 
 The full plan covers cold and warm latency, sequential and sustainable concurrent
@@ -50,7 +99,8 @@ network profiles from good to intermittent mobile-like conditions.
 Record elapsed time, DNS/connect/TLS/TTFB/transfer timings where available,
 throughput, requests/sec, CPU, Dart/native/process memory, connections and reuse,
 bytes, cancellation latency, binary-size delta, OS, device, CPU, architecture,
-Dart/Flutter/build/library versions, and benchmark commit hash.
+Dart/Flutter/build/library versions, and benchmark commit hash. The runner sanitizes
+machine-local Flutter paths before writing metadata.
 
 ## Fairness
 
