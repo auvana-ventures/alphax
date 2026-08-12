@@ -44,6 +44,8 @@ Future<void> _handle(HttpRequest request) async {
         await _echo(request, response);
       case 'upload':
         await _countUpload(request, response);
+      case 'health':
+        _writeJsonBody(response, <String, Object>{'status': 'ok'});
       case 'delay':
         await Future<void>.delayed(_durationFromPath(segments, 1, 'milliseconds'));
         _writeText(response, 'delayed');
@@ -54,6 +56,10 @@ Future<void> _handle(HttpRequest request) async {
         response.headers
           ..set('x-alphax-server', 'benchmark')
           ..set('x-alphax-request-method', request.method);
+        final trace = request.headers.value('x-trace');
+        if (trace != null) {
+          response.headers.set('x-alphax-echo-trace', trace);
+        }
         _writeText(response, 'headers');
       case 'redirect':
         _redirect(response, _positiveInt(segments, 1, 'count'));
@@ -89,7 +95,11 @@ Future<void> _writeBytes(HttpResponse response, int size) async {
 Future<void> _writeJson(HttpResponse response, int size) async {
   final payloadLength = math.max(0, size - 16);
   final payload = List<String>.filled(payloadLength, 'a').join();
-  final body = utf8.encode(jsonEncode(<String, String>{'payload': payload}));
+  _writeJsonBody(response, <String, Object>{'payload': payload});
+}
+
+void _writeJsonBody(HttpResponse response, Map<String, Object> value) {
+  final body = utf8.encode(jsonEncode(value));
   response
     ..headers.contentType = ContentType.json
     ..contentLength = body.length
@@ -128,11 +138,21 @@ Future<void> _countUpload(HttpRequest request, HttpResponse response) async {
   await for (final chunk in request) {
     bytes += chunk.length;
   }
-  final body = utf8.encode(jsonEncode(<String, int>{'bytes': bytes}));
-  response
-    ..headers.contentType = ContentType.json
-    ..contentLength = body.length
-    ..add(body);
+  final expectedString = request.uri.queryParameters['expected'];
+  final expected = expectedString == null ? null : int.tryParse(expectedString);
+  if (expectedString != null && expected == null) {
+    throw FormatException('Invalid expected byte count: $expectedString');
+  }
+  final matches = expected == null || expected == bytes;
+  if (!matches) {
+    response.statusCode = HttpStatus.badRequest;
+  }
+  response.headers.set('x-alphax-uploaded-bytes', '$bytes');
+  _writeJsonBody(response, <String, Object>{
+    'bytes': bytes,
+    'expected': expected ?? bytes,
+    'ok': matches,
+  });
 }
 
 void _redirect(HttpResponse response, int count) {

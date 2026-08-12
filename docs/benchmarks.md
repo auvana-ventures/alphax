@@ -20,9 +20,11 @@ Run the deterministic Dart server:
 dart run benchmarks/server/server.dart --port 8080
 ```
 
-Endpoints include `/bytes/{size}`, `/json/{size}`, `/stream/{chunks}/{chunkSize}`,
-`/echo`, `/upload`, `/delay/{milliseconds}`, `/status/{code}`, `/headers`, and
-`/redirect/{count}`.
+Endpoints include `/health`, `/bytes/{size}`, `/json/{size}`,
+`/stream/{chunks}/{chunkSize}`, `/echo`, `/upload?expected={bytes}`,
+`/delay/{milliseconds}`, `/status/{code}`, `/headers`, and `/redirect/{count}`.
+The upload endpoint returns the received count, an `ok` flag, and an
+`x-alphax-uploaded-bytes` header; a mismatched `expected` count returns 400.
 
 ## Initial client smoke runs
 
