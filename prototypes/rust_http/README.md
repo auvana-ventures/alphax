@@ -24,6 +24,7 @@ cargo run --manifest-path prototypes/rust_http/Cargo.toml -- \
 
 The dynamic library is `target/release/libalphax_rust_http.dylib` on macOS and
 `target/release/libalphax_rust_http.so` on Linux. The Dart FFI prototype uses the
-`ALPHAX_RUST_LIBRARY` environment variable to locate it. The FFI adapter exposes
-the benchmark-only buffered, streaming, direct file-transfer, timeout, and
-cancellation operations; it is not a production AlphaX API.
+`ALPHAX_RUST_LIBRARY` environment variable to locate it. The FFI adapter owns a
+shared reqwest client on a long-lived Tokio runtime per Dart transport instance
+and exposes the benchmark-only buffered, streaming, direct file-transfer, timeout,
+and cancellation operations; it is not a production AlphaX API.

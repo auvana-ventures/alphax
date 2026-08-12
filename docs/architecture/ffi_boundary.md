@@ -32,10 +32,11 @@ pairing, and prevent Dart from retaining borrowed native memory.
 native producer → bounded queue → Dart consumer
 ```
 
-The queue must have a configured upper bound. A paused Dart subscription must either
-propagate a pause to the native producer or apply a documented bounded policy; it
-must never create unbounded native memory growth. Chunk ownership ends after the
-consumer has received an owned Dart value or the native queue has reclaimed it.
+The production queue must have a configured upper bound. The current benchmark
+prototypes use `NativeCallable.listener` plus a Dart `StreamController`; callbacks
+are copied into owned Dart chunks, but the prototype queue is not yet a measured
+bounded backpressure implementation. A paused consumer therefore remains an
+explicit production gap rather than an unsupported performance claim.
 
 ## Cancellation and shutdown
 
@@ -56,7 +57,18 @@ upload:   disk → file descriptor → native transport → socket
 
 Dart should receive progress and lifecycle events rather than full file contents.
 
+The current libcurl and Rust benchmark adapters exercise native file paths: Dart
+passes a file path, native code opens the file, and Dart receives transfer metadata.
+The current Dart baseline writes response chunks through a Dart `IOSink` and reads
+upload chunks through a Dart file stream. These are separate architectural paths and
+remain labelled as such in result summaries.
+
 ## Threading
 
-Each prototype must record its runtime/event-loop owner, callback thread, Dart isolate
-interaction, shutdown behavior, and whether concurrent requests share a pool.
+The Dart baseline runs on the Dart isolate and uses `HttpClient`. The libcurl
+prototype performs each async request on a native worker thread with a per-request
+multi/easy handle plus shared libcurl connection state. The Rust prototype owns a
+long-lived multi-thread Tokio runtime and reqwest client per Dart transport
+instance; each FFI request is driven through that runtime from a native worker
+thread. Connection reuse is still not reported as a reliable numeric metric by
+either FFI adapter and must remain unavailable in summaries until instrumented.
