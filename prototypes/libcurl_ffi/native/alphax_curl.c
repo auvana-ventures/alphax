@@ -187,6 +187,29 @@ ALPHAX_CURL_EXPORT int32_t ax_curl_upload(const char *url, const char *path, AxC
   return code;
 }
 
+struct AxCurlClient {
+  CURLSH *share;
+  pthread_mutex_t mutex;
+};
+
+static void share_lock(CURL *easy,
+                       curl_lock_data data,
+                       curl_lock_access access,
+                       void *userdata) {
+  (void)easy;
+  (void)data;
+  (void)access;
+  AxCurlClient *client = (AxCurlClient *)userdata;
+  pthread_mutex_lock(&client->mutex);
+}
+
+static void share_unlock(CURL *easy, curl_lock_data data, void *userdata) {
+  (void)easy;
+  (void)data;
+  AxCurlClient *client = (AxCurlClient *)userdata;
+  pthread_mutex_unlock(&client->mutex);
+}
+
 struct AxCurlStreamHandle {
   pthread_t thread;
   pthread_mutex_t mutex;
@@ -211,6 +234,7 @@ struct AxCurlStreamHandle {
   int64_t header_status_code;
   int start_emitted;
   int callback_failed;
+  AxCurlClient *client;
 };
 
 static char *duplicate_string(const char *value) {
@@ -440,6 +464,7 @@ static int run_async_request(AxCurlStreamHandle *handle) {
   pthread_mutex_unlock(&handle->mutex);
 
   curl_easy_setopt(easy, CURLOPT_URL, handle->url);
+  curl_easy_setopt(easy, CURLOPT_SHARE, handle->client->share);
   curl_easy_setopt(easy, CURLOPT_FOLLOWLOCATION, handle->follow_redirects ? 1L : 0L);
   curl_easy_setopt(easy, CURLOPT_MAXREDIRS, 10L);
   curl_easy_setopt(easy, CURLOPT_NOSIGNAL, 1L);
@@ -553,6 +578,7 @@ static void *async_request_thread(void *userdata) {
 }
 
 ALPHAX_CURL_EXPORT AxCurlStreamHandle *ax_curl_request_start(
+    AxCurlClient *client,
     const char *url,
     int32_t request_kind,
     const uint8_t *body,
@@ -563,7 +589,7 @@ ALPHAX_CURL_EXPORT AxCurlStreamHandle *ax_curl_request_start(
     AxCurlStreamChunkCallback on_chunk,
     AxCurlStreamCompleteCallback on_complete,
     void *user_data) {
-  if (url == NULL || on_complete == NULL || request_kind < AX_CURL_GET ||
+  if (client == NULL || url == NULL || on_complete == NULL || request_kind < AX_CURL_GET ||
       request_kind > AX_CURL_DOWNLOAD_FILE) {
     set_error("invalid async request arguments");
     return NULL;
@@ -592,6 +618,7 @@ ALPHAX_CURL_EXPORT AxCurlStreamHandle *ax_curl_request_start(
   handle->on_chunk = on_chunk;
   handle->on_complete = on_complete;
   handle->user_data = user_data;
+  handle->client = client;
   if (handle->url == NULL || (file_path != NULL && handle->file_path == NULL)) {
     pthread_mutex_destroy(&handle->mutex);
     free(handle->url);
@@ -632,6 +659,54 @@ ALPHAX_CURL_EXPORT AxCurlStreamHandle *ax_curl_request_start(
   }
   handle->thread_started = 1;
   return handle;
+}
+
+ALPHAX_CURL_EXPORT AxCurlClient *ax_curl_client_create(void) {
+  const int init_code = ensure_curl_initialized();
+  if (init_code != 0) {
+    return NULL;
+  }
+  AxCurlClient *client = (AxCurlClient *)calloc(1, sizeof(*client));
+  pthread_mutexattr_t mutex_attributes;
+  const int attributes_code = pthread_mutexattr_init(&mutex_attributes);
+  if (attributes_code != 0) {
+    free(client);
+    set_error("unable to initialize libcurl client mutex attributes");
+    return NULL;
+  }
+  pthread_mutexattr_settype(&mutex_attributes, PTHREAD_MUTEX_RECURSIVE);
+  const int mutex_code = client == NULL ? -1 : pthread_mutex_init(&client->mutex, &mutex_attributes);
+  pthread_mutexattr_destroy(&mutex_attributes);
+  if (client == NULL || mutex_code != 0) {
+    free(client);
+    set_error("unable to allocate libcurl client");
+    return NULL;
+  }
+  client->share = curl_share_init();
+  if (client->share == NULL ||
+      curl_share_setopt(client->share, CURLSHOPT_SHARE, CURL_LOCK_DATA_CONNECT) != CURLSHE_OK ||
+      curl_share_setopt(client->share, CURLSHOPT_SHARE, CURL_LOCK_DATA_DNS) != CURLSHE_OK ||
+      curl_share_setopt(client->share, CURLSHOPT_LOCKFUNC, share_lock) != CURLSHE_OK ||
+      curl_share_setopt(client->share, CURLSHOPT_UNLOCKFUNC, share_unlock) != CURLSHE_OK ||
+      curl_share_setopt(client->share, CURLSHOPT_USERDATA, client) != CURLSHE_OK) {
+    if (client->share != NULL) {
+      curl_share_cleanup(client->share);
+    }
+    pthread_mutex_destroy(&client->mutex);
+    free(client);
+    set_error("unable to configure libcurl shared connection state");
+    return NULL;
+  }
+  return client;
+}
+
+ALPHAX_CURL_EXPORT void ax_curl_client_free(AxCurlClient *client) {
+  if (client == NULL) {
+    return;
+  }
+  curl_share_cleanup(client->share);
+  pthread_mutex_destroy(&client->mutex);
+  free(client);
 }
 
 ALPHAX_CURL_EXPORT int32_t ax_curl_request_cancel(AxCurlStreamHandle *handle) {

@@ -22,6 +22,7 @@ typedef struct AxCurlResult {
 } AxCurlResult;
 
 typedef struct AxCurlStreamHandle AxCurlStreamHandle;
+typedef struct AxCurlClient AxCurlClient;
 
 typedef void (*AxCurlStreamStartCallback)(int64_t status_code,
                                           const uint8_t *headers,
@@ -44,7 +45,10 @@ enum AxCurlRequestKind {
 ALPHAX_CURL_EXPORT int32_t ax_curl_get(const char *url, AxCurlResult *out);
 ALPHAX_CURL_EXPORT int32_t ax_curl_download(const char *url, const char *path, AxCurlResult *out);
 ALPHAX_CURL_EXPORT int32_t ax_curl_upload(const char *url, const char *path, AxCurlResult *out);
+ALPHAX_CURL_EXPORT AxCurlClient *ax_curl_client_create(void);
+ALPHAX_CURL_EXPORT void ax_curl_client_free(AxCurlClient *client);
 ALPHAX_CURL_EXPORT AxCurlStreamHandle *ax_curl_request_start(
+    AxCurlClient *client,
     const char *url,
     int32_t request_kind,
     const uint8_t *body,

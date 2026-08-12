@@ -90,6 +90,11 @@ pub struct AxRustRequest {
     thread: Option<JoinHandle<()>>,
 }
 
+pub struct AxRustClient {
+    client: Client,
+    runtime: Arc<tokio::runtime::Runtime>,
+}
+
 /// Performs one request using a reusable reqwest client.
 pub async fn fetch(client: &Client, url: &str) -> Result<AxRustResult, reqwest::Error> {
     let started = Instant::now();
@@ -109,6 +114,7 @@ pub async fn fetch(client: &Client, url: &str) -> Result<AxRustResult, reqwest::
 async fn run_request(
     config: RequestConfig,
     cancellation: Arc<Cancellation>,
+    shared_client: Client,
     on_start: AxRustStreamStartCallback,
     on_chunk: AxRustStreamChunkCallback,
     user_data: *mut c_void,
@@ -117,14 +123,13 @@ async fn run_request(
     if cancellation.is_cancelled() {
         return cancelled_result(started);
     }
-    let policy = if config.follow_redirects {
-        Policy::limited(10)
+    let client = if config.follow_redirects {
+        shared_client
     } else {
-        Policy::none()
-    };
-    let client = match Client::builder().redirect(policy).build() {
-        Ok(client) => client,
-        Err(_) => return error_result(started, ERROR_CLIENT),
+        match Client::builder().redirect(Policy::none()).build() {
+            Ok(client) => client,
+            Err(_) => return error_result(started, ERROR_CLIENT),
+        }
     };
     let method = match config.request_kind {
         REQUEST_GET | REQUEST_DOWNLOAD_FILE => Method::GET,
@@ -160,7 +165,10 @@ async fn run_request(
         result = request.send() => match result {
             Ok(response) => response,
             Err(_) if cancellation.is_cancelled() => return cancelled_result(started),
-            Err(_) => return error_result(started, ERROR_REQUEST),
+            Err(error) => {
+                eprintln!("AlphaX Rust request failed before response: {error:?}");
+                return error_result(started, ERROR_REQUEST);
+            }
         },
         _ = cancellation.wait() => return cancelled_result(started),
     };
@@ -189,13 +197,14 @@ async fn run_request(
         let chunk = match next {
             Ok(chunk) => chunk,
             Err(_) if cancellation.is_cancelled() => return cancelled_result(started),
-            Err(_) => {
+            Err(error) => {
+                eprintln!("AlphaX Rust response stream failed: {error:?}");
                 return error_result_with_status(
                     started,
                     status_code,
                     time_to_first_byte_ms,
                     ERROR_REQUEST,
-                )
+                );
             }
         };
         bytes_received += chunk.len() as u64;
@@ -323,6 +332,7 @@ pub extern "C" fn ax_rust_get(url: *const c_char, out: *mut AxRustResult) -> i32
 /// Starts an asynchronous request for the Dart benchmark contract.
 #[no_mangle]
 pub extern "C" fn ax_rust_request_start(
+    client: *mut AxRustClient,
     url: *const c_char,
     request_kind: i32,
     body: *const u8,
@@ -334,7 +344,7 @@ pub extern "C" fn ax_rust_request_start(
     on_complete: AxRustStreamCompleteCallback,
     user_data: *mut c_void,
 ) -> *mut AxRustRequest {
-    if url.is_null() || on_complete as usize == 0 {
+    if client.is_null() || url.is_null() || on_complete as usize == 0 {
         return ptr::null_mut();
     }
     if !(REQUEST_GET..=REQUEST_DOWNLOAD_FILE).contains(&request_kind) {
@@ -378,20 +388,25 @@ pub extern "C" fn ax_rust_request_start(
     };
     let cancellation = Arc::new(Cancellation::new());
     let worker_cancellation = Arc::clone(&cancellation);
+    // SAFETY: the caller keeps the client alive until all request handles have
+    // completed. Clone both the client and its long-lived runtime state so the
+    // reqwest dispatcher is not tied to a request-local runtime.
+    let (shared_client, runtime) = unsafe {
+        let client = &*client;
+        (client.client.clone(), Arc::clone(&client.runtime))
+    };
     let user_data_address = user_data as usize;
     let thread = match thread::Builder::new()
         .name("alphax-rust-http".into())
         .spawn(move || {
-            let result = match Builder::new_current_thread().enable_all().build() {
-                Ok(runtime) => runtime.block_on(run_request(
-                    config,
-                    worker_cancellation,
-                    on_start,
-                    on_chunk,
-                    user_data_address as *mut c_void,
-                )),
-                Err(_) => error_result(Instant::now(), ERROR_RUNTIME),
-            };
+            let result = runtime.handle().block_on(run_request(
+                config,
+                worker_cancellation,
+                shared_client,
+                on_start,
+                on_chunk,
+                user_data_address as *mut c_void,
+            ));
             let error_code = result.error_code;
             let result_pointer = Box::into_raw(Box::new(result));
             on_complete(result_pointer, error_code, user_data_address as *mut c_void);
@@ -403,6 +418,35 @@ pub extern "C" fn ax_rust_request_start(
         cancellation,
         thread: Some(thread),
     }))
+}
+
+/// Creates a shared reqwest client for one Dart transport instance.
+#[no_mangle]
+pub extern "C" fn ax_rust_client_create() -> *mut AxRustClient {
+    let runtime = match Builder::new_multi_thread()
+        .worker_threads(2)
+        .enable_all()
+        .build()
+    {
+        Ok(runtime) => Arc::new(runtime),
+        Err(_) => return ptr::null_mut(),
+    };
+    let client = match Client::builder().redirect(Policy::limited(10)).build() {
+        Ok(client) => client,
+        Err(_) => return ptr::null_mut(),
+    };
+    Box::into_raw(Box::new(AxRustClient { client, runtime }))
+}
+
+/// Releases a shared reqwest client after its request handles are closed.
+#[no_mangle]
+pub extern "C" fn ax_rust_client_free(client: *mut AxRustClient) {
+    if client.is_null() {
+        return;
+    }
+    // SAFETY: the caller owns this opaque allocation and calls free once after
+    // all request handles have completed.
+    unsafe { drop(Box::from_raw(client)) };
 }
 
 /// Requests cancellation of an asynchronous Rust operation.

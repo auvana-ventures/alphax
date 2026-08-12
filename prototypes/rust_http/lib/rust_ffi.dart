@@ -50,6 +50,7 @@ typedef _StreamCompleteNative =
 
 typedef _RequestStartNative =
     Pointer<Void> Function(
+      Pointer<Void>,
       Pointer<Utf8>,
       Int32,
       Pointer<Uint8>,
@@ -63,6 +64,7 @@ typedef _RequestStartNative =
     );
 typedef _RequestStartDart =
     Pointer<Void> Function(
+      Pointer<Void>,
       Pointer<Utf8>,
       int,
       Pointer<Uint8>,
@@ -82,6 +84,10 @@ typedef _FreeBufferNative = Void Function(Pointer<Uint8>, Uint64);
 typedef _FreeBufferDart = void Function(Pointer<Uint8>, int);
 typedef _FreeResultNative = Void Function(Pointer<NativeAxRustResult>);
 typedef _FreeResultDart = void Function(Pointer<NativeAxRustResult>);
+typedef _ClientCreateNative = Pointer<Void> Function();
+typedef _ClientCreateDart = Pointer<Void> Function();
+typedef _ClientFreeNative = Void Function(Pointer<Void>);
+typedef _ClientFreeDart = void Function(Pointer<Void>);
 
 /// Dart wrapper around the Rust prototype C ABI.
 final class RustFfiClient implements BenchmarkTransport {
@@ -104,6 +110,16 @@ final class RustFfiClient implements BenchmarkTransport {
     _freeResult = _library.lookupFunction<_FreeResultNative, _FreeResultDart>(
       'ax_rust_free_result',
     );
+    _clientCreate = _library.lookupFunction<_ClientCreateNative, _ClientCreateDart>(
+      'ax_rust_client_create',
+    );
+    _clientFree = _library.lookupFunction<_ClientFreeNative, _ClientFreeDart>(
+      'ax_rust_client_free',
+    );
+    _clientHandle = _clientCreate();
+    if (_clientHandle == nullptr) {
+      throw StateError('unable to create Rust shared client state');
+    }
     _startCallback = NativeCallable<_StreamStartNative>.listener(_handleStart);
     _chunkCallback = NativeCallable<_StreamChunkNative>.listener(_handleChunk);
     _completeCallback = NativeCallable<_StreamCompleteNative>.listener(_handleComplete);
@@ -117,6 +133,9 @@ final class RustFfiClient implements BenchmarkTransport {
   late final _RequestFreeDart _requestFree;
   late final _FreeBufferDart _freeBuffer;
   late final _FreeResultDart _freeResult;
+  late final _ClientCreateDart _clientCreate;
+  late final _ClientFreeDart _clientFree;
+  late final Pointer<Void> _clientHandle;
   late final NativeCallable<_StreamStartNative> _startCallback;
   late final NativeCallable<_StreamChunkNative> _chunkCallback;
   late final NativeCallable<_StreamCompleteNative> _completeCallback;
@@ -280,6 +299,7 @@ final class RustFfiClient implements BenchmarkTransport {
     _startCallback.close();
     _chunkCallback.close();
     _completeCallback.close();
+    _clientFree(_clientHandle);
   }
 
   static const int _getRequest = 0;
@@ -375,6 +395,7 @@ final class RustFfiClient implements BenchmarkTransport {
           bodyPointer.asTypedList(operation.body.length).setAll(0, operation.body);
         }
         return _requestStart(
+          _clientHandle,
           urlPointer,
           operation.requestKind,
           operation.body.isEmpty ? nullptr : bodyPointer,

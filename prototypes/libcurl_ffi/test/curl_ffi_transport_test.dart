@@ -57,6 +57,12 @@ void main() {
             ..set('x-repeated', 'one')
             ..add('x-repeated', 'two');
           request.response.write('headers');
+        case '/redirect':
+          request.response
+            ..statusCode = HttpStatus.found
+            ..headers.set(HttpHeaders.locationHeader, '/final');
+        case '/final':
+          request.response.write('redirected');
         default:
           request.response.add(List<int>.generate(64, (index) => index % 251));
       }
@@ -123,5 +129,12 @@ void main() {
     );
     cancellation.cancel();
     await expectLater(request, throwsA(isA<BenchmarkCancelledException>()));
+  });
+
+  test('follows redirects', () async {
+    final response = await transport.getBytes(uriFor(baseUri, '/redirect'));
+
+    expect(response.statusCode, 200);
+    expect(response.bodyBytes, 'redirected'.codeUnits);
   });
 }

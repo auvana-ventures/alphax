@@ -1,0 +1,21 @@
+name: alphax_benchmark_runner
+description: Reproducible AlphaX Phase 0 transport benchmark runner.
+publish_to: none
+environment:
+  sdk: ">=3.8.0 <4.0.0"
+
+dependencies:
+  alphax_benchmark_client:
+    path: ../client
+  alphax_benchmark_server:
+    path: ../server
+  alphax_dart_io_prototype:
+    path: ../../prototypes/dart_io
+  alphax_libcurl_ffi_prototype:
+    path: ../../prototypes/libcurl_ffi
+  alphax_rust_http_ffi_prototype:
+    path: ../../prototypes/rust_http
+
+dev_dependencies:
+  lints: ^5.1.1
+  test: ^1.31.0
