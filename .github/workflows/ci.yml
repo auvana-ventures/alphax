@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  dart:
+    name: Dart packages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - name: Resolve workspace
+        run: dart pub get
+      - name: Format
+        run: dart format --set-exit-if-changed .
+      - name: Analyze workspace
+        run: dart analyze
+      - name: Test packages
+        run: tooling/scripts/test_packages.sh
+      - name: Validate package metadata
+        run: tooling/scripts/validate_packages.sh
+      - name: Analyze FFI harnesses
+        run: tooling/scripts/analyze_prototypes.sh
+
+  native-prototypes:
+    name: Native prototypes (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - macos-latest
+          - ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Install libcurl development files on Linux
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install --yes libcurl4-openssl-dev
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Verify libcurl prototype
+        run: make -C prototypes/libcurl_ffi test
+      - name: Verify Rust prototype
+        run: cargo test --manifest-path prototypes/rust_http/Cargo.toml
+      - name: Build Rust FFI library
+        run: cargo build --release --manifest-path prototypes/rust_http/Cargo.toml

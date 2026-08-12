@@ -1,0 +1,17 @@
+name: alphax_workspace
+description: AlphaX Dart and Flutter networking workspace.
+publish_to: none
+repository: https://github.com/auvana-ventures/alphax
+issue_tracker: https://github.com/auvana-ventures/alphax/issues
+environment:
+  sdk: ">=3.8.0 <4.0.0"
+
+workspace:
+  - packages/alphax
+  - packages/alphax_native
+  - packages/alphax_dio
+  - packages/alphax_test
+
+dev_dependencies:
+  lints: ^5.1.1
+  test: ^1.25.0

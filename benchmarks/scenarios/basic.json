@@ -1,0 +1,10 @@
+{
+  "name": "basic-phase-0",
+  "description": "Small deterministic baseline scenarios; expand only with documented evidence.",
+  "requests": [
+    {"path": "/bytes/1024", "requests": 1, "concurrency": 1},
+    {"path": "/bytes/10240", "requests": 10, "concurrency": 4},
+    {"path": "/bytes/102400", "requests": 50, "concurrency": 10},
+    {"path": "/stream/10/4096", "requests": 5, "concurrency": 2}
+  ]
+}

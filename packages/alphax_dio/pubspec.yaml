@@ -1,0 +1,17 @@
+name: alphax_dio
+description: Planned Dio compatibility adapter for AlphaX.
+version: 0.1.0
+repository: https://github.com/auvana-ventures/alphax
+issue_tracker: https://github.com/auvana-ventures/alphax/issues
+topics:
+  - networking
+  - http
+  - dio
+  - dart
+resolution: workspace
+environment:
+  sdk: ">=3.8.0 <4.0.0"
+
+dev_dependencies:
+  lints: ^5.1.1
+  test: ^1.25.0
