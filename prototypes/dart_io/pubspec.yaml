@@ -1,0 +1,13 @@
+name: alphax_dart_io_prototype
+description: Dart HttpClient benchmark candidate for AlphaX Phase 0.
+publish_to: none
+environment:
+  sdk: ">=3.8.0 <4.0.0"
+
+dependencies:
+  alphax_benchmark_client:
+    path: ../../benchmarks/client
+
+dev_dependencies:
+  lints: ^5.1.1
+  test: ^1.31.0

@@ -1,13 +1,16 @@
 import 'dart:io';
 
+import 'package:alphax_benchmark_client/alphax_benchmark_client.dart';
+import 'package:alphax_dart_io_prototype/dart_io.dart';
+
 import '../../../benchmarks/client/benchmark_support.dart';
 
 Future<void> main(List<String> args) async {
   try {
     final options = BenchmarkOptions.parse(args, client: 'dart_io');
-    final client = HttpClient()..maxConnectionsPerHost = options.concurrency;
-    final samples = <BenchmarkSample>[];
+    final client = DartIoTransport(maxConnectionsPerHost: options.concurrency);
     try {
+      final samples = <BenchmarkSample>[];
       for (var start = 0; start < options.requests; start += options.concurrency) {
         final batchSize = (options.requests - start).clamp(0, options.concurrency);
         final batch = await Future.wait<BenchmarkSample>(
@@ -19,33 +22,21 @@ Future<void> main(List<String> args) async {
         );
         samples.addAll(batch);
       }
+      stdout.writeln(encodeBenchmarkResult(options, samples));
     } finally {
-      client.close(force: true);
+      await client.close();
     }
-    stdout.writeln(encodeBenchmarkResult(options, samples));
   } catch (error, stackTrace) {
     stderr.writeln('$error\n$stackTrace');
     exitCode = 1;
   }
 }
 
-Future<BenchmarkSample> _request(HttpClient client, Uri url) async {
-  final stopwatch = Stopwatch()..start();
-  var statusCode = 0;
-  var bytes = 0;
-  try {
-    final request = await client.getUrl(url);
-    final response = await request.close();
-    statusCode = response.statusCode;
-    await for (final chunk in response) {
-      bytes += chunk.length;
-    }
-  } finally {
-    stopwatch.stop();
-  }
+Future<BenchmarkSample> _request(BenchmarkTransport client, Uri url) async {
+  final response = await client.getBytes(url);
   return BenchmarkSample(
-    elapsed: stopwatch.elapsed,
-    statusCode: statusCode,
-    bytes: bytes,
+    elapsed: response.elapsed,
+    statusCode: response.statusCode,
+    bytes: response.bodyBytes.length,
   );
 }

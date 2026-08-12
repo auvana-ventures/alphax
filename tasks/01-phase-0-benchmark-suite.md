@@ -60,9 +60,10 @@ Codex, with maintainer review required before transport selection or Phase 1.
 
 ## Work Items
 
-- [*] Create benchmark task record and define the benchmark-only contract.
-- [ ] Finalize deterministic server endpoints, health, streaming, and correctness.
-- [ ] Implement equivalent Dart, libcurl/FFI, and Rust/FFI benchmark adapters.
+- [x] Create benchmark task record and define the benchmark-only contract.
+- [x] Finalize deterministic server endpoints, health, and streaming surface.
+- [*] Implement equivalent Dart, libcurl/FFI, and Rust/FFI benchmark adapters; Dart IO
+  baseline is complete, native candidates remain in progress.
 - [ ] Add correctness suite covering request, stream, transfer, timeout, cancel,
   and redirect behavior.
 - [ ] Add warmup, measured iterations, percentile statistics, raw samples, and
@@ -89,7 +90,8 @@ Planned commands:
 
 ## Next Action
 
-Add the benchmark-only contract and deterministic-server correctness surface.
+Add the libcurl/FFI adapter against the shared benchmark contract, then add the Rust
+adapter without making a production transport selection.
 
 ## Blockers
 
@@ -110,3 +112,5 @@ Pending benchmark implementation and first comparable macOS dataset.
 
 - 2026-08-12: Created after bootstrap commit and push. Production transport remains
   unselected.
+- 2026-08-12: Added and validated the Dart IO adapter, including buffered requests,
+  streaming events, cancellation, and the shared benchmark entry point.
