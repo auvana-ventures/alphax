@@ -108,6 +108,48 @@ final class NativeAxCurlResult extends Struct {
 
   @Uint64()
   external int responseBytesDelivered;
+
+  @Uint64()
+  external int streamChunkSize;
+
+  @Uint64()
+  external int streamWindowChunks;
+
+  @Uint64()
+  external int streamMaxInFlightChunks;
+
+  @Uint64()
+  external int streamMaxBufferedBytes;
+
+  @Uint64()
+  external int streamChunkNotifications;
+
+  @Uint64()
+  external int streamCreditExhaustedCount;
+
+  @Uint64()
+  external int streamPauseCount;
+
+  @Uint64()
+  external int streamResumeCount;
+
+  @Uint64()
+  external int streamPauseWaitNs;
+
+  @Uint64()
+  external int streamResumeLatencyNs;
+
+  @Uint64()
+  external int streamAckCount;
+
+  @Uint64()
+  external int streamAckedBytes;
+
+  @Uint64()
+  external int streamInFlightChunksAtCompletion;
+
+  @Uint64()
+  external int streamBufferedBytesAtCompletion;
 }
 
 typedef _GetNative = Int32 Function(Pointer<Utf8>, Pointer<NativeAxCurlResult>);
@@ -160,6 +202,8 @@ typedef _RequestStartDart =
     );
 typedef _RequestCancelNative = Int32 Function(Pointer<Void>);
 typedef _RequestCancelDart = int Function(Pointer<Void>);
+typedef _StreamAckNative = Int32 Function(Pointer<Void>, Uint64, Uint64);
+typedef _StreamAckDart = int Function(Pointer<Void>, int, int);
 typedef _RequestFreeNative = Void Function(Pointer<Void>);
 typedef _RequestFreeDart = void Function(Pointer<Void>);
 typedef _FreeBufferNative = Void Function(Pointer<Uint8>);
@@ -168,11 +212,20 @@ typedef _ClientCreateNative = Pointer<Void> Function();
 typedef _ClientCreateDart = Pointer<Void> Function();
 typedef _ClientFreeNative = Void Function(Pointer<Void>);
 typedef _ClientFreeDart = void Function(Pointer<Void>);
+typedef _ClientSetStreamConfigNative = Int32 Function(Pointer<Void>, Uint64, Uint64);
+typedef _ClientSetStreamConfigDart = int Function(Pointer<Void>, int, int);
 
 /// Dart wrapper around the libcurl prototype C ABI.
 final class CurlFfiClient implements BenchmarkTransport {
   /// Loads the shared library at [path].
-  CurlFfiClient.fromPath(String path) : _library = DynamicLibrary.open(path) {
+  CurlFfiClient.fromPath(
+    String path, {
+    int streamChunkSize = 64 * 1024,
+    int streamWindowChunks = 4,
+  }) : _library = DynamicLibrary.open(path),
+       streamChunkSize = streamChunkSize,
+       streamWindowChunks = streamWindowChunks {
+    _validateStreamConfig(streamChunkSize, streamWindowChunks);
     _get = _library.lookupFunction<_GetNative, _GetDart>('ax_curl_get');
     _version = _library.lookupFunction<_VersionNative, _VersionDart>('ax_curl_version');
     _requestStart = _library.lookupFunction<_RequestStartNative, _RequestStartDart>(
@@ -181,6 +234,7 @@ final class CurlFfiClient implements BenchmarkTransport {
     _requestCancel = _library.lookupFunction<_RequestCancelNative, _RequestCancelDart>(
       'ax_curl_request_cancel',
     );
+    _streamAck = _library.lookupFunction<_StreamAckNative, _StreamAckDart>('ax_curl_stream_ack');
     _requestFree = _library.lookupFunction<_RequestFreeNative, _RequestFreeDart>(
       'ax_curl_request_free',
     );
@@ -193,9 +247,17 @@ final class CurlFfiClient implements BenchmarkTransport {
     _clientFree = _library.lookupFunction<_ClientFreeNative, _ClientFreeDart>(
       'ax_curl_client_free',
     );
+    _clientSetStreamConfig = _library
+        .lookupFunction<_ClientSetStreamConfigNative, _ClientSetStreamConfigDart>(
+          'ax_curl_client_set_stream_config',
+        );
     _clientHandle = _clientCreate();
     if (_clientHandle == nullptr) {
       throw StateError('unable to create libcurl shared client state');
+    }
+    if (_clientSetStreamConfig(_clientHandle, streamChunkSize, streamWindowChunks) != 0) {
+      _clientFree(_clientHandle);
+      throw StateError('unable to configure libcurl bounded stream state');
     }
     _startCallback = NativeCallable<_StreamStartNative>.listener(_handleStart);
     _chunkCallback = NativeCallable<_StreamChunkNative>.listener(_handleChunk);
@@ -203,14 +265,23 @@ final class CurlFfiClient implements BenchmarkTransport {
   }
 
   final DynamicLibrary _library;
+
+  /// Experimental native response chunk size used by the benchmark harness.
+  final int streamChunkSize;
+
+  /// Experimental native response credit window used by the benchmark harness.
+  final int streamWindowChunks;
+
   late final _GetDart _get;
   late final _VersionDart _version;
   late final _RequestStartDart _requestStart;
   late final _RequestCancelDart _requestCancel;
+  late final _StreamAckDart _streamAck;
   late final _RequestFreeDart _requestFree;
   late final _FreeBufferDart _freeBuffer;
   late final _ClientCreateDart _clientCreate;
   late final _ClientFreeDart _clientFree;
+  late final _ClientSetStreamConfigDart _clientSetStreamConfig;
   late final Pointer<Void> _clientHandle;
   late final NativeCallable<_StreamStartNative> _startCallback;
   late final NativeCallable<_StreamChunkNative> _chunkCallback;
@@ -527,7 +598,20 @@ final class CurlFfiClient implements BenchmarkTransport {
       _finishWithoutNative(operation, StateError('unable to start libcurl request'));
       return;
     }
+    if (operation.completed) {
+      _requestFree(handle);
+      return;
+    }
     operation.handle = handle;
+    if (operation.pendingAckChunks > 0) {
+      _streamAck(
+        handle,
+        operation.pendingAckChunks,
+        operation.pendingAckBytes,
+      );
+      operation.pendingAckChunks = 0;
+      operation.pendingAckBytes = 0;
+    }
     if (operation.cancelled) {
       _requestCancel(handle);
     }
@@ -699,28 +783,50 @@ final class CurlFfiClient implements BenchmarkTransport {
         _updateStreamDiagnostics(operation);
       }
       yield event;
+      if (event case BenchmarkStreamChunk(:final bytes)) {
+        _acknowledgeChunk(operation, bytes.length);
+      }
     }
   }
 
+  void _acknowledgeChunk(_CurlOperation operation, int byteCount) {
+    if (operation.completed) {
+      return;
+    }
+    if (operation.handle == nullptr) {
+      operation.pendingAckChunks++;
+      operation.pendingAckBytes += byteCount;
+      return;
+    }
+    _streamAck(operation.handle, 1, byteCount);
+  }
+
   static void _updateStreamDiagnostics(_CurlOperation operation) {
+    final flow = operation.diagnostics['stream_flow_control'];
+    final flowMetrics = flow is Map ? Map<String, Object?>.from(flow) : null;
     operation.streamDiagnostics
       ..['producer_chunk_count'] = operation.producedChunkCount
       ..['producer_bytes'] = operation.producedBytes
       ..['consumer_chunk_count'] = operation.consumedChunkCount
       ..['consumer_bytes'] = operation.consumedBytes
-      ..['max_buffered_bytes'] = operation.maxPendingBytes
+      ..['max_buffered_bytes'] = flowMetrics?['max_buffered_bytes'] ?? operation.maxPendingBytes
+      ..['dart_queue_max_pending_bytes'] = operation.maxPendingBytes
       ..['buffered_bytes_current'] = operation.pendingBytes
       ..['buffered_bytes_at_native_completion'] = operation.nativeCompletionPendingBytes
       ..['consumer_chunk_count_at_native_completion'] = operation.nativeCompletionConsumedChunkCount
       ..['consumer_bytes_at_native_completion'] = operation.nativeCompletionConsumedBytes
-      ..['queue_capacity_bytes'] = null
-      ..['queue_policy'] = 'unbounded Dart StreamController buffer in this prototype'
-      ..['pause_supported'] = false
-      ..['pause_count'] = 0
-      ..['resume_count'] = 0
-      ..['pause_latency_us'] = null
-      ..['resume_latency_us'] = null
-      ..['pause_behavior'] = 'native callback delivery continues while Dart consumer is paused';
+      ..['queue_capacity_bytes'] = flowMetrics?['queue_capacity_bytes']
+      ..['queue_policy'] = flowMetrics == null
+          ? 'Dart StreamController response subscription controls upstream reads'
+          : 'native credit/ack window bounds FFI-delivered chunks'
+      ..['pause_supported'] = flowMetrics != null
+      ..['pause_count'] = flowMetrics?['pause_count']
+      ..['resume_count'] = flowMetrics?['resume_count']
+      ..['pause_latency_us'] = flowMetrics?['pause_latency_us']
+      ..['resume_latency_us'] = flowMetrics?['resume_latency_us']
+      ..['pause_behavior'] = flowMetrics == null
+          ? 'Dart response subscription pauses while the consumer awaits each chunk'
+          : 'native response delivery waits for Dart chunk acknowledgments when credits are exhausted';
     operation.diagnostics['stream_metrics'] = operation.streamDiagnostics;
   }
 
@@ -761,13 +867,44 @@ final class CurlFfiClient implements BenchmarkTransport {
         'response_callbacks': result.responseCallbackCount,
         'response_bytes_delivered': result.responseBytesDelivered,
       },
+      'stream_flow_control': <String, Object?>{
+        'chunk_size_bytes': result.streamChunkSize,
+        'window_chunks': result.streamWindowChunks,
+        'queue_capacity_bytes': result.streamChunkSize * result.streamWindowChunks,
+        'max_in_flight_chunks': result.streamMaxInFlightChunks,
+        'max_buffered_bytes': result.streamMaxBufferedBytes,
+        'ffi_notifications': result.streamChunkNotifications,
+        'credit_exhausted_count': result.streamCreditExhaustedCount,
+        'pause_count': result.streamPauseCount,
+        'resume_count': result.streamResumeCount,
+        'pause_latency_us': result.streamPauseCount == 0
+            ? null
+            : (result.streamPauseWaitNs / result.streamPauseCount / 1000).round(),
+        'resume_latency_us': result.streamResumeCount == 0
+            ? null
+            : (result.streamResumeLatencyNs / result.streamResumeCount / 1000).round(),
+        'ack_count': result.streamAckCount,
+        'acked_bytes': result.streamAckedBytes,
+        'in_flight_chunks_at_completion': result.streamInFlightChunksAtCompletion,
+        'buffered_bytes_at_completion': result.streamBufferedBytesAtCompletion,
+      },
       'libcurl_metrics': <String, Object?>{
         'curl_total_ms': result.totalMs,
         'curl_ttfb_ms': result.timeToFirstByteMs,
-        'curl_http_version': result.httpVersion,
+        'curl_http_version_code': result.httpVersion,
+        'curl_http_version': _curlHttpVersionName(result.httpVersion),
       },
     };
   }
+
+  static String _curlHttpVersionName(int code) => switch (code) {
+    0 => 'none',
+    1 => 'http/1.0',
+    2 => 'http/1.1',
+    3 => 'http/2',
+    30 => 'http/3',
+    _ => 'unknown:$code',
+  };
 
   static Map<String, List<String>> _parseHeaders(List<int> bytes) {
     final text = String.fromCharCodes(bytes);
@@ -789,12 +926,25 @@ final class CurlFfiClient implements BenchmarkTransport {
   }
 
   /// Opens the platform-default prototype library using an environment override.
-  static CurlFfiClient fromEnvironment() {
+  static CurlFfiClient fromEnvironment({
+    int streamChunkSize = 64 * 1024,
+    int streamWindowChunks = 4,
+  }) {
     final path = Platform.environment['ALPHAX_CURL_LIBRARY'];
     if (path == null || path.isEmpty) {
       throw StateError('Set ALPHAX_CURL_LIBRARY to the libcurl prototype library path');
     }
-    return CurlFfiClient.fromPath(path);
+    return CurlFfiClient.fromPath(
+      path,
+      streamChunkSize: streamChunkSize,
+      streamWindowChunks: streamWindowChunks,
+    );
+  }
+
+  static void _validateStreamConfig(int chunkSize, int windowChunks) {
+    if (chunkSize <= 0 || windowChunks <= 0) {
+      throw ArgumentError('stream chunk size and window must be positive');
+    }
   }
 }
 
@@ -838,6 +988,8 @@ final class _CurlOperation {
   int consumedBytes = 0;
   int pendingBytes = 0;
   int maxPendingBytes = 0;
+  int pendingAckChunks = 0;
+  int pendingAckBytes = 0;
   int? nativeCompletionPendingBytes;
   int? nativeCompletionConsumedChunkCount;
   int? nativeCompletionConsumedBytes;

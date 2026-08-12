@@ -30,6 +30,51 @@ final class NativeAxRustResult extends Struct {
   /// Benchmark-server connection identifier when the server provides one.
   @Uint64()
   external int connectionId;
+
+  @Int32()
+  external int httpVersion;
+
+  @Uint64()
+  external int streamChunkSize;
+
+  @Uint64()
+  external int streamWindowChunks;
+
+  @Uint64()
+  external int streamMaxInFlightChunks;
+
+  @Uint64()
+  external int streamMaxBufferedBytes;
+
+  @Uint64()
+  external int streamChunkNotifications;
+
+  @Uint64()
+  external int streamCreditExhaustedCount;
+
+  @Uint64()
+  external int streamPauseCount;
+
+  @Uint64()
+  external int streamResumeCount;
+
+  @Uint64()
+  external int streamPauseWaitNs;
+
+  @Uint64()
+  external int streamResumeLatencyNs;
+
+  @Uint64()
+  external int streamAckCount;
+
+  @Uint64()
+  external int streamAckedBytes;
+
+  @Uint64()
+  external int streamInFlightChunksAtCompletion;
+
+  @Uint64()
+  external int streamBufferedBytesAtCompletion;
 }
 
 typedef _RustGetNative = Int32 Function(Pointer<Utf8>, Pointer<NativeAxRustResult>);
@@ -82,6 +127,8 @@ typedef _RequestStartDart =
     );
 typedef _RequestCancelNative = Int32 Function(Pointer<Void>);
 typedef _RequestCancelDart = int Function(Pointer<Void>);
+typedef _StreamAckNative = Int32 Function(Pointer<Void>, Uint64, Uint64);
+typedef _StreamAckDart = int Function(Pointer<Void>, int, int);
 typedef _RequestFreeNative = Void Function(Pointer<Void>);
 typedef _RequestFreeDart = void Function(Pointer<Void>);
 typedef _FreeBufferNative = Void Function(Pointer<Uint8>, Uint64);
@@ -92,11 +139,20 @@ typedef _ClientCreateNative = Pointer<Void> Function();
 typedef _ClientCreateDart = Pointer<Void> Function();
 typedef _ClientFreeNative = Void Function(Pointer<Void>);
 typedef _ClientFreeDart = void Function(Pointer<Void>);
+typedef _ClientSetStreamConfigNative = Int32 Function(Pointer<Void>, Uint64, Uint64);
+typedef _ClientSetStreamConfigDart = int Function(Pointer<Void>, int, int);
 
 /// Dart wrapper around the Rust prototype C ABI.
 final class RustFfiClient implements BenchmarkTransport {
   /// Loads the library from [path].
-  RustFfiClient.fromPath(String path) : _library = DynamicLibrary.open(path) {
+  RustFfiClient.fromPath(
+    String path, {
+    int streamChunkSize = 64 * 1024,
+    int streamWindowChunks = 4,
+  }) : _library = DynamicLibrary.open(path),
+       streamChunkSize = streamChunkSize,
+       streamWindowChunks = streamWindowChunks {
+    _validateStreamConfig(streamChunkSize, streamWindowChunks);
     _get = _library.lookupFunction<_RustGetNative, _RustGetDart>('ax_rust_get');
     _version = _library.lookupFunction<_VersionNative, _VersionDart>('ax_rust_ffi_version');
     _requestStart = _library.lookupFunction<_RequestStartNative, _RequestStartDart>(
@@ -105,6 +161,7 @@ final class RustFfiClient implements BenchmarkTransport {
     _requestCancel = _library.lookupFunction<_RequestCancelNative, _RequestCancelDart>(
       'ax_rust_request_cancel',
     );
+    _streamAck = _library.lookupFunction<_StreamAckNative, _StreamAckDart>('ax_rust_stream_ack');
     _requestFree = _library.lookupFunction<_RequestFreeNative, _RequestFreeDart>(
       'ax_rust_request_free',
     );
@@ -120,9 +177,17 @@ final class RustFfiClient implements BenchmarkTransport {
     _clientFree = _library.lookupFunction<_ClientFreeNative, _ClientFreeDart>(
       'ax_rust_client_free',
     );
+    _clientSetStreamConfig = _library
+        .lookupFunction<_ClientSetStreamConfigNative, _ClientSetStreamConfigDart>(
+          'ax_rust_client_set_stream_config',
+        );
     _clientHandle = _clientCreate();
     if (_clientHandle == nullptr) {
       throw StateError('unable to create Rust shared client state');
+    }
+    if (_clientSetStreamConfig(_clientHandle, streamChunkSize, streamWindowChunks) != 0) {
+      _clientFree(_clientHandle);
+      throw StateError('unable to configure Rust bounded stream state');
     }
     _startCallback = NativeCallable<_StreamStartNative>.listener(_handleStart);
     _chunkCallback = NativeCallable<_StreamChunkNative>.listener(_handleChunk);
@@ -130,15 +195,24 @@ final class RustFfiClient implements BenchmarkTransport {
   }
 
   final DynamicLibrary _library;
+
+  /// Experimental native response chunk size used by the benchmark harness.
+  final int streamChunkSize;
+
+  /// Experimental native response credit window used by the benchmark harness.
+  final int streamWindowChunks;
+
   late final _RustGetDart _get;
   late final _VersionDart _version;
   late final _RequestStartDart _requestStart;
   late final _RequestCancelDart _requestCancel;
+  late final _StreamAckDart _streamAck;
   late final _RequestFreeDart _requestFree;
   late final _FreeBufferDart _freeBuffer;
   late final _FreeResultDart _freeResult;
   late final _ClientCreateDart _clientCreate;
   late final _ClientFreeDart _clientFree;
+  late final _ClientSetStreamConfigDart _clientSetStreamConfig;
   late final Pointer<Void> _clientHandle;
   late final NativeCallable<_StreamStartNative> _startCallback;
   late final NativeCallable<_StreamChunkNative> _chunkCallback;
@@ -447,7 +521,20 @@ final class RustFfiClient implements BenchmarkTransport {
       _finishWithoutNative(operation, StateError('unable to start Rust request'));
       return;
     }
+    if (operation.completed) {
+      _requestFree(handle);
+      return;
+    }
     operation.handle = handle;
+    if (operation.pendingAckChunks > 0) {
+      _streamAck(
+        handle,
+        operation.pendingAckChunks,
+        operation.pendingAckBytes,
+      );
+      operation.pendingAckChunks = 0;
+      operation.pendingAckBytes = 0;
+    }
     if (operation.cancelled) {
       _requestCancel(handle);
     }
@@ -549,6 +636,29 @@ final class RustFfiClient implements BenchmarkTransport {
         'native_total_ms': nativeResult.totalMs,
         'native_ttfb_ms': nativeResult.timeToFirstByteMs,
         'native_error_code': errorCode,
+        'native_http_version_code': nativeResult.httpVersion,
+        'native_http_version': _rustHttpVersionName(nativeResult.httpVersion),
+      },
+      'stream_flow_control': <String, Object?>{
+        'chunk_size_bytes': nativeResult.streamChunkSize,
+        'window_chunks': nativeResult.streamWindowChunks,
+        'queue_capacity_bytes': nativeResult.streamChunkSize * nativeResult.streamWindowChunks,
+        'max_in_flight_chunks': nativeResult.streamMaxInFlightChunks,
+        'max_buffered_bytes': nativeResult.streamMaxBufferedBytes,
+        'ffi_notifications': nativeResult.streamChunkNotifications,
+        'credit_exhausted_count': nativeResult.streamCreditExhaustedCount,
+        'pause_count': nativeResult.streamPauseCount,
+        'resume_count': nativeResult.streamResumeCount,
+        'pause_latency_us': nativeResult.streamPauseCount == 0
+            ? null
+            : (nativeResult.streamPauseWaitNs / nativeResult.streamPauseCount / 1000).round(),
+        'resume_latency_us': nativeResult.streamResumeCount == 0
+            ? null
+            : (nativeResult.streamResumeLatencyNs / nativeResult.streamResumeCount / 1000).round(),
+        'ack_count': nativeResult.streamAckCount,
+        'acked_bytes': nativeResult.streamAckedBytes,
+        'in_flight_chunks_at_completion': nativeResult.streamInFlightChunksAtCompletion,
+        'buffered_bytes_at_completion': nativeResult.streamBufferedBytesAtCompletion,
       },
       'dart_completion_notification_us': operation.stopwatch.elapsed.inMicroseconds,
     };
@@ -618,6 +728,16 @@ final class RustFfiClient implements BenchmarkTransport {
     }
   }
 
+  static String _rustHttpVersionName(int code) => switch (code) {
+    0 => 'unknown',
+    9 => 'http/0.9',
+    10 => 'http/1.0',
+    11 => 'http/1.1',
+    20 => 'http/2',
+    30 => 'http/3',
+    _ => 'unknown:$code',
+  };
+
   static List<int> _copyNativeBuffer(Pointer<Uint8> pointer, int length) {
     if (pointer == nullptr || length == 0) {
       return const <int>[];
@@ -639,28 +759,50 @@ final class RustFfiClient implements BenchmarkTransport {
         _updateStreamDiagnostics(operation);
       }
       yield event;
+      if (event case BenchmarkStreamChunk(:final bytes)) {
+        _acknowledgeChunk(operation, bytes.length);
+      }
     }
   }
 
+  void _acknowledgeChunk(_RustOperation operation, int byteCount) {
+    if (operation.completed) {
+      return;
+    }
+    if (operation.handle == nullptr) {
+      operation.pendingAckChunks++;
+      operation.pendingAckBytes += byteCount;
+      return;
+    }
+    _streamAck(operation.handle, 1, byteCount);
+  }
+
   static void _updateStreamDiagnostics(_RustOperation operation) {
+    final flow = operation.diagnostics['stream_flow_control'];
+    final flowMetrics = flow is Map ? Map<String, Object?>.from(flow) : null;
     operation.streamDiagnostics
       ..['producer_chunk_count'] = operation.producedChunkCount
       ..['producer_bytes'] = operation.producedBytes
       ..['consumer_chunk_count'] = operation.consumedChunkCount
       ..['consumer_bytes'] = operation.consumedBytes
-      ..['max_buffered_bytes'] = operation.maxPendingBytes
+      ..['max_buffered_bytes'] = flowMetrics?['max_buffered_bytes'] ?? operation.maxPendingBytes
+      ..['dart_queue_max_pending_bytes'] = operation.maxPendingBytes
       ..['buffered_bytes_current'] = operation.pendingBytes
       ..['buffered_bytes_at_native_completion'] = operation.nativeCompletionPendingBytes
       ..['consumer_chunk_count_at_native_completion'] = operation.nativeCompletionConsumedChunkCount
       ..['consumer_bytes_at_native_completion'] = operation.nativeCompletionConsumedBytes
-      ..['queue_capacity_bytes'] = null
-      ..['queue_policy'] = 'unbounded Dart StreamController buffer in this prototype'
-      ..['pause_supported'] = false
-      ..['pause_count'] = 0
-      ..['resume_count'] = 0
-      ..['pause_latency_us'] = null
-      ..['resume_latency_us'] = null
-      ..['pause_behavior'] = 'native callback delivery continues while Dart consumer is paused';
+      ..['queue_capacity_bytes'] = flowMetrics?['queue_capacity_bytes']
+      ..['queue_policy'] = flowMetrics == null
+          ? 'Dart StreamController response subscription controls upstream reads'
+          : 'native credit/ack window bounds FFI-delivered chunks'
+      ..['pause_supported'] = flowMetrics != null
+      ..['pause_count'] = flowMetrics?['pause_count']
+      ..['resume_count'] = flowMetrics?['resume_count']
+      ..['pause_latency_us'] = flowMetrics?['pause_latency_us']
+      ..['resume_latency_us'] = flowMetrics?['resume_latency_us']
+      ..['pause_behavior'] = flowMetrics == null
+          ? 'Dart response subscription pauses while the consumer awaits each chunk'
+          : 'native response delivery waits for Dart chunk acknowledgments when credits are exhausted';
     operation.diagnostics['stream_metrics'] = operation.streamDiagnostics;
   }
 
@@ -684,12 +826,25 @@ final class RustFfiClient implements BenchmarkTransport {
   }
 
   /// Opens the platform-default prototype library using an environment override.
-  static RustFfiClient fromEnvironment() {
+  static RustFfiClient fromEnvironment({
+    int streamChunkSize = 64 * 1024,
+    int streamWindowChunks = 4,
+  }) {
     final path = Platform.environment['ALPHAX_RUST_LIBRARY'];
     if (path == null || path.isEmpty) {
       throw StateError('Set ALPHAX_RUST_LIBRARY to the Rust prototype library path');
     }
-    return RustFfiClient.fromPath(path);
+    return RustFfiClient.fromPath(
+      path,
+      streamChunkSize: streamChunkSize,
+      streamWindowChunks: streamWindowChunks,
+    );
+  }
+
+  static void _validateStreamConfig(int chunkSize, int windowChunks) {
+    if (chunkSize <= 0 || windowChunks <= 0) {
+      throw ArgumentError('stream chunk size and window must be positive');
+    }
   }
 }
 
@@ -735,6 +890,8 @@ final class _RustOperation {
   int consumedBytes = 0;
   int pendingBytes = 0;
   int maxPendingBytes = 0;
+  int pendingAckChunks = 0;
+  int pendingAckBytes = 0;
   int? nativeCompletionPendingBytes;
   int? nativeCompletionConsumedChunkCount;
   int? nativeCompletionConsumedBytes;

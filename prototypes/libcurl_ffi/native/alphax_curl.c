@@ -224,6 +224,8 @@ ALPHAX_CURL_EXPORT int32_t ax_curl_upload(const char *url, const char *path, AxC
 struct AxCurlClient {
   CURLSH *share;
   pthread_mutex_t mutex;
+  uint64_t stream_chunk_size;
+  uint64_t stream_window_chunks;
 };
 
 static void share_lock(CURL *easy,
@@ -247,6 +249,7 @@ static void share_unlock(CURL *easy, curl_lock_data data, void *userdata) {
 struct AxCurlStreamHandle {
   pthread_t thread;
   pthread_mutex_t mutex;
+  pthread_cond_t flow_condition;
   int thread_started;
   int cancel_requested;
   CURLM *multi;
@@ -271,6 +274,27 @@ struct AxCurlStreamHandle {
   int callback_failed;
   AxCurlClient *client;
   struct curl_slist *request_headers;
+  uint64_t stream_chunk_size;
+  uint64_t stream_window_chunks;
+  uint64_t stream_credits;
+  uint64_t stream_in_flight_chunks;
+  uint64_t stream_in_flight_bytes;
+  uint64_t stream_max_in_flight_chunks;
+  uint64_t stream_max_buffered_bytes;
+  uint64_t stream_chunk_notifications;
+  uint64_t stream_credit_exhausted_count;
+  uint64_t stream_pause_count;
+  uint64_t stream_resume_count;
+  uint64_t stream_pause_wait_ns;
+  uint64_t stream_resume_latency_ns;
+  uint64_t stream_ack_count;
+  uint64_t stream_acked_bytes;
+  uint64_t stream_pause_started_ns;
+  uint64_t stream_last_credit_ns;
+  int stream_paused;
+  uint8_t *stream_batch_buffer;
+  size_t stream_batch_length;
+  size_t stream_batch_capacity;
 };
 
 static char *duplicate_string(const char *value) {
@@ -406,6 +430,139 @@ static void emit_stream_start(AxCurlStreamHandle *handle) {
       handle->user_data);
 }
 
+static int reserve_stream_credit(AxCurlStreamHandle *handle, size_t length) {
+  pthread_mutex_lock(&handle->mutex);
+  while (handle->stream_credits == 0 && !handle->cancel_requested) {
+    if (!handle->stream_paused) {
+      handle->stream_paused = 1;
+      handle->stream_pause_started_ns = monotonic_now_ns();
+      handle->stream_pause_count++;
+      handle->stream_credit_exhausted_count++;
+    }
+    pthread_cond_wait(&handle->flow_condition, &handle->mutex);
+  }
+  if (handle->cancel_requested) {
+    pthread_mutex_unlock(&handle->mutex);
+    return 0;
+  }
+  const uint64_t resumed_ns = monotonic_now_ns();
+  if (handle->stream_paused) {
+    if (resumed_ns >= handle->stream_pause_started_ns) {
+      handle->stream_pause_wait_ns += resumed_ns - handle->stream_pause_started_ns;
+    }
+    if (handle->stream_last_credit_ns != 0 && resumed_ns >= handle->stream_last_credit_ns) {
+      handle->stream_resume_latency_ns += resumed_ns - handle->stream_last_credit_ns;
+    }
+    handle->stream_resume_count++;
+    handle->stream_paused = 0;
+    handle->stream_pause_started_ns = 0;
+  }
+  handle->stream_credits--;
+  handle->stream_in_flight_chunks++;
+  handle->stream_in_flight_bytes += length;
+  if (handle->stream_in_flight_chunks > handle->stream_max_in_flight_chunks) {
+    handle->stream_max_in_flight_chunks = handle->stream_in_flight_chunks;
+  }
+  if (handle->stream_in_flight_bytes > handle->stream_max_buffered_bytes) {
+    handle->stream_max_buffered_bytes = handle->stream_in_flight_bytes;
+  }
+  pthread_mutex_unlock(&handle->mutex);
+  return 1;
+}
+
+static void rollback_stream_credit(AxCurlStreamHandle *handle, size_t length) {
+  pthread_mutex_lock(&handle->mutex);
+  if (handle->stream_credits < handle->stream_window_chunks) {
+    handle->stream_credits++;
+  }
+  if (handle->stream_in_flight_chunks > 0) {
+    handle->stream_in_flight_chunks--;
+  }
+  if (handle->stream_in_flight_bytes >= length) {
+    handle->stream_in_flight_bytes -= length;
+  } else {
+    handle->stream_in_flight_bytes = 0;
+  }
+  pthread_cond_signal(&handle->flow_condition);
+  pthread_mutex_unlock(&handle->mutex);
+}
+
+static int emit_reserved_chunk(AxCurlStreamHandle *handle,
+                               const uint8_t *buffer,
+                               size_t length,
+                               size_t reserved_length) {
+  if (reserved_length != length) {
+    pthread_mutex_lock(&handle->mutex);
+    if (handle->stream_in_flight_bytes >= reserved_length) {
+      handle->stream_in_flight_bytes -= reserved_length;
+    } else {
+      handle->stream_in_flight_bytes = 0;
+    }
+    handle->stream_in_flight_bytes += length;
+    if (handle->stream_in_flight_bytes > handle->stream_max_buffered_bytes) {
+      handle->stream_max_buffered_bytes = handle->stream_in_flight_bytes;
+    }
+    pthread_mutex_unlock(&handle->mutex);
+  }
+  uint8_t *chunk = (uint8_t *)malloc(length);
+  if (chunk == NULL) {
+    rollback_stream_credit(handle, length);
+    handle->callback_failed = 1;
+    return 0;
+  }
+  memcpy(chunk, buffer, length);
+  handle->stream_chunk_notifications++;
+  handle->on_chunk(chunk, length, handle->user_data);
+  return 1;
+}
+
+static int append_bounded_body(AxCurlStreamHandle *handle,
+                               const char *buffer,
+                               size_t length) {
+  if (length == 0) {
+    return 1;
+  }
+  const size_t chunk_size = (size_t)handle->stream_chunk_size;
+  size_t offset = 0;
+  while (offset < length) {
+    const size_t remaining = length - offset;
+    if (handle->stream_batch_length == 0) {
+      if (!reserve_stream_credit(handle, chunk_size)) {
+        return 0;
+      }
+    }
+    const size_t capacity = chunk_size - handle->stream_batch_length;
+    const size_t current = remaining < capacity ? remaining : capacity;
+    memcpy(handle->stream_batch_buffer + handle->stream_batch_length,
+           buffer + offset,
+           current);
+    handle->stream_batch_length += current;
+    offset += current;
+    if (handle->stream_batch_length == chunk_size) {
+      if (!emit_reserved_chunk(handle,
+                               handle->stream_batch_buffer,
+                               handle->stream_batch_length,
+                               chunk_size)) {
+        return 0;
+      }
+      handle->stream_batch_length = 0;
+    }
+  }
+  return 1;
+}
+
+static int flush_bounded_body(AxCurlStreamHandle *handle) {
+  if (handle->stream_batch_length == 0) {
+    return 1;
+  }
+  const int result = emit_reserved_chunk(handle,
+                                         handle->stream_batch_buffer,
+                                         handle->stream_batch_length,
+                                         (size_t)handle->stream_chunk_size);
+  handle->stream_batch_length = 0;
+  return result;
+}
+
 static size_t async_write_callback(char *buffer,
                                    size_t size,
                                    size_t count,
@@ -427,17 +584,14 @@ static size_t async_write_callback(char *buffer,
     return written;
   }
 
-  handle->result.bytes_received += length;
   if (handle->on_chunk == NULL || length == 0) {
+    handle->result.bytes_received += length;
     return length;
   }
-  uint8_t *chunk = (uint8_t *)malloc(length);
-  if (chunk == NULL) {
-    handle->callback_failed = 1;
+  if (!append_bounded_body(handle, buffer, length)) {
     return 0;
   }
-  memcpy(chunk, buffer, length);
-  handle->on_chunk(chunk, length, handle->user_data);
+  handle->result.bytes_received += length;
   return length;
 }
 
@@ -525,10 +679,31 @@ static int get_async_file_size(FILE *file, curl_off_t *size) {
   return 1;
 }
 
+static void populate_flow_result(AxCurlStreamHandle *handle) {
+  pthread_mutex_lock(&handle->mutex);
+  handle->result.stream_chunk_size = handle->stream_chunk_size;
+  handle->result.stream_window_chunks = handle->stream_window_chunks;
+  handle->result.stream_max_in_flight_chunks = handle->stream_max_in_flight_chunks;
+  handle->result.stream_max_buffered_bytes = handle->stream_max_buffered_bytes;
+  handle->result.stream_chunk_notifications = handle->stream_chunk_notifications;
+  handle->result.stream_credit_exhausted_count = handle->stream_credit_exhausted_count;
+  handle->result.stream_pause_count = handle->stream_pause_count;
+  handle->result.stream_resume_count = handle->stream_resume_count;
+  handle->result.stream_pause_wait_ns = handle->stream_pause_wait_ns;
+  handle->result.stream_resume_latency_ns = handle->stream_resume_latency_ns;
+  handle->result.stream_ack_count = handle->stream_ack_count;
+  handle->result.stream_acked_bytes = handle->stream_acked_bytes;
+  handle->result.stream_in_flight_chunks_at_completion = handle->stream_in_flight_chunks;
+  handle->result.stream_buffered_bytes_at_completion = handle->stream_in_flight_bytes;
+  pthread_mutex_unlock(&handle->mutex);
+}
+
 static int run_async_request(AxCurlStreamHandle *handle) {
   const uint64_t request_created_ns = handle->result.request_created_ns;
   memset(&handle->result, 0, sizeof(handle->result));
   handle->result.request_created_ns = request_created_ns;
+  handle->result.stream_chunk_size = handle->stream_chunk_size;
+  handle->result.stream_window_chunks = handle->stream_window_chunks;
   handle->result.body_preparation_start_ns = monotonic_now_ns();
   const int init_code = ensure_curl_initialized();
   if (init_code != 0) {
@@ -681,6 +856,9 @@ static int run_async_request(AxCurlStreamHandle *handle) {
     }
   } while (running > 0);
 
+  if (result_code == CURLE_OK && !is_cancelled(handle) && !flush_bounded_body(handle)) {
+    result_code = CURLE_WRITE_ERROR;
+  }
   handle->result.response_body_complete_ns = monotonic_now_ns();
 
   int messages_left = 0;
@@ -709,6 +887,7 @@ static int run_async_request(AxCurlStreamHandle *handle) {
     fclose(handle->file);
     handle->file = NULL;
   }
+  populate_flow_result(handle);
   handle->result.native_cleanup_ns = monotonic_now_ns();
   return (int)result_code;
 }
@@ -716,6 +895,7 @@ static int run_async_request(AxCurlStreamHandle *handle) {
 static void *async_request_thread(void *userdata) {
   AxCurlStreamHandle *handle = (AxCurlStreamHandle *)userdata;
   const int code = run_async_request(handle);
+  populate_flow_result(handle);
   handle->result.native_completion_notification_ns = monotonic_now_ns();
   if (!handle->start_emitted) {
     emit_stream_start(handle);
@@ -759,6 +939,34 @@ ALPHAX_CURL_EXPORT AxCurlStreamHandle *ax_curl_request_start(
     set_error("unable to initialize async request mutex");
     return NULL;
   }
+  if (pthread_cond_init(&handle->flow_condition, NULL) != 0) {
+    pthread_mutex_destroy(&handle->mutex);
+    free(handle);
+    set_error("unable to initialize async flow condition");
+    return NULL;
+  }
+  pthread_mutex_lock(&client->mutex);
+  handle->stream_chunk_size = client->stream_chunk_size;
+  handle->stream_window_chunks = client->stream_window_chunks;
+  pthread_mutex_unlock(&client->mutex);
+  if (handle->stream_chunk_size == 0) {
+    handle->stream_chunk_size = 64 * 1024;
+  }
+  if (handle->stream_window_chunks == 0) {
+    handle->stream_window_chunks = 4;
+  }
+  handle->stream_credits = handle->stream_window_chunks;
+  if (request_kind != AX_CURL_DOWNLOAD_FILE && on_chunk != NULL) {
+    handle->stream_batch_capacity = (size_t)handle->stream_chunk_size;
+    handle->stream_batch_buffer = (uint8_t *)malloc(handle->stream_batch_capacity);
+    if (handle->stream_batch_buffer == NULL) {
+      pthread_cond_destroy(&handle->flow_condition);
+      pthread_mutex_destroy(&handle->mutex);
+      free(handle);
+      set_error("unable to allocate bounded stream buffer");
+      return NULL;
+    }
+  }
   handle->result.request_created_ns = monotonic_now_ns();
   handle->url = duplicate_string(url);
   handle->file_path = duplicate_string(file_path);
@@ -770,7 +978,9 @@ ALPHAX_CURL_EXPORT AxCurlStreamHandle *ax_curl_request_start(
   handle->user_data = user_data;
   handle->client = client;
   if (handle->url == NULL || (file_path != NULL && handle->file_path == NULL)) {
+    pthread_cond_destroy(&handle->flow_condition);
     pthread_mutex_destroy(&handle->mutex);
+    free(handle->stream_batch_buffer);
     free(handle->url);
     free(handle->file_path);
     free(handle);
@@ -778,7 +988,9 @@ ALPHAX_CURL_EXPORT AxCurlStreamHandle *ax_curl_request_start(
     return NULL;
   }
   if (body_length > SIZE_MAX) {
+    pthread_cond_destroy(&handle->flow_condition);
     pthread_mutex_destroy(&handle->mutex);
+    free(handle->stream_batch_buffer);
     free(handle->url);
     free(handle->file_path);
     free(handle);
@@ -788,7 +1000,9 @@ ALPHAX_CURL_EXPORT AxCurlStreamHandle *ax_curl_request_start(
   if (body_length > 0) {
     handle->body = (uint8_t *)malloc((size_t)body_length);
     if (handle->body == NULL) {
+      pthread_cond_destroy(&handle->flow_condition);
       pthread_mutex_destroy(&handle->mutex);
+      free(handle->stream_batch_buffer);
       free(handle->url);
       free(handle->file_path);
       free(handle);
@@ -799,7 +1013,9 @@ ALPHAX_CURL_EXPORT AxCurlStreamHandle *ax_curl_request_start(
   }
   handle->body_length = (size_t)body_length;
   if (pthread_create(&handle->thread, NULL, async_request_thread, handle) != 0) {
+    pthread_cond_destroy(&handle->flow_condition);
     pthread_mutex_destroy(&handle->mutex);
+    free(handle->stream_batch_buffer);
     free(handle->body);
     free(handle->url);
     free(handle->file_path);
@@ -832,6 +1048,8 @@ ALPHAX_CURL_EXPORT AxCurlClient *ax_curl_client_create(void) {
     set_error("unable to allocate libcurl client");
     return NULL;
   }
+  client->stream_chunk_size = 64 * 1024;
+  client->stream_window_chunks = 4;
   client->share = curl_share_init();
   if (client->share == NULL ||
       curl_share_setopt(client->share, CURLSHOPT_SHARE, CURL_LOCK_DATA_DNS) != CURLSHE_OK ||
@@ -847,6 +1065,20 @@ ALPHAX_CURL_EXPORT AxCurlClient *ax_curl_client_create(void) {
     return NULL;
   }
   return client;
+}
+
+ALPHAX_CURL_EXPORT int32_t ax_curl_client_set_stream_config(
+    AxCurlClient *client,
+    uint64_t chunk_size,
+    uint64_t window_chunks) {
+  if (client == NULL || chunk_size == 0 || chunk_size > SIZE_MAX || window_chunks == 0) {
+    return CURLE_BAD_FUNCTION_ARGUMENT;
+  }
+  pthread_mutex_lock(&client->mutex);
+  client->stream_chunk_size = chunk_size;
+  client->stream_window_chunks = window_chunks;
+  pthread_mutex_unlock(&client->mutex);
+  return CURLE_OK;
 }
 
 ALPHAX_CURL_EXPORT void ax_curl_client_free(AxCurlClient *client) {
@@ -866,10 +1098,41 @@ ALPHAX_CURL_EXPORT int32_t ax_curl_request_cancel(AxCurlStreamHandle *handle) {
   pthread_mutex_lock(&handle->mutex);
   handle->cancel_requested = 1;
   multi = handle->multi;
+  pthread_cond_broadcast(&handle->flow_condition);
   pthread_mutex_unlock(&handle->mutex);
   if (multi != NULL) {
     curl_multi_wakeup(multi);
   }
+  return CURLE_OK;
+}
+
+ALPHAX_CURL_EXPORT int32_t ax_curl_stream_ack(
+    AxCurlStreamHandle *handle,
+    uint64_t chunk_count,
+    uint64_t byte_count) {
+  if (handle == NULL) {
+    return CURLE_BAD_FUNCTION_ARGUMENT;
+  }
+  pthread_mutex_lock(&handle->mutex);
+  const uint64_t acknowledged_chunks =
+      chunk_count < handle->stream_in_flight_chunks ? chunk_count : handle->stream_in_flight_chunks;
+  if (acknowledged_chunks > 0) {
+    const uint64_t available_credits = handle->stream_window_chunks - handle->stream_credits;
+    const uint64_t restored_credits =
+        acknowledged_chunks < available_credits ? acknowledged_chunks : available_credits;
+    handle->stream_credits += restored_credits;
+    handle->stream_in_flight_chunks -= acknowledged_chunks;
+    if (byte_count >= handle->stream_in_flight_bytes) {
+      handle->stream_in_flight_bytes = 0;
+    } else {
+      handle->stream_in_flight_bytes -= byte_count;
+    }
+    handle->stream_ack_count += acknowledged_chunks;
+    handle->stream_acked_bytes += byte_count;
+    handle->stream_last_credit_ns = monotonic_now_ns();
+    pthread_cond_broadcast(&handle->flow_condition);
+  }
+  pthread_mutex_unlock(&handle->mutex);
   return CURLE_OK;
 }
 
@@ -881,11 +1144,13 @@ ALPHAX_CURL_EXPORT void ax_curl_request_free(AxCurlStreamHandle *handle) {
   if (handle->thread_started) {
     pthread_join(handle->thread, NULL);
   }
+  pthread_cond_destroy(&handle->flow_condition);
   pthread_mutex_destroy(&handle->mutex);
   free(handle->body);
   free(handle->url);
   free(handle->file_path);
   free(handle->header_block);
+  free(handle->stream_batch_buffer);
   free(handle);
 }
 

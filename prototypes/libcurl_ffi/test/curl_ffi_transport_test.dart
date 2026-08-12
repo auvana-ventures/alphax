@@ -35,6 +35,11 @@ void main() {
             request.response.add(chunk);
             await request.response.flush();
           }
+        case '/bounded':
+          for (var offset = 0; offset < 64; offset += 8) {
+            request.response.add(List<int>.generate(8, (index) => offset + index));
+            await request.response.flush();
+          }
         case '/delay':
           await Future<void>.delayed(const Duration(seconds: 1));
           request.response.write('delayed');
@@ -111,6 +116,31 @@ void main() {
     expect(download.bytesTransferred, 64);
     expect(upload.statusCode, 200);
     expect(upload.bytesTransferred, 4);
+  });
+
+  test('bounds native streaming with credit acknowledgments', () async {
+    final bounded = CurlFfiClient.fromPath(
+      libraryPath,
+      streamChunkSize: 4,
+      streamWindowChunks: 2,
+    );
+    addTearDown(bounded.close);
+    final received = <int>[];
+    Map<String, Object?> flow = const <String, Object?>{};
+    await for (final event in bounded.getStreaming(uriFor(baseUri, '/bounded'))) {
+      if (event case BenchmarkStreamChunk(:final bytes)) {
+        received.addAll(bytes);
+        await Future<void>.delayed(const Duration(milliseconds: 2));
+      } else if (event case BenchmarkStreamCompleted(diagnostics: final diagnostics)) {
+        flow = Map<String, Object?>.from(diagnostics['stream_flow_control']! as Map);
+      }
+    }
+    expect(received, List<int>.generate(64, (index) => index));
+    expect(flow['window_chunks'], 2);
+    expect(flow['max_in_flight_chunks'], lessThanOrEqualTo(2));
+    expect(flow['max_buffered_bytes'], lessThanOrEqualTo(8));
+    expect(flow['pause_count'], greaterThan(0));
+    expect(flow['ack_count'], greaterThan(0));
   });
 
   test('reports timeout and cancellation', () async {

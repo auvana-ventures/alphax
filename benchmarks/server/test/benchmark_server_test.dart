@@ -24,12 +24,16 @@ void main() {
   test('exposes health and deterministic bytes', () async {
     final health = await _get('/health');
     final bytes = await _get('/bytes/8');
+    final connections = await _get('/connections');
 
     expect(health.statusCode, 200);
     expect(utf8.decode(health.body), '{"status":"ok"}');
     expect(bytes.statusCode, 200);
     expect(bytes.body, deterministicBytes(8, 0));
     expect(bytes.headers.contentLength, 8);
+    final connectionJson = jsonDecode(utf8.decode(connections.body)) as Map<String, dynamic>;
+    expect(connectionJson['requests_observed'], greaterThanOrEqualTo(3));
+    expect(connectionJson['connection_close_events'], 'unavailable:dart-http-server-api');
   });
 
   test('supports echo, upload validation, headers, status, and redirects', () async {

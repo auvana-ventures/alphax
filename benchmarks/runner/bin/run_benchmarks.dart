@@ -25,7 +25,12 @@ Future<void> main(List<String> args) async {
 
     final metadata = await _metadata(baseUri, options);
 
-    final candidates = _candidates(options.candidateName);
+    final candidates = _candidates(
+      options.candidateName,
+      streamChunkSize: options.streamChunkSize,
+      streamWindowChunks: options.streamWindowChunks,
+      includeReferences: options.includeReferences,
+    );
     stdout.writeln(
       'Running correctness checks for ${candidates.map((candidate) => candidate.name).join(', ')}',
     );
@@ -68,6 +73,10 @@ Future<Map<String, Object?>> _metadata(Uri baseUri, _RunnerOptions options) asyn
   metadata['candidate_process_name'] = options.candidateName ?? 'combined';
   metadata['warmup_iterations'] = options.warmupIterations;
   metadata['measured_iterations'] = options.measuredIterations;
+  metadata['stream_chunk_size_bytes'] = options.streamChunkSize;
+  metadata['stream_window_chunks'] = options.streamWindowChunks;
+  metadata['include_external_references'] = options.includeReferences;
+  metadata['network_profile'] = options.networkProfile;
   metadata['selected_scenarios'] = options.onlyScenarios.toList(growable: false);
   metadata['methodology'] = <String, Object?>{
     'statistics': <String>[
@@ -108,7 +117,7 @@ Future<void> _runIsolatedCandidates(_RunnerOptions options) async {
   final temporary = await Directory.systemTemp.createTemp('alphax-benchmark-candidates-');
   try {
     final documents = <Map<String, Object?>>[];
-    for (final candidate in _candidateNames) {
+    for (final candidate in _candidateNamesFor(options.includeReferences)) {
       final childOutput = Directory('${temporary.path}/$candidate');
       await childOutput.create(recursive: true);
       stdout.writeln('Starting isolated benchmark process: $candidate');
@@ -121,6 +130,12 @@ Future<void> _runIsolatedCandidates(_RunnerOptions options) async {
         '${options.warmupIterations}',
         '--iterations',
         '${options.measuredIterations}',
+        '--stream-chunk-size',
+        '${options.streamChunkSize}',
+        '--stream-window-chunks',
+        '${options.streamWindowChunks}',
+        '--network-profile',
+        options.networkProfile,
         '--output',
         childOutput.path,
       ];
@@ -128,6 +143,9 @@ Future<void> _runIsolatedCandidates(_RunnerOptions options) async {
         childArguments
           ..add('--only')
           ..add(options.onlyScenarios.join(','));
+      }
+      if (options.includeReferences) {
+        childArguments.add('--include-references');
       }
       if (options.baseUri != null) {
         childArguments
@@ -169,7 +187,7 @@ Future<void> _runIsolatedCandidates(_RunnerOptions options) async {
       ..remove('process_metrics_idle_baseline')
       ..['process_metrics_idle_baselines'] = idleBaselines
       ..['candidate_process_isolation'] = true
-      ..['candidate_order'] = _candidateNames;
+      ..['candidate_order'] = _candidateNamesFor(options.includeReferences);
     final run = BenchmarkRun(
       metadata: firstMetadata,
       correctness: documents.expand((document) => _mapList(document['correctness'])).toList(),
@@ -204,7 +222,14 @@ Future<void> _writeRunFiles(BenchmarkRun run, String outputDirectoryPath) async 
   await outputDirectory.create(recursive: true);
   final commit = (run.metadata['git_commit'] as String).replaceAll(RegExp(r'[^A-Za-z0-9_.-]'), '_');
   final dirtySuffix = run.metadata['git_worktree_dirty'] == true ? '-dirty' : '';
-  final stem = 'macos-local-$commit$dirtySuffix';
+  final chunkSize = run.metadata['stream_chunk_size_bytes'];
+  final windowChunks = run.metadata['stream_window_chunks'];
+  final flowSuffix = chunkSize is num && windowChunks is num
+      ? '-chunk${chunkSize.toInt()}-window${windowChunks.toInt()}'
+      : '';
+  final profile = run.metadata['network_profile'];
+  final profileSuffix = profile is String && profile.isNotEmpty ? '-network-$profile' : '';
+  final stem = 'macos-local-$commit$dirtySuffix$flowSuffix$profileSuffix';
   final rawPath = '${outputDirectory.path}/raw/$stem.json';
   final summaryJsonPath = '${outputDirectory.path}/summaries/$stem.json';
   final summaryMarkdownPath = '${outputDirectory.path}/summaries/$stem.md';
@@ -234,7 +259,17 @@ List<Map<String, Object?>> _mapList(Object? value) => [
 
 final List<String> _candidateNames = <String>['dart_io', 'libcurl_ffi', 'rust_reqwest_ffi'];
 
-List<BenchmarkCandidate> _candidates(String? filter) {
+List<String> _candidateNamesFor(bool includeReferences) => <String>[
+  ..._candidateNames,
+  if (includeReferences) 'dio_reference',
+];
+
+List<BenchmarkCandidate> _candidates(
+  String? filter, {
+  required int streamChunkSize,
+  required int streamWindowChunks,
+  required bool includeReferences,
+}) {
   final curlPath = Platform.environment['ALPHAX_CURL_LIBRARY'];
   final rustPath = Platform.environment['ALPHAX_RUST_LIBRARY'];
   if (curlPath == null || curlPath.isEmpty || rustPath == null || rustPath.isEmpty) {
@@ -244,8 +279,24 @@ List<BenchmarkCandidate> _candidates(String? filter) {
   }
   final candidates = <BenchmarkCandidate>[
     BenchmarkCandidate(name: 'dart_io', create: DartIoTransport.new),
-    BenchmarkCandidate(name: 'rust_reqwest_ffi', create: () => RustFfiClient.fromPath(rustPath)),
-    BenchmarkCandidate(name: 'libcurl_ffi', create: () => CurlFfiClient.fromPath(curlPath)),
+    BenchmarkCandidate(
+      name: 'rust_reqwest_ffi',
+      create: () => RustFfiClient.fromPath(
+        rustPath,
+        streamChunkSize: streamChunkSize,
+        streamWindowChunks: streamWindowChunks,
+      ),
+    ),
+    BenchmarkCandidate(
+      name: 'libcurl_ffi',
+      create: () => CurlFfiClient.fromPath(
+        curlPath,
+        streamChunkSize: streamChunkSize,
+        streamWindowChunks: streamWindowChunks,
+      ),
+    ),
+    if (includeReferences)
+      BenchmarkCandidate(name: 'dio_reference', create: DioReferenceTransport.new),
   ];
   if (filter == null) {
     return candidates;
@@ -266,6 +317,10 @@ final class _RunnerOptions {
     required this.correctnessOnly,
     required this.candidateName,
     required this.onlyScenarios,
+    required this.streamChunkSize,
+    required this.streamWindowChunks,
+    required this.includeReferences,
+    required this.networkProfile,
   });
 
   final Uri? baseUri;
@@ -275,6 +330,10 @@ final class _RunnerOptions {
   final bool correctnessOnly;
   final String? candidateName;
   final Set<String> onlyScenarios;
+  final int streamChunkSize;
+  final int streamWindowChunks;
+  final bool includeReferences;
+  final String networkProfile;
 
   static _RunnerOptions parse(List<String> args) {
     Uri? baseUri;
@@ -283,6 +342,10 @@ final class _RunnerOptions {
     var measuredIterations = 10;
     var correctnessOnly = false;
     String? candidateName;
+    var streamChunkSize = 64 * 1024;
+    var streamWindowChunks = 4;
+    var includeReferences = false;
+    var networkProfile = 'local';
     final onlyScenarios = <String>{};
     for (var index = 0; index < args.length; index++) {
       switch (args[index]) {
@@ -294,6 +357,14 @@ final class _RunnerOptions {
           warmupIterations = int.parse(args[++index]);
         case '--iterations':
           measuredIterations = int.parse(args[++index]);
+        case '--stream-chunk-size':
+          streamChunkSize = int.parse(args[++index]);
+        case '--stream-window-chunks':
+          streamWindowChunks = int.parse(args[++index]);
+        case '--include-references':
+          includeReferences = true;
+        case '--network-profile':
+          networkProfile = args[++index];
         case '--correctness-only':
           correctnessOnly = true;
         case '--candidate':
@@ -308,6 +379,10 @@ final class _RunnerOptions {
   --output DIR        Results directory (default: benchmarks/results)
   --warmup N          Warmup iterations (default: 3)
   --iterations N      Measured iterations (default: 10)
+  --stream-chunk-size N  Native FFI chunk target (default: 65536)
+  --stream-window-chunks N  Native FFI credit window (default: 4)
+  --include-references  Include Dio ecosystem reference (Nitro is not Dart-compatible)
+  --network-profile NAME  local, good-network, typical-mobile, or poor-mobile
   --correctness-only  Run correctness checks without performance scenarios
   --candidate NAME     Diagnostic filter: dart_io, libcurl_ffi, or rust_reqwest_ffi
   --only LIST           Comma-separated performance scenario names; correctness always runs
@@ -320,6 +395,13 @@ final class _RunnerOptions {
     if (warmupIterations < 0 || measuredIterations < 2) {
       throw FormatException('warmup must be >= 0 and iterations must be >= 2');
     }
+    if (streamChunkSize <= 0 || streamWindowChunks <= 0) {
+      throw FormatException('stream chunk size and window must be positive');
+    }
+    const networkProfiles = <String>{'local', 'good-network', 'typical-mobile', 'poor-mobile'};
+    if (!networkProfiles.contains(networkProfile)) {
+      throw FormatException('unknown network profile: $networkProfile');
+    }
     return _RunnerOptions(
       baseUri: baseUri,
       outputDirectory: outputDirectory,
@@ -328,6 +410,10 @@ final class _RunnerOptions {
       correctnessOnly: correctnessOnly,
       candidateName: candidateName,
       onlyScenarios: onlyScenarios,
+      streamChunkSize: streamChunkSize,
+      streamWindowChunks: streamWindowChunks,
+      includeReferences: includeReferences,
+      networkProfile: networkProfile,
     );
   }
 }

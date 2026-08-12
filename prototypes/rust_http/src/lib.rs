@@ -4,13 +4,13 @@ use std::mem;
 use std::os::raw::{c_char, c_void};
 use std::ptr;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
 use std::time::Instant;
 
 use futures_util::StreamExt;
 use reqwest::redirect::Policy;
-use reqwest::{Body, Client, Method};
+use reqwest::{Body, Client, Method, Version};
 use tokio::io::AsyncWriteExt;
 use tokio::runtime::Builder;
 use tokio::sync::Notify;
@@ -39,6 +39,21 @@ pub struct AxRustResult {
     pub time_to_first_byte_ms: f64,
     pub error_code: i32,
     pub connection_id: u64,
+    pub http_version: i32,
+    pub stream_chunk_size: u64,
+    pub stream_window_chunks: u64,
+    pub stream_max_in_flight_chunks: u64,
+    pub stream_max_buffered_bytes: u64,
+    pub stream_chunk_notifications: u64,
+    pub stream_credit_exhausted_count: u64,
+    pub stream_pause_count: u64,
+    pub stream_resume_count: u64,
+    pub stream_pause_wait_ns: u64,
+    pub stream_resume_latency_ns: u64,
+    pub stream_ack_count: u64,
+    pub stream_acked_bytes: u64,
+    pub stream_in_flight_chunks_at_completion: u64,
+    pub stream_buffered_bytes_at_completion: u64,
 }
 
 /// Callback invoked when response metadata is available.
@@ -51,6 +66,157 @@ pub type AxRustStreamCompleteCallback = extern "C" fn(*mut AxRustResult, i32, *m
 struct Cancellation {
     requested: AtomicBool,
     notify: Notify,
+}
+
+#[derive(Clone, Copy)]
+struct StreamConfig {
+    chunk_size: u64,
+    window_chunks: u64,
+}
+
+impl Default for StreamConfig {
+    fn default() -> Self {
+        Self {
+            chunk_size: 64 * 1024,
+            window_chunks: 4,
+        }
+    }
+}
+
+struct FlowState {
+    credits: u64,
+    in_flight_chunks: u64,
+    in_flight_bytes: u64,
+    max_in_flight_chunks: u64,
+    max_buffered_bytes: u64,
+    chunk_notifications: u64,
+    credit_exhausted_count: u64,
+    pause_count: u64,
+    resume_count: u64,
+    pause_wait_ns: u64,
+    resume_latency_ns: u64,
+    ack_count: u64,
+    acked_bytes: u64,
+    pause_started: Option<Instant>,
+    last_credit: Option<Instant>,
+}
+
+struct FlowControl {
+    config: StreamConfig,
+    state: Mutex<FlowState>,
+    notify: Notify,
+}
+
+impl FlowControl {
+    fn new(config: StreamConfig) -> Self {
+        Self {
+            config,
+            state: Mutex::new(FlowState {
+                credits: config.window_chunks,
+                in_flight_chunks: 0,
+                in_flight_bytes: 0,
+                max_in_flight_chunks: 0,
+                max_buffered_bytes: 0,
+                chunk_notifications: 0,
+                credit_exhausted_count: 0,
+                pause_count: 0,
+                resume_count: 0,
+                pause_wait_ns: 0,
+                resume_latency_ns: 0,
+                ack_count: 0,
+                acked_bytes: 0,
+                pause_started: None,
+                last_credit: None,
+            }),
+            notify: Notify::new(),
+        }
+    }
+
+    async fn reserve(&self, length: u64, cancellation: &Cancellation) -> bool {
+        loop {
+            if cancellation.is_cancelled() {
+                return false;
+            }
+            let notified = self.notify.notified();
+            {
+                let mut state = self.state.lock().expect("flow-control mutex poisoned");
+                if state.credits > 0 {
+                    if let Some(started) = state.pause_started.take() {
+                        state.pause_wait_ns = state
+                            .pause_wait_ns
+                            .saturating_add(started.elapsed().as_nanos() as u64);
+                        if let Some(credit_time) = state.last_credit.take() {
+                            state.resume_latency_ns = state
+                                .resume_latency_ns
+                                .saturating_add(credit_time.elapsed().as_nanos() as u64);
+                        }
+                        state.resume_count += 1;
+                    }
+                    state.credits -= 1;
+                    state.in_flight_chunks += 1;
+                    state.in_flight_bytes = state.in_flight_bytes.saturating_add(length);
+                    state.max_in_flight_chunks =
+                        state.max_in_flight_chunks.max(state.in_flight_chunks);
+                    state.max_buffered_bytes = state.max_buffered_bytes.max(state.in_flight_bytes);
+                    return true;
+                }
+                if state.pause_started.is_none() {
+                    state.pause_started = Some(Instant::now());
+                    state.pause_count += 1;
+                    state.credit_exhausted_count += 1;
+                }
+            }
+            tokio::select! {
+                _ = notified => {}
+                _ = cancellation.wait() => return false,
+            }
+        }
+    }
+
+    fn record_notification(&self) {
+        let mut state = self.state.lock().expect("flow-control mutex poisoned");
+        state.chunk_notifications += 1;
+    }
+
+    fn acknowledge(&self, chunk_count: u64, byte_count: u64) {
+        if chunk_count == 0 {
+            return;
+        }
+        let mut state = self.state.lock().expect("flow-control mutex poisoned");
+        let acknowledged = chunk_count.min(state.in_flight_chunks);
+        if acknowledged == 0 {
+            return;
+        }
+        let available_credits = self.config.window_chunks.saturating_sub(state.credits);
+        state.credits = state
+            .credits
+            .saturating_add(acknowledged.min(available_credits));
+        state.in_flight_chunks = state.in_flight_chunks.saturating_sub(acknowledged);
+        state.in_flight_bytes = state.in_flight_bytes.saturating_sub(byte_count);
+        state.ack_count = state.ack_count.saturating_add(acknowledged);
+        state.acked_bytes = state.acked_bytes.saturating_add(byte_count);
+        state.last_credit = Some(Instant::now());
+        drop(state);
+        self.notify.notify_waiters();
+    }
+
+    fn apply_result(&self, result: &mut AxRustResult) {
+        let state = self.state.lock().expect("flow-control mutex poisoned");
+        result.stream_chunk_size = self.config.chunk_size;
+        result.stream_window_chunks = self.config.window_chunks;
+        result.stream_max_in_flight_chunks = state.max_in_flight_chunks;
+        result.stream_max_buffered_bytes = state.max_buffered_bytes;
+        result.stream_chunk_notifications = state.chunk_notifications;
+        result.stream_credit_exhausted_count = state.credit_exhausted_count;
+        result.stream_pause_count = state.pause_count;
+        result.stream_resume_count = state.resume_count;
+        result.stream_pause_wait_ns = state.pause_wait_ns;
+        result.stream_resume_latency_ns = state.resume_latency_ns;
+        result.stream_ack_count = state.ack_count;
+        result.stream_acked_bytes = state.acked_bytes;
+        result.stream_in_flight_chunks_at_completion = state.in_flight_chunks;
+        result.stream_buffered_bytes_at_completion = state.in_flight_bytes;
+    }
 }
 
 impl Cancellation {
@@ -88,12 +254,14 @@ struct RequestConfig {
 
 pub struct AxRustRequest {
     cancellation: Arc<Cancellation>,
+    flow: Arc<FlowControl>,
     thread: Option<JoinHandle<()>>,
 }
 
 pub struct AxRustClient {
     client: Client,
     runtime: Arc<tokio::runtime::Runtime>,
+    stream_config: Mutex<StreamConfig>,
 }
 
 /// Performs one request using a reusable reqwest client.
@@ -103,6 +271,7 @@ pub async fn fetch(client: &Client, url: &str) -> Result<AxRustResult, reqwest::
     let time_to_first_byte_ms = started.elapsed().as_secs_f64() * 1000.0;
     let status_code = i64::from(response.status().as_u16());
     let connection_id = response_connection_id(response.headers());
+    let http_version = protocol_code(response.version());
     let bytes_received = response.bytes().await?.len() as u64;
     Ok(AxRustResult {
         status_code,
@@ -111,6 +280,8 @@ pub async fn fetch(client: &Client, url: &str) -> Result<AxRustResult, reqwest::
         time_to_first_byte_ms,
         error_code: 0,
         connection_id,
+        http_version,
+        ..AxRustResult::default()
     })
 }
 
@@ -121,6 +292,30 @@ async fn run_request(
     on_start: AxRustStreamStartCallback,
     on_chunk: AxRustStreamChunkCallback,
     user_data: *mut c_void,
+    flow: Arc<FlowControl>,
+) -> AxRustResult {
+    let mut result = run_request_inner(
+        config,
+        cancellation,
+        shared_client,
+        on_start,
+        on_chunk,
+        user_data,
+        Arc::clone(&flow),
+    )
+    .await;
+    flow.apply_result(&mut result);
+    result
+}
+
+async fn run_request_inner(
+    config: RequestConfig,
+    cancellation: Arc<Cancellation>,
+    shared_client: Client,
+    on_start: AxRustStreamStartCallback,
+    on_chunk: AxRustStreamChunkCallback,
+    user_data: *mut c_void,
+    flow: Arc<FlowControl>,
 ) -> AxRustResult {
     let started = Instant::now();
     if cancellation.is_cancelled() {
@@ -178,6 +373,7 @@ async fn run_request(
     let status_code = i64::from(response.status().as_u16());
     let time_to_first_byte_ms = started.elapsed().as_secs_f64() * 1000.0;
     let connection_id = response_connection_id(response.headers());
+    let http_version = protocol_code(response.version());
     let headers = serialize_headers(status_code, response.headers());
     emit_owned_buffer(on_start, status_code, headers, user_data);
 
@@ -194,6 +390,8 @@ async fn run_request(
     };
     let mut bytes_received = 0_u64;
     let mut stream = response.bytes_stream();
+    let target_chunk_size = flow.config.chunk_size as usize;
+    let mut pending_stream_bytes = Vec::with_capacity(target_chunk_size);
     while let Some(next) = tokio::select! {
         item = stream.next() => item,
         _ = cancellation.wait() => return cancelled_result(started),
@@ -222,8 +420,37 @@ async fn run_request(
                 );
             }
         } else {
-            emit_owned_chunk(on_chunk, chunk.to_vec(), user_data);
+            if pending_stream_bytes.try_reserve(chunk.len()).is_err() {
+                return error_result_with_status(
+                    started,
+                    status_code,
+                    time_to_first_byte_ms,
+                    ERROR_WRITE,
+                );
+            }
+            pending_stream_bytes.extend_from_slice(&chunk);
+            while pending_stream_bytes.len() >= target_chunk_size {
+                // Split the accumulated response without copying the
+                // remainder. This gives Rust the same target-size batching
+                // semantics as the libcurl callback accumulator.
+                let remainder = pending_stream_bytes.split_off(target_chunk_size);
+                let owned = std::mem::replace(&mut pending_stream_bytes, remainder);
+                let length = owned.len() as u64;
+                if !flow.reserve(length, &cancellation).await {
+                    return cancelled_result(started);
+                }
+                emit_owned_chunk(on_chunk, owned, user_data);
+                flow.record_notification();
+            }
         }
+    }
+    if file.is_none() && !pending_stream_bytes.is_empty() {
+        let length = pending_stream_bytes.len() as u64;
+        if !flow.reserve(length, &cancellation).await {
+            return cancelled_result(started);
+        }
+        emit_owned_chunk(on_chunk, pending_stream_bytes, user_data);
+        flow.record_notification();
     }
     if cancellation.is_cancelled() {
         return cancelled_result(started);
@@ -235,6 +462,8 @@ async fn run_request(
         time_to_first_byte_ms,
         error_code: 0,
         connection_id,
+        http_version,
+        ..AxRustResult::default()
     }
 }
 
@@ -256,6 +485,17 @@ fn response_connection_id(headers: &reqwest::header::HeaderMap) -> u64 {
         .and_then(|value| value.to_str().ok())
         .and_then(|value| value.parse::<u64>().ok())
         .unwrap_or(0)
+}
+
+fn protocol_code(version: Version) -> i32 {
+    match version {
+        Version::HTTP_09 => 9,
+        Version::HTTP_10 => 10,
+        Version::HTTP_11 => 11,
+        Version::HTTP_2 => 20,
+        Version::HTTP_3 => 30,
+        _ => 0,
+    }
 }
 
 fn emit_owned_buffer(
@@ -404,10 +644,19 @@ pub extern "C" fn ax_rust_request_start(
     // SAFETY: the caller keeps the client alive until all request handles have
     // completed. Clone both the client and its long-lived runtime state so the
     // reqwest dispatcher is not tied to a request-local runtime.
-    let (shared_client, runtime) = unsafe {
+    let (shared_client, runtime, stream_config) = unsafe {
         let client = &*client;
-        (client.client.clone(), Arc::clone(&client.runtime))
+        (
+            client.client.clone(),
+            Arc::clone(&client.runtime),
+            *client
+                .stream_config
+                .lock()
+                .expect("stream config mutex poisoned"),
+        )
     };
+    let flow = Arc::new(FlowControl::new(stream_config));
+    let worker_flow = Arc::clone(&flow);
     let user_data_address = user_data as usize;
     let thread = match thread::Builder::new()
         .name("alphax-rust-http".into())
@@ -419,6 +668,7 @@ pub extern "C" fn ax_rust_request_start(
                 on_start,
                 on_chunk,
                 user_data_address as *mut c_void,
+                worker_flow,
             ));
             let error_code = result.error_code;
             let result_pointer = Box::into_raw(Box::new(result));
@@ -429,6 +679,7 @@ pub extern "C" fn ax_rust_request_start(
     };
     Box::into_raw(Box::new(AxRustRequest {
         cancellation,
+        flow,
         thread: Some(thread),
     }))
 }
@@ -448,7 +699,36 @@ pub extern "C" fn ax_rust_client_create() -> *mut AxRustClient {
         Ok(client) => client,
         Err(_) => return ptr::null_mut(),
     };
-    Box::into_raw(Box::new(AxRustClient { client, runtime }))
+    Box::into_raw(Box::new(AxRustClient {
+        client,
+        runtime,
+        stream_config: Mutex::new(StreamConfig::default()),
+    }))
+}
+
+/// Sets the experimental bounded-stream settings for a client instance.
+#[no_mangle]
+pub extern "C" fn ax_rust_client_set_stream_config(
+    client: *mut AxRustClient,
+    chunk_size: u64,
+    window_chunks: u64,
+) -> i32 {
+    if client.is_null() || chunk_size == 0 || chunk_size > usize::MAX as u64 || window_chunks == 0 {
+        return ERROR_INVALID_ARGUMENT;
+    }
+    // SAFETY: the caller owns the live client handle for the duration of this
+    // configuration call and does not mutate it concurrently in the benchmark.
+    unsafe {
+        (*client)
+            .stream_config
+            .lock()
+            .expect("stream config mutex poisoned")
+            .clone_from(&StreamConfig {
+                chunk_size,
+                window_chunks,
+            });
+    }
+    0
 }
 
 /// Releases a shared reqwest client after its request handles are closed.
@@ -470,6 +750,21 @@ pub extern "C" fn ax_rust_request_cancel(request: *mut AxRustRequest) -> i32 {
     }
     // SAFETY: the handle remains owned by the caller until request_free.
     unsafe { (*request).cancellation.cancel() };
+    0
+}
+
+/// Returns credits to a bounded response stream after Dart consumes chunks.
+#[no_mangle]
+pub extern "C" fn ax_rust_stream_ack(
+    request: *mut AxRustRequest,
+    chunk_count: u64,
+    byte_count: u64,
+) -> i32 {
+    if request.is_null() {
+        return ERROR_INVALID_ARGUMENT;
+    }
+    // SAFETY: the request remains owned by the caller until request_free.
+    unsafe { (*request).flow.acknowledge(chunk_count, byte_count) };
     0
 }
 
@@ -518,5 +813,5 @@ pub extern "C" fn ax_rust_free_result(pointer: *mut AxRustResult) {
 /// Returns the prototype's C ABI version.
 #[no_mangle]
 pub extern "C" fn ax_rust_ffi_version() -> u32 {
-    3
+    5
 }

@@ -9,13 +9,15 @@ final _ConnectionTracker _defaultConnectionTracker = _ConnectionTracker();
 final class BenchmarkServer {
   /// Creates a server bound to [host] and [port]. Port zero selects an ephemeral port.
   BenchmarkServer({InternetAddress? host, this.port = 0})
-    : host = host ?? InternetAddress.loopbackIPv4;
+    : host = host ?? InternetAddress.loopbackIPv4,
+      _connectionTracker = _ConnectionTracker();
 
   /// Address to bind.
   final InternetAddress host;
 
   /// Port to bind, or zero for an ephemeral port.
   final int port;
+  final _ConnectionTracker _connectionTracker;
 
   HttpServer? _server;
   Completer<void>? _done;
@@ -67,19 +69,27 @@ final class BenchmarkServer {
 
   Future<void> _serve(HttpServer server) async {
     await for (final request in server) {
-      unawaited(handleBenchmarkRequest(request));
+      unawaited(_handleBenchmarkRequest(request, _connectionTracker));
     }
   }
 }
 
 /// Handles one request using the deterministic benchmark contract.
-Future<void> handleBenchmarkRequest(HttpRequest request) async {
+Future<void> handleBenchmarkRequest(HttpRequest request) =>
+    _handleBenchmarkRequest(request, _defaultConnectionTracker);
+
+Future<void> _handleBenchmarkRequest(
+  HttpRequest request,
+  _ConnectionTracker tracker,
+) async {
   final response = request.response;
-  final connection = _defaultConnectionTracker.observe(request);
+  final connection = tracker.observe(request);
   response.headers
     ..set('x-alphax-server-connection-id', '${connection.id}')
     ..set('x-alphax-server-connection-request-count', '${connection.requestCount}')
-    ..set('x-alphax-server-connections-established', '${connection.connectionsEstablished}');
+    ..set('x-alphax-server-connections-established', '${connection.connectionsEstablished}')
+    ..set('x-alphax-server-requests-observed', '${connection.requestsObserved}')
+    ..set('x-alphax-server-connection-close-events', 'unavailable:dart-http-server-api');
   try {
     final segments = request.uri.pathSegments;
     if (segments.isEmpty || segments.first.isEmpty) {
@@ -105,6 +115,8 @@ Future<void> handleBenchmarkRequest(HttpRequest request) async {
         await _countUpload(request, response);
       case 'health':
         _writeJsonBody(response, <String, Object>{'status': 'ok'});
+      case 'connections':
+        _writeJsonBody(response, tracker.snapshot());
       case 'delay':
         await Future<void>.delayed(_durationFromPath(segments, 1, 'milliseconds'));
         _writeText(response, 'delayed');
@@ -151,6 +163,11 @@ Future<void> _writeBytes(HttpResponse response, int size) async {
   while (offset < size) {
     final length = math.min(chunkSize, size - offset);
     response.add(deterministicBytes(length, offset));
+    // Keep large deterministic responses bounded in the server process. This
+    // endpoint is used by direct-file and buffered candidates as well as
+    // streaming candidates, so it must not accumulate the whole payload in
+    // the Dart HTTP response sink.
+    await response.flush();
     offset += length;
   }
 }
@@ -256,18 +273,22 @@ final class _ConnectionObservation {
     required this.id,
     required this.requestCount,
     required this.connectionsEstablished,
+    required this.requestsObserved,
   });
 
   final int id;
   final int requestCount;
   final int connectionsEstablished;
+  final int requestsObserved;
 }
 
 final class _ConnectionTracker {
   final Map<String, int> _ids = <String, int>{};
   final Map<String, int> _requestCounts = <String, int>{};
+  var _requestsObserved = 0;
 
   _ConnectionObservation observe(HttpRequest request) {
+    _requestsObserved++;
     final info = request.connectionInfo;
     final key = info == null
         ? 'unknown-${identityHashCode(request)}'
@@ -279,8 +300,19 @@ final class _ConnectionTracker {
       id: id,
       requestCount: requestCount,
       connectionsEstablished: _ids.length,
+      requestsObserved: _requestsObserved,
     );
   }
+
+  Map<String, Object> snapshot() => <String, Object>{
+    'requests_observed': _requestsObserved,
+    'connections_established': _ids.length,
+    'requests_per_connection': _requestCounts.map(
+      (key, value) => MapEntry<String, int>('${_ids[key]}', value),
+    ),
+    'connection_close_events': 'unavailable:dart-http-server-api',
+    'connection_observation': 'remote-address-and-port',
+  };
 }
 
 void _redirect(HttpResponse response, int count) {

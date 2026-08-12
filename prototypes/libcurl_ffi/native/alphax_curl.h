@@ -41,6 +41,20 @@ typedef struct AxCurlResult {
   uint64_t upload_bytes_submitted;
   uint64_t response_callback_count;
   uint64_t response_bytes_delivered;
+  uint64_t stream_chunk_size;
+  uint64_t stream_window_chunks;
+  uint64_t stream_max_in_flight_chunks;
+  uint64_t stream_max_buffered_bytes;
+  uint64_t stream_chunk_notifications;
+  uint64_t stream_credit_exhausted_count;
+  uint64_t stream_pause_count;
+  uint64_t stream_resume_count;
+  uint64_t stream_pause_wait_ns;
+  uint64_t stream_resume_latency_ns;
+  uint64_t stream_ack_count;
+  uint64_t stream_acked_bytes;
+  uint64_t stream_in_flight_chunks_at_completion;
+  uint64_t stream_buffered_bytes_at_completion;
 } AxCurlResult;
 
 typedef struct AxCurlStreamHandle AxCurlStreamHandle;
@@ -69,6 +83,10 @@ ALPHAX_CURL_EXPORT int32_t ax_curl_download(const char *url, const char *path, A
 ALPHAX_CURL_EXPORT int32_t ax_curl_upload(const char *url, const char *path, AxCurlResult *out);
 ALPHAX_CURL_EXPORT AxCurlClient *ax_curl_client_create(void);
 ALPHAX_CURL_EXPORT void ax_curl_client_free(AxCurlClient *client);
+ALPHAX_CURL_EXPORT int32_t ax_curl_client_set_stream_config(
+    AxCurlClient *client,
+    uint64_t chunk_size,
+    uint64_t window_chunks);
 ALPHAX_CURL_EXPORT AxCurlStreamHandle *ax_curl_request_start(
     AxCurlClient *client,
     const char *url,
@@ -82,6 +100,10 @@ ALPHAX_CURL_EXPORT AxCurlStreamHandle *ax_curl_request_start(
     AxCurlStreamCompleteCallback on_complete,
     void *user_data);
 ALPHAX_CURL_EXPORT int32_t ax_curl_request_cancel(AxCurlStreamHandle *handle);
+ALPHAX_CURL_EXPORT int32_t ax_curl_stream_ack(
+    AxCurlStreamHandle *handle,
+    uint64_t chunk_count,
+    uint64_t byte_count);
 ALPHAX_CURL_EXPORT void ax_curl_request_free(AxCurlStreamHandle *handle);
 ALPHAX_CURL_EXPORT void ax_curl_free_buffer(const uint8_t *buffer);
 ALPHAX_CURL_EXPORT const char *ax_curl_last_error(void);

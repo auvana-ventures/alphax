@@ -329,6 +329,42 @@ Future<List<Map<String, Object?>>> runLocalScenarios(
     }
   }
 
+  if (_scenarioEnabled(onlyScenarios, 'connection_reuse_sequential')) {
+    stderr.writeln('Benchmark: $candidate sequential connection reuse');
+    for (var index = 0; index < warmupIterations + measuredIterations; index++) {
+      final measured = index >= warmupIterations;
+      final processBefore = measured ? await captureProcessMetrics() : null;
+      final stopwatch = Stopwatch()..start();
+      final responses = <BenchmarkResponse>[];
+      for (var request = 0; request < 100; request++) {
+        responses.add(await transport.getBytes(_uri(baseUri, '/bytes/1024')));
+      }
+      stopwatch.stop();
+      final processAfter = measured ? await captureProcessMetrics() : null;
+      if (measured) {
+        samples.add(
+          _sample(
+            candidate: candidate,
+            scenario: 'connection_reuse_sequential',
+            statusCode: responses.every((response) => response.statusCode == 200) ? 200 : 0,
+            bytes: responses.fold<int>(0, (sum, response) => sum + response.bodyBytes.length),
+            elapsed: stopwatch.elapsed,
+            extra: <String, Object?>{
+              ..._connectionDiagnostics(responses),
+              ..._nativeDiagnostics(responses),
+              'request_count': responses.length,
+              'process_metrics': _processDiagnostics(
+                processBefore!,
+                processAfter!,
+                stopwatch.elapsed,
+              ),
+            },
+          ),
+        );
+      }
+    }
+  }
+
   for (final size in <int>[10 * 1024 * 1024, 100 * 1024 * 1024]) {
     final scenario = 'download_${size}_bytes';
     if (!_scenarioEnabled(onlyScenarios, scenario)) {
@@ -336,12 +372,23 @@ Future<List<Map<String, Object?>>> runLocalScenarios(
     }
     stderr.writeln('Benchmark: $candidate download $size');
     final path = '${Directory.systemTemp.path}/alphax-download-$size.bin';
+    final expectedDownloadHash = _hashPattern(size);
     for (var index = 0; index < warmupIterations + measuredIterations; index++) {
       final measured = index >= warmupIterations;
       final processBefore = measured ? await captureProcessMetrics() : null;
       final response = await transport.downloadFile(_uri(baseUri, '/bytes/$size'), path);
       final processAfter = measured ? await captureProcessMetrics() : null;
       if (measured) {
+        final actualDownloadHash = await _hashFile(path);
+        if (response.statusCode != 200 ||
+            response.bytesTransferred != size ||
+            actualDownloadHash != expectedDownloadHash) {
+          throw StateError(
+            'download validation failed: status=${response.statusCode}, '
+            'reported=${response.bytesTransferred}, actualHash=$actualDownloadHash, '
+            'expectedHash=$expectedDownloadHash',
+          );
+        }
         samples.add(
           _sample(
             candidate: candidate,
@@ -353,10 +400,116 @@ Future<List<Map<String, Object?>>> runLocalScenarios(
             extra: <String, Object?>{
               ...response.diagnostics,
               ..._connectionDiagnosticsForTransfer(response.headers, response.diagnostics),
+              'file_transfer_path': candidate == 'dart_io'
+                  ? 'network_to_dart_stream_to_file'
+                  : 'network_to_native_to_file',
+              'download_validation': <String, Object?>{
+                'expected_bytes': size,
+                'actual_bytes': response.bytesTransferred,
+                'expected_hash': expectedDownloadHash,
+                'actual_hash': actualDownloadHash,
+                'hash_algorithm': 'fnv1a64',
+              },
               'process_metrics': _processDiagnostics(
                 processBefore!,
                 processAfter!,
                 response.elapsed,
+              ),
+            },
+          ),
+        );
+      }
+    }
+    await File(path).delete();
+  }
+
+  for (final size in <int>[10 * 1024 * 1024, 100 * 1024 * 1024]) {
+    final scenario = 'download_stream_to_dart_file_${size}_bytes';
+    if (!_scenarioEnabled(onlyScenarios, scenario)) {
+      continue;
+    }
+    stderr.writeln('Benchmark: $candidate streamed download to Dart file $size');
+    final path = '${Directory.systemTemp.path}/alphax-stream-download-$size.bin';
+    final expectedDownloadHash = _hashPattern(size);
+    for (var index = 0; index < warmupIterations + measuredIterations; index++) {
+      final measured = index >= warmupIterations;
+      final processBefore = measured ? await captureProcessMetrics() : null;
+      final stopwatch = Stopwatch()..start();
+      var statusCode = 0;
+      var bytes = 0;
+      Duration? timeToFirstByte;
+      Map<String, List<String>> headers = const <String, List<String>>{};
+      Map<String, Object?> streamDiagnostics = const <String, Object?>{};
+      var pendingFileBytes = 0;
+      final sink = File(path).openWrite();
+      try {
+        await for (final event in transport.getStreaming(_uri(baseUri, '/bytes/$size'))) {
+          if (event case BenchmarkStreamStarted(
+            statusCode: final startedStatus,
+            headers: final startedHeaders,
+          )) {
+            statusCode = startedStatus;
+            headers = startedHeaders;
+            timeToFirstByte ??= stopwatch.elapsed;
+          } else if (event case BenchmarkStreamChunk(bytes: final chunk)) {
+            sink.add(chunk);
+            // Keep the benchmark's Dart-to-file path bounded. IOSink.add is
+            // synchronous and may otherwise let a fast producer accumulate
+            // an unbounded pending write buffer across a large transfer.
+            pendingFileBytes += chunk.length;
+            if (pendingFileBytes >= 1024 * 1024) {
+              await sink.flush();
+              pendingFileBytes = 0;
+            }
+            bytes += chunk.length;
+          } else if (event case BenchmarkStreamCompleted(
+            statusCode: final completedStatus,
+            headers: final completedHeaders,
+            timeToFirstByte: final completedTtfb,
+            diagnostics: final diagnostics,
+          )) {
+            statusCode = completedStatus;
+            headers = completedHeaders;
+            timeToFirstByte ??= completedTtfb;
+            streamDiagnostics = diagnostics;
+          }
+        }
+      } finally {
+        await sink.close();
+      }
+      stopwatch.stop();
+      final processAfter = measured ? await captureProcessMetrics() : null;
+      if (measured) {
+        final actualDownloadHash = await _hashFile(path);
+        if (statusCode != 200 || bytes != size || actualDownloadHash != expectedDownloadHash) {
+          throw StateError(
+            'streamed download validation failed: status=$statusCode, bytes=$bytes, '
+            'actualHash=$actualDownloadHash, expectedHash=$expectedDownloadHash',
+          );
+        }
+        samples.add(
+          _sample(
+            candidate: candidate,
+            scenario: scenario,
+            statusCode: statusCode,
+            bytes: bytes,
+            elapsed: stopwatch.elapsed,
+            timeToFirstByte: timeToFirstByte,
+            extra: <String, Object?>{
+              ...streamDiagnostics,
+              ..._connectionDiagnosticsForTransfer(headers, streamDiagnostics),
+              'file_transfer_path': 'network_to_dart_stream_to_file',
+              'download_validation': <String, Object?>{
+                'expected_bytes': size,
+                'actual_bytes': bytes,
+                'expected_hash': expectedDownloadHash,
+                'actual_hash': actualDownloadHash,
+                'hash_algorithm': 'fnv1a64',
+              },
+              'process_metrics': _processDiagnostics(
+                processBefore!,
+                processAfter!,
+                stopwatch.elapsed,
               ),
             },
           ),
@@ -407,6 +560,9 @@ Future<List<Map<String, Object?>>> runLocalScenarios(
                 ),
               },
               ..._connectionDiagnosticsForTransfer(response.headers, response.diagnostics),
+              'file_transfer_path': candidate == 'dart_io'
+                  ? 'file_to_dart_stream_to_network'
+                  : 'file_to_native_to_network',
               'process_metrics': _processDiagnostics(
                 processBefore!,
                 processAfter!,
@@ -425,22 +581,30 @@ Future<List<Map<String, Object?>>> runLocalScenarios(
       if (index == 0) {
         stderr.writeln('Benchmark: $candidate streaming');
       }
+      final measured = index >= warmupIterations;
+      final processBefore = measured ? await captureProcessMetrics() : null;
       final stopwatch = Stopwatch()..start();
       var bytes = 0;
       Duration? timeToFirstByte;
       var statusCode = 0;
+      Map<String, Object?> streamDiagnostics = const <String, Object?>{};
       await for (final event in transport.getStreaming(_uri(baseUri, '/stream/32/65536'))) {
         if (event case BenchmarkStreamStarted(statusCode: final startedStatus)) {
           timeToFirstByte ??= stopwatch.elapsed;
           statusCode = startedStatus;
         } else if (event case BenchmarkStreamChunk(bytes: final chunk)) {
           bytes += chunk.length;
-        } else if (event case BenchmarkStreamCompleted(statusCode: final completedStatus)) {
+        } else if (event case BenchmarkStreamCompleted(
+          statusCode: final completedStatus,
+          diagnostics: final diagnostics,
+        )) {
           statusCode = completedStatus;
+          streamDiagnostics = diagnostics;
         }
       }
       stopwatch.stop();
-      if (index >= warmupIterations) {
+      final processAfter = measured ? await captureProcessMetrics() : null;
+      if (measured) {
         samples.add(
           _sample(
             candidate: candidate,
@@ -449,6 +613,14 @@ Future<List<Map<String, Object?>>> runLocalScenarios(
             bytes: bytes,
             elapsed: stopwatch.elapsed,
             timeToFirstByte: timeToFirstByte,
+            extra: <String, Object?>{
+              ...streamDiagnostics,
+              'process_metrics': _processDiagnostics(
+                processBefore!,
+                processAfter!,
+                stopwatch.elapsed,
+              ),
+            },
           ),
         );
       }
@@ -465,10 +637,12 @@ Future<List<Map<String, Object?>>> runLocalScenarios(
       final stopwatch = Stopwatch()..start();
       var bytes = 0;
       var statusCode = 0;
+      Duration? timeToFirstByte;
       Map<String, Object?> streamDiagnostics = const <String, Object?>{};
       await for (final event in transport.getStreaming(_uri(baseUri, '/stream/32/65536'))) {
         if (event case BenchmarkStreamStarted(statusCode: final startedStatus)) {
           statusCode = startedStatus;
+          timeToFirstByte ??= stopwatch.elapsed;
         } else if (event case BenchmarkStreamChunk(bytes: final chunk)) {
           bytes += chunk.length;
           await Future<void>.delayed(const Duration(milliseconds: 2));
@@ -490,6 +664,7 @@ Future<List<Map<String, Object?>>> runLocalScenarios(
             statusCode: statusCode,
             bytes: bytes,
             elapsed: stopwatch.elapsed,
+            timeToFirstByte: timeToFirstByte,
             extra: <String, Object?>{
               ...streamDiagnostics,
               'process_metrics': _processDiagnostics(
@@ -588,6 +763,7 @@ Future<void> _runCancellationScenarios(
   for (var index = 0; index < measuredIterations; index++) {
     final token = BenchmarkCancellationToken();
     final stopwatch = Stopwatch()..start();
+    final cancellationStopwatch = Stopwatch();
     final request = transport.getStreaming(
       _uri(baseUri, '/stream/128/65536?delay_ms=5'),
       options: BenchmarkRequestOptions(cancellation: token),
@@ -596,6 +772,7 @@ Future<void> _runCancellationScenarios(
     try {
       await for (final event in request) {
         if (event is BenchmarkStreamChunk) {
+          cancellationStopwatch.start();
           token.cancel();
         }
       }
@@ -605,6 +782,9 @@ Future<void> _runCancellationScenarios(
       outcome = 'error:${error.runtimeType}';
     }
     stopwatch.stop();
+    if (cancellationStopwatch.isRunning) {
+      cancellationStopwatch.stop();
+    }
     final resourcesReleased = await _probeAfterCancellation(transport, baseUri);
     samples.add(
       _sample(
@@ -613,7 +793,59 @@ Future<void> _runCancellationScenarios(
         statusCode: outcome == 'cancelled' ? 0 : 200,
         bytes: 0,
         elapsed: stopwatch.elapsed,
-        extra: <String, Object?>{'outcome': outcome, 'resources_released': resourcesReleased},
+        extra: <String, Object?>{
+          'outcome': outcome,
+          'resources_released': resourcesReleased,
+          'cancellation_latency_us': cancellationStopwatch.elapsedMicroseconds,
+        },
+      ),
+    );
+  }
+
+  for (var index = 0; index < measuredIterations; index++) {
+    final token = BenchmarkCancellationToken();
+    final stopwatch = Stopwatch()..start();
+    final cancellationStopwatch = Stopwatch();
+    var firstChunkReceived = false;
+    var outcome = 'completed';
+    final request = transport.getStreaming(
+      _uri(baseUri, '/stream/128/65536'),
+      options: BenchmarkRequestOptions(cancellation: token),
+    );
+    try {
+      await for (final event in request) {
+        if (event is BenchmarkStreamChunk && !firstChunkReceived) {
+          firstChunkReceived = true;
+          // Allow the bounded native window to fill and pause the producer
+          // before requesting cancellation.
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+          cancellationStopwatch.start();
+          token.cancel();
+        }
+      }
+    } on BenchmarkCancelledException {
+      outcome = 'cancelled';
+    } catch (error) {
+      outcome = 'error:${error.runtimeType}';
+    }
+    stopwatch.stop();
+    if (cancellationStopwatch.isRunning) {
+      cancellationStopwatch.stop();
+    }
+    final resourcesReleased = await _probeAfterCancellation(transport, baseUri);
+    samples.add(
+      _sample(
+        candidate: candidate,
+        scenario: 'cancellation_streaming_paused',
+        statusCode: outcome == 'cancelled' ? 0 : 200,
+        bytes: 0,
+        elapsed: stopwatch.elapsed,
+        extra: <String, Object?>{
+          'outcome': outcome,
+          'first_chunk_received': firstChunkReceived,
+          'resources_released': resourcesReleased,
+          'cancellation_latency_us': cancellationStopwatch.elapsedMicroseconds,
+        },
       ),
     );
   }
@@ -713,13 +945,17 @@ Map<String, Object?> _connectionDiagnosticsFromHeaders(
   final maps = headerMaps.toList(growable: false);
   final ids = <String>{};
   var connectionsEstablished = 0;
+  var requestsObserved = 0;
   var maxRequestsOnConnection = 0;
+  String? closeEvents;
   var observedRequests = 0;
   var observed = false;
   for (final headers in maps) {
     final id = headers['x-alphax-server-connection-id']?.first;
     final established = _headerInt(headers, 'x-alphax-server-connections-established');
     final requestCount = _headerInt(headers, 'x-alphax-server-connection-request-count');
+    final serverRequests = _headerInt(headers, 'x-alphax-server-requests-observed');
+    closeEvents ??= headers['x-alphax-server-connection-close-events']?.first;
     if (id != null) {
       observed = true;
       observedRequests++;
@@ -731,6 +967,9 @@ Map<String, Object?> _connectionDiagnosticsFromHeaders(
     if (requestCount != null && requestCount > maxRequestsOnConnection) {
       maxRequestsOnConnection = requestCount;
     }
+    if (serverRequests != null && serverRequests > requestsObserved) {
+      requestsObserved = serverRequests;
+    }
   }
   if (!observed) {
     return <String, Object?>{
@@ -738,6 +977,8 @@ Map<String, Object?> _connectionDiagnosticsFromHeaders(
       'connection_ids_observed': null,
       'connections_established_cumulative': null,
       'requests_per_connection': null,
+      'server_requests_observed': null,
+      'connection_close_events': closeEvents ?? 'unavailable',
     };
   }
   return <String, Object?>{
@@ -747,6 +988,8 @@ Map<String, Object?> _connectionDiagnosticsFromHeaders(
     'connections_established_cumulative': connectionsEstablished == 0
         ? null
         : connectionsEstablished,
+    'server_requests_observed': requestsObserved == 0 ? null : requestsObserved,
+    'connection_close_events': closeEvents ?? 'unavailable',
     'requests_per_connection': ids.isEmpty ? null : observedRequests / ids.length,
     'max_requests_on_one_connection': maxRequestsOnConnection == 0 ? null : maxRequestsOnConnection,
   };
@@ -824,6 +1067,18 @@ int? _headerInt(Map<String, List<String>> headers, String name) {
 Future<String> _hashFile(String path) async {
   var hash = _fnv1aOffset;
   await for (final chunk in File(path).openRead()) {
+    for (final byte in chunk) {
+      hash = ((hash ^ byte) * _fnv1aPrime) & _fnv1aMask;
+    }
+  }
+  return hash.toUnsigned(64).toRadixString(16).padLeft(16, '0');
+}
+
+String _hashPattern(int size) {
+  var hash = _fnv1aOffset;
+  const chunkSize = 1024 * 1024;
+  for (var offset = 0; offset < size; offset += chunkSize) {
+    final chunk = _pattern(math.min(chunkSize, size - offset), offset);
     for (final byte in chunk) {
       hash = ((hash ^ byte) * _fnv1aPrime) & _fnv1aMask;
     }

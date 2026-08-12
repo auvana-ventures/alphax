@@ -5,6 +5,7 @@ environment:
   sdk: ">=3.8.0 <4.0.0"
 
 dependencies:
+  dio: ^5.11.0
   alphax_benchmark_client:
     path: ../client
   alphax_benchmark_server:
