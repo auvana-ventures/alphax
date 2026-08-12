@@ -9,6 +9,8 @@ Build and test:
 
 ```text
 make -C prototypes/libcurl_ffi test
+cd prototypes/libcurl_ffi && \
+  ALPHAX_CURL_LIBRARY="$PWD/libalphax_curl.dylib" dart test
 ```
 
 Run the Dart FFI smoke benchmark after building the shared library:

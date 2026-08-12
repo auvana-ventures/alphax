@@ -42,12 +42,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
     samples.sort_by(|left, right| left.total_ms.total_cmp(&right.total_ms));
     let total_bytes: u64 = samples.iter().map(|sample| sample.bytes_received).sum();
     let total_ms: f64 = samples.iter().map(|sample| sample.total_ms).sum();
-    let statuses = samples.iter().fold(serde_json::Map::new(), |mut result, sample| {
-        let key = sample.status_code.to_string();
-        let count = result.get(&key).and_then(|value| value.as_u64()).unwrap_or(0) + 1;
-        result.insert(key, json!(count));
-        result
-    });
+    let statuses = samples
+        .iter()
+        .fold(serde_json::Map::new(), |mut result, sample| {
+            let key = sample.status_code.to_string();
+            let count = result
+                .get(&key)
+                .and_then(|value| value.as_u64())
+                .unwrap_or(0)
+                + 1;
+            result.insert(key, json!(count));
+            result
+        });
     let p50 = samples[samples.len() / 2].total_ms;
     let output = json!({
         "client": "rust_reqwest",
