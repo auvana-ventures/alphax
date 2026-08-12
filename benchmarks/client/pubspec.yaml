@@ -1,0 +1,9 @@
+name: alphax_benchmark_client
+description: Benchmark-only transport contract and result types for AlphaX.
+publish_to: none
+environment:
+  sdk: ">=3.8.0 <4.0.0"
+
+dev_dependencies:
+  lints: ^5.1.1
+  test: ^1.25.0

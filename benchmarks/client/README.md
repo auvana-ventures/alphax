@@ -1,4 +1,17 @@
-# Benchmark Client Conventions
+# Benchmark Client Contract
+
+`alphax_benchmark_client` is a private, benchmark-only package. It deliberately
+does not extend or replace the public `alphax` API.
+
+Every candidate implements `BenchmarkTransport` with equivalent operations:
+
+- buffered GET bytes;
+- GET streaming events;
+- byte POST;
+- file upload;
+- file download;
+- cancellation/timeout options;
+- close/dispose.
 
 Candidate clients should accept the shared `--url`, `--requests`, and
 `--concurrency` flags and emit one JSON document containing client identity,
