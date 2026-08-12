@@ -22,14 +22,18 @@ jobs:
         run: dart pub get
       - name: Format
         run: dart format --set-exit-if-changed .
-      - name: Analyze workspace
-        run: dart analyze
+      - name: Analyze Dart packages
+        run: tooling/scripts/analyze_dart_packages.sh
       - name: Test packages
         run: tooling/scripts/test_packages.sh
       - name: Validate package metadata
         run: tooling/scripts/validate_packages.sh
       - name: Analyze FFI harnesses
         run: tooling/scripts/analyze_prototypes.sh
+      - name: Test benchmark contract
+        run: tooling/scripts/test_benchmark_contract.sh
+      - name: Test benchmark harness
+        run: tooling/scripts/test_benchmark_harness.sh
 
   native-prototypes:
     name: Native prototypes (${{ matrix.os }})
