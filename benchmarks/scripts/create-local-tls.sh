@@ -15,6 +15,15 @@ server_key="$output_directory/server.key"
 server_csr="$output_directory/server.csr"
 server_certificate="$output_directory/server.pem"
 extensions="$output_directory/server.ext"
+server_names="${ALPHAX_TLS_SERVER_NAMES:-localhost}"
+
+san_entries='IP:127.0.0.1,DNS:localhost'
+IFS=',' read -r -a server_name_list <<< "$server_names"
+for server_name in "${server_name_list[@]}"; do
+  if [[ -n "$server_name" && "$server_name" != "localhost" ]]; then
+    san_entries="$san_entries,DNS:$server_name"
+  fi
+done
 
 openssl req -x509 -newkey rsa:2048 -nodes \
   -keyout "$ca_key" \
@@ -31,7 +40,7 @@ printf '%s\n' \
   'basicConstraints=critical,CA:false' \
   'keyUsage=critical,digitalSignature,keyEncipherment' \
   'extendedKeyUsage=serverAuth' \
-  'subjectAltName=IP:127.0.0.1,DNS:localhost' > "$extensions"
+  "subjectAltName=$san_entries" > "$extensions"
 
 openssl x509 -req \
   -in "$server_csr" \

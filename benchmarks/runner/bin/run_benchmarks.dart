@@ -252,8 +252,12 @@ Future<void> _writeRunFiles(BenchmarkRun run, String outputDirectoryPath) async 
       candidateName == null || candidateName.isEmpty || candidateName == 'combined'
       ? ''
       : '-$candidateName';
+  final operatingSystem = (run.metadata['os']?.toString() ?? 'unknown').replaceAll(
+    RegExp(r'[^A-Za-z0-9_.-]'),
+    '_',
+  );
   final stem =
-      'macos-$security-$commit$dirtySuffix$flowSuffix$profileSuffix$protocolSuffix$candidateSuffix$selectedSuffix';
+      '$operatingSystem-$security-$commit$dirtySuffix$flowSuffix$profileSuffix$protocolSuffix$candidateSuffix$selectedSuffix';
   final rawPath = '${outputDirectory.path}/raw/$stem.json';
   final summaryJsonPath = '${outputDirectory.path}/summaries/$stem.json';
   final summaryMarkdownPath = '${outputDirectory.path}/summaries/$stem.md';

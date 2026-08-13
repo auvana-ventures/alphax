@@ -16,9 +16,9 @@ usage() {
 describe() {
   case "$1" in
     local) printf '%s\n' 'local: no impairment.' ;;
-    good-network) printf '%s\n' 'good-network: 30 ms one-way delay, 100 Mbit/s, no loss.' ;;
-    typical-mobile) printf '%s\n' 'typical-mobile: 50 ms one-way delay, 10 Mbit/s, 0.5% loss.' ;;
-    poor-mobile) printf '%s\n' 'poor-mobile: 150 ms one-way delay, 1 Mbit/s, 2% loss.' ;;
+    good-network) printf '%s\n' 'good-network: 15 ms one-way delay on each endpoint (~30 ms RTT), 100 Mbit/s, no loss.' ;;
+    typical-mobile) printf '%s\n' 'typical-mobile: 50 ms one-way delay on each endpoint (~100 ms RTT), 10 Mbit/s, 0.5% loss.' ;;
+    poor-mobile) printf '%s\n' 'poor-mobile: 150 ms one-way delay on each endpoint (~300 ms RTT), 5 Mbit/s, 2% loss.' ;;
     *) printf 'unknown profile: %s\n' "$1" >&2; return 2 ;;
   esac
 }
@@ -34,9 +34,17 @@ require_interface() {
   fi
 }
 
+run_tc() {
+  if [[ "$(id -u)" -eq 0 ]]; then
+    tc "$@"
+  else
+    sudo tc "$@"
+  fi
+}
+
 reset() {
   require_interface
-  sudo tc qdisc del dev "$interface" root 2>/dev/null || true
+  run_tc qdisc del dev "$interface" root 2>/dev/null || true
   printf 'Removed the root qdisc from %s.\n' "$interface"
 }
 
@@ -45,20 +53,20 @@ apply_profile() {
   local delay bandwidth loss
   case "$1" in
     local) reset; return ;;
-    good-network) delay='30ms'; bandwidth='100mbit'; loss='0%' ;;
+    # Apply the profile to both isolated endpoints for an approximate RTT of
+    # twice this one-way delay.
+    good-network) delay='15ms'; bandwidth='100mbit'; loss='0%' ;;
     typical-mobile) delay='50ms'; bandwidth='10mbit'; loss='0.5%' ;;
-    poor-mobile) delay='150ms'; bandwidth='1mbit'; loss='2%' ;;
+    poor-mobile) delay='150ms'; bandwidth='5mbit'; loss='2%' ;;
     *) describe "$1"; return 2 ;;
   esac
 
-  # netem supplies delay/loss; tbf supplies the reproducible rate ceiling.
-  # The qdisc is deliberately installed on an isolated interface/namespace.
-  sudo tc qdisc replace dev "$interface" root handle 1: tbf \
-    rate "$bandwidth" burst 64kbit latency 400ms
-  sudo tc qdisc replace dev "$interface" parent 1:1 handle 10: netem \
-    delay "$delay" loss "$loss"
-  printf 'Applied %s to %s. Always run %s reset afterwards.\n' \
-    "$1" "$interface" "$0"
+  # netem applies delay, loss, and the rate ceiling on the isolated endpoint.
+  # Run this on both client and server endpoints to approximate symmetric RTT.
+  run_tc qdisc replace dev "$interface" root netem \
+    delay "$delay" loss "$loss" rate "$bandwidth" limit 10000
+  printf 'Applied %s to %s (one-way delay %s). Always run %s reset afterwards.\n' \
+    "$1" "$interface" "$delay" "$0"
 }
 
 case "$profile_command" in

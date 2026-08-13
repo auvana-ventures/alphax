@@ -814,9 +814,11 @@ static int start_async_request(AxCurlStreamHandle *handle) {
   configure_benchmark_tls(easy);
   configure_benchmark_debug(easy);
   if (handle->on_chunk != NULL && handle->stream_batch_capacity <= LONG_MAX) {
-    // Keep libcurl's replayable write callback bounded by the native queue.
-    // The callback is accepted atomically; see append_bounded_body().
-    curl_easy_setopt(easy, CURLOPT_BUFFERSIZE, (long)handle->stream_batch_capacity);
+    // Keep libcurl's replayable write callback no larger than one delivery
+    // chunk. A callback larger than the bounded credit window cannot be
+    // atomically replayed after CURL_WRITEFUNC_PAUSE without stalling a
+    // paused HTTP/2 stream; see append_bounded_body().
+    curl_easy_setopt(easy, CURLOPT_BUFFERSIZE, (long)handle->stream_chunk_size);
   }
 
   if (handle->request_kind == AX_CURL_POST_BYTES) {
