@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 /// Collects reproducibility metadata without recording local paths or hostnames.
-Future<Map<String, Object?>> collectBenchmarkMetadata() async {
+Future<Map<String, Object?>> collectBenchmarkMetadata({Uri? baseUri}) async {
+  final protocolOverride = Platform.environment['ALPHAX_BENCHMARK_PROTOCOL_PROFILE'];
   final metadata = <String, Object?>{
     'os': Platform.operatingSystem,
     'os_version': Platform.operatingSystemVersion,
@@ -15,7 +17,11 @@ Future<Map<String, Object?>> collectBenchmarkMetadata() async {
     'build_mode': 'Dart VM benchmark; native candidates release library where configured',
     'network_profile': 'localhost; no latency, bandwidth, or packet-loss simulation',
     'protocol_profile':
-        'HTTP/1.1-compatible local server; candidate negotiation recorded separately',
+        protocolOverride ??
+        (baseUri?.scheme == 'https'
+            ? 'HTTP/1.1 over TLS; ALPN negotiation recorded separately'
+            : 'HTTP/1.1-compatible local server; candidate negotiation recorded separately'),
+    'transport_security': baseUri?.scheme == 'https' ? 'tls' : 'plain-http',
     'process_metrics_idle_baseline': (await captureProcessMetrics()).toJson(),
   };
   final commit = await _command('git', <String>['rev-parse', 'HEAD']);
@@ -63,6 +69,38 @@ final class BenchmarkProcessMetrics {
     'rss_bytes': rssBytes,
     'max_rss_bytes': maxRssBytes,
   };
+}
+
+/// Samples the current process RSS while one measured operation is running.
+/// ProcessInfo.maxRss is cumulative for the whole child process, so it cannot
+/// identify a later scenario's peak by itself.
+final class BenchmarkProcessRssSampler {
+  /// Starts sampling immediately and then at a short fixed interval.
+  BenchmarkProcessRssSampler() {
+    _record();
+    _timer = Timer.periodic(const Duration(milliseconds: 10), (_) => _record());
+  }
+
+  late final Timer _timer;
+  int? _peakBytes;
+
+  void _record() {
+    try {
+      final current = ProcessInfo.currentRss;
+      if (_peakBytes == null || current > _peakBytes!) {
+        _peakBytes = current;
+      }
+    } catch (_) {
+      // The result remains unavailable rather than becoming an estimate.
+    }
+  }
+
+  /// Stops sampling and returns the observed peak RSS, if available.
+  int? stop() {
+    _timer.cancel();
+    _record();
+    return _peakBytes;
+  }
 }
 
 /// Captures process-level CPU and memory metrics without recording host paths.

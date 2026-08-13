@@ -68,7 +68,7 @@ Future<void> main(List<String> args) async {
 }
 
 Future<Map<String, Object?>> _metadata(Uri baseUri, _RunnerOptions options) async {
-  final metadata = await collectBenchmarkMetadata();
+  final metadata = await collectBenchmarkMetadata(baseUri: baseUri);
   metadata['base_url'] = baseUri.toString();
   metadata['candidate_process_name'] = options.candidateName ?? 'combined';
   metadata['warmup_iterations'] = options.warmupIterations;
@@ -76,6 +76,7 @@ Future<Map<String, Object?>> _metadata(Uri baseUri, _RunnerOptions options) asyn
   metadata['stream_chunk_size_bytes'] = options.streamChunkSize;
   metadata['stream_window_chunks'] = options.streamWindowChunks;
   metadata['include_external_references'] = options.includeReferences;
+  metadata['transport_security'] = baseUri.scheme == 'https' ? 'tls' : 'plain-http';
   metadata['network_profile'] = options.networkProfile;
   metadata['selected_scenarios'] = options.onlyScenarios.toList(growable: false);
   metadata['methodology'] = <String, Object?>{
@@ -229,7 +230,30 @@ Future<void> _writeRunFiles(BenchmarkRun run, String outputDirectoryPath) async 
       : '';
   final profile = run.metadata['network_profile'];
   final profileSuffix = profile is String && profile.isNotEmpty ? '-network-$profile' : '';
-  final stem = 'macos-local-$commit$dirtySuffix$flowSuffix$profileSuffix';
+  final selected = run.metadata['selected_scenarios'];
+  final selectedSuffix = selected is List && selected.isNotEmpty
+      ? () {
+          final labels = selected.map((value) => value.toString()).toList(growable: false);
+          final fullLabel = labels.join('_').replaceAll(RegExp(r'[^A-Za-z0-9_.-]'), '_');
+          final compactLabel = fullLabel.length <= 80
+              ? fullLabel
+              : '${labels.length}-${labels.first}-${labels.last}'.replaceAll(
+                  RegExp(r'[^A-Za-z0-9_.-]'),
+                  '_',
+                );
+          return '-only-$compactLabel';
+        }()
+      : '';
+  final security = run.metadata['transport_security'] == 'tls' ? 'tls' : 'local';
+  final protocolProfile = run.metadata['protocol_profile']?.toString().toLowerCase() ?? '';
+  final protocolSuffix = protocolProfile.contains('http/2') ? '-h2' : '';
+  final candidateName = run.metadata['candidate_process_name']?.toString();
+  final candidateSuffix =
+      candidateName == null || candidateName.isEmpty || candidateName == 'combined'
+      ? ''
+      : '-$candidateName';
+  final stem =
+      'macos-$security-$commit$dirtySuffix$flowSuffix$profileSuffix$protocolSuffix$candidateSuffix$selectedSuffix';
   final rawPath = '${outputDirectory.path}/raw/$stem.json';
   final summaryJsonPath = '${outputDirectory.path}/summaries/$stem.json';
   final summaryMarkdownPath = '${outputDirectory.path}/summaries/$stem.md';

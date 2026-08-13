@@ -13,6 +13,8 @@ pubspec.lock
 *.temp
 *.swp
 *~
+__pycache__/
+*.pyc
 
 # Flutter-generated metadata
 .flutter-plugins

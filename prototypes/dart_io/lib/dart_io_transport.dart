@@ -6,7 +6,8 @@ import 'package:alphax_benchmark_client/alphax_benchmark_client.dart';
 /// Benchmark transport backed by Dart's `dart:io` `HttpClient`.
 final class DartIoTransport implements BenchmarkTransport {
   /// Creates a Dart baseline transport.
-  DartIoTransport({int? maxConnectionsPerHost}) : _client = HttpClient() {
+  DartIoTransport({int? maxConnectionsPerHost, String? trustedCertificatePath})
+    : _client = _createClient(trustedCertificatePath) {
     final maxConnections = maxConnectionsPerHost;
     if (maxConnections != null) {
       _client.maxConnectionsPerHost = maxConnections;
@@ -14,6 +15,15 @@ final class DartIoTransport implements BenchmarkTransport {
   }
 
   final HttpClient _client;
+
+  static HttpClient _createClient(String? trustedCertificatePath) {
+    final path = trustedCertificatePath ?? Platform.environment['ALPHAX_BENCHMARK_CA_CERT'];
+    if (path == null || path.isEmpty) {
+      return HttpClient();
+    }
+    final context = SecurityContext(withTrustedRoots: false)..setTrustedCertificates(path);
+    return HttpClient(context: context);
+  }
 
   @override
   String get name => 'dart_io';

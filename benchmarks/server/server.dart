@@ -5,7 +5,12 @@ import 'package:alphax_benchmark_server/benchmark_server.dart';
 
 Future<void> main(List<String> args) async {
   final options = BenchmarkServerOptions.parse(args);
-  final server = BenchmarkServer(host: options.host, port: options.port);
+  final server = BenchmarkServer(
+    host: options.host,
+    port: options.port,
+    certificatePath: options.certificatePath,
+    privateKeyPath: options.privateKeyPath,
+  );
   await server.start();
   stdout.writeln('AlphaX benchmark server listening on ${server.baseUri}');
 

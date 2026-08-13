@@ -25,15 +25,25 @@ socket
   → consumer
 ```
 
-In the Round 3 FFI prototypes, libcurl and Rust allocate a native chunk, invoke a
-listener callback, and Dart copies the callback memory into an owned `List<int>`
+In the Round 3/4 FFI prototypes, libcurl and Rust allocate a native chunk, invoke
+a listener callback, and Dart copies the callback memory into an owned `List<int>`
 before releasing the native allocation. Dart acknowledges the chunk only after
-the stream consumer resumes. A per-request native credit window bounds the
-number of FFI-delivered chunks that may remain unacknowledged. The experimental
-default is four 64 KiB chunks; the actual chunk target, window, maximum in-flight
-bytes, notification count, pauses, acknowledgements, and cancellation behavior
-are recorded with each result. These are minimal-copy, bounded-flow experiments,
-not zero-copy claims or production defaults.
+the stream consumer resumes. A per-client native credit window bounds the number
+of FFI-delivered chunks that may remain unacknowledged. The experimental default
+is four 64 KiB chunks; the actual chunk target, window, effective queue capacity,
+maximum buffered bytes, notification count, pauses, acknowledgements, and
+cancellation behavior are recorded with each result. These are minimal-copy,
+bounded-flow experiments, not zero-copy claims or production defaults.
+
+The libcurl adapter also bounds the replayable input passed by libcurl. A write
+callback is copied atomically into the native pending queue or returns
+`CURL_WRITEFUNC_PAUSE` without consuming any bytes. This is necessary because a
+paused libcurl callback is replayed in full when resumed. Very small synthetic
+credit windows therefore use an effective queue floor equal to libcurl's bounded
+callback ingress size; the normal 256 KiB window is above that floor. Rust's
+reqwest stream contributes one bounded upstream response chunk to its pending
+buffer in addition to the credit window. Neither quantity is presented as
+unbounded buffering.
 
 There are two distinct memory quantities: native in-flight callback allocations
 and Dart `StreamController` pending bytes. The native credit window bounds the

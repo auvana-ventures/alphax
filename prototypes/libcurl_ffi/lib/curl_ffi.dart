@@ -150,6 +150,9 @@ final class NativeAxCurlResult extends Struct {
 
   @Uint64()
   external int streamBufferedBytesAtCompletion;
+
+  @Uint64()
+  external int streamQueueCapacityBytes;
 }
 
 typedef _GetNative = Int32 Function(Pointer<Utf8>, Pointer<NativeAxCurlResult>);
@@ -870,7 +873,7 @@ final class CurlFfiClient implements BenchmarkTransport {
       'stream_flow_control': <String, Object?>{
         'chunk_size_bytes': result.streamChunkSize,
         'window_chunks': result.streamWindowChunks,
-        'queue_capacity_bytes': result.streamChunkSize * result.streamWindowChunks,
+        'queue_capacity_bytes': result.streamQueueCapacityBytes,
         'max_in_flight_chunks': result.streamMaxInFlightChunks,
         'max_buffered_bytes': result.streamMaxBufferedBytes,
         'ffi_notifications': result.streamChunkNotifications,

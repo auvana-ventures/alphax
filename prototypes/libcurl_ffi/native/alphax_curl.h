@@ -55,6 +55,7 @@ typedef struct AxCurlResult {
   uint64_t stream_acked_bytes;
   uint64_t stream_in_flight_chunks_at_completion;
   uint64_t stream_buffered_bytes_at_completion;
+  uint64_t stream_queue_capacity_bytes;
 } AxCurlResult;
 
 typedef struct AxCurlStreamHandle AxCurlStreamHandle;

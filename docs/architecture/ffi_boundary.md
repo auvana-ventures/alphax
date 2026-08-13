@@ -46,9 +46,14 @@ The experimental settings are per native-client instance. The current default
 for reproducible experiments is a 64 KiB chunk target and four chunk credits,
 while the Round 3 sweep also tests 16/32/64/128/256 KiB targets. The effective
 capacity is reported with every stream result. Rust batches reqwest chunks to the
-target; libcurl accumulates callback fragments up to the target before sending
-one FFI notification. At most one in-progress native batch is held in addition
-to the acknowledged window, and that memory is included in native accounting.
+target; libcurl accumulates complete callback buffers in a bounded queue before
+sending one FFI notification. libcurl never partially accepts a callback before
+pausing because libcurl replays the complete callback buffer after
+`CURL_WRITEFUNC_PAUSE`. Its effective queue floor is the bounded
+`CURL_MAX_WRITE_SIZE` callback ingress when an intentionally tiny test window is
+used; the normal 64 KiB × 4 configuration is larger than that floor. At most the
+configured queue plus one bounded upstream callback buffer is resident, and this
+is included in native accounting.
 
 The Dart bridge copies native-owned callback buffers before returning them to the
 native allocator. It reports Dart-side pending bytes separately from native
@@ -86,16 +91,15 @@ remain labelled as such in result summaries.
 
 ## Threading
 
-The Dart baseline runs on the Dart isolate and uses `HttpClient`. The libcurl
-prototype performs each async request on a native worker thread with a per-request
-multi/easy handle plus shared DNS state. It intentionally does not share libcurl's
-connection pool between those independent multi handles: libcurl documents the
-connection pool as a thread-safety exception for the share API. A client-owned
-multi/socket event-loop design is still required before claiming cross-request
-native connection reuse. Its event loop uses
-`curl_multi_timeout` to obtain libcurl's next deadline and `curl_multi_poll` for
-readiness; it no longer sleeps on an unconditional one-second poll timeout. The
-Rust prototype owns a
+The Dart baseline runs on the Dart isolate and uses `HttpClient`. The Round 4
+libcurl prototype owns one persistent worker and one client-owned `CURLM` multi
+handle. Requests create concurrent easy handles on that worker and are added to
+the same multi handle, allowing libcurl's connection pool to reuse sequential
+connections. The worker uses `curl_multi_timeout` plus `curl_multi_poll` for
+readiness, and `curl_multi_wakeup` for request creation, cancellation, and credit
+acknowledgements; it does not use a fixed polling sleep or one worker thread per
+request. The worker is joined before the client-owned multi/share state is
+destroyed. The Rust prototype owns a
 long-lived multi-thread Tokio runtime and reqwest client per Dart transport
 instance; each FFI request is driven through that runtime from a native worker
 thread. Round 2 adds server-side connection identifiers and request counts for

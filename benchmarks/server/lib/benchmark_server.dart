@@ -8,15 +8,32 @@ final _ConnectionTracker _defaultConnectionTracker = _ConnectionTracker();
 /// A deterministic HTTP server used only by the Phase 0 benchmark harness.
 final class BenchmarkServer {
   /// Creates a server bound to [host] and [port]. Port zero selects an ephemeral port.
-  BenchmarkServer({InternetAddress? host, this.port = 0})
-    : host = host ?? InternetAddress.loopbackIPv4,
-      _connectionTracker = _ConnectionTracker();
+  BenchmarkServer({
+    InternetAddress? host,
+    this.port = 0,
+    this.certificatePath,
+    this.privateKeyPath,
+  }) : host = host ?? InternetAddress.loopbackIPv4,
+       _connectionTracker = _ConnectionTracker() {
+    if ((certificatePath == null) != (privateKeyPath == null)) {
+      throw ArgumentError('certificatePath and privateKeyPath must be provided together');
+    }
+  }
 
   /// Address to bind.
   final InternetAddress host;
 
   /// Port to bind, or zero for an ephemeral port.
   final int port;
+
+  /// PEM certificate chain used for the optional local TLS profile.
+  final String? certificatePath;
+
+  /// PEM private key used for the optional local TLS profile.
+  final String? privateKeyPath;
+
+  /// Whether this server uses TLS.
+  bool get isSecure => certificatePath != null;
   final _ConnectionTracker _connectionTracker;
 
   HttpServer? _server;
@@ -34,7 +51,7 @@ final class BenchmarkServer {
     final address = server.address.address.contains(':')
         ? '[${server.address.address}]'
         : server.address.address;
-    return Uri(scheme: 'http', host: address, port: server.port);
+    return Uri(scheme: isSecure ? 'https' : 'http', host: address, port: server.port);
   }
 
   /// Completes after [close] has stopped the server.
@@ -47,10 +64,29 @@ final class BenchmarkServer {
     }
     // Keep the accept queue large enough for the highest initial concurrency
     // profile without changing request handling or payload generation.
-    final server = await HttpServer.bind(host, port, backlog: 1024);
+    final certificate = certificatePath;
+    final privateKey = privateKeyPath;
+    final server = certificate == null || privateKey == null
+        ? await HttpServer.bind(host, port, backlog: 1024)
+        : await _bindSecure(host, port, certificate, privateKey);
     _server = server;
     _done ??= Completer<void>();
     unawaited(_serve(server));
+  }
+
+  Future<HttpServer> _bindSecure(
+    InternetAddress address,
+    int bindPort,
+    String certificate,
+    String privateKey,
+  ) async {
+    final context = SecurityContext(withTrustedRoots: false)
+      ..useCertificateChain(certificate)
+      ..usePrivateKey(privateKey)
+      // The Dart benchmark server intentionally implements HTTP/1.1 only.
+      // Do not advertise h2 until a real HTTP/2 server is in the harness.
+      ..setAlpnProtocols(<String>['http/1.1'], true);
+    return HttpServer.bindSecure(address, bindPort, context, backlog: 1024);
   }
 
   /// Stops listening and closes active responses.
@@ -89,6 +125,7 @@ Future<void> _handleBenchmarkRequest(
     ..set('x-alphax-server-connection-request-count', '${connection.requestCount}')
     ..set('x-alphax-server-connections-established', '${connection.connectionsEstablished}')
     ..set('x-alphax-server-requests-observed', '${connection.requestsObserved}')
+    ..set('x-alphax-server-protocol', request.protocolVersion)
     ..set('x-alphax-server-connection-close-events', 'unavailable:dart-http-server-api');
   try {
     final segments = request.uri.pathSegments;
@@ -362,7 +399,12 @@ Duration _durationFromQuery(String? value) {
 
 /// CLI options for [BenchmarkServer].
 final class BenchmarkServerOptions {
-  const BenchmarkServerOptions({required this.host, required this.port});
+  const BenchmarkServerOptions({
+    required this.host,
+    required this.port,
+    required this.certificatePath,
+    required this.privateKeyPath,
+  });
 
   /// Parsed bind address.
   final InternetAddress host;
@@ -370,20 +412,40 @@ final class BenchmarkServerOptions {
   /// Parsed port.
   final int port;
 
+  /// Optional PEM certificate chain.
+  final String? certificatePath;
+
+  /// Optional PEM private key.
+  final String? privateKeyPath;
+
   /// Parses `--host` and `--port`.
   static BenchmarkServerOptions parse(List<String> args) {
     var host = InternetAddress.loopbackIPv4;
     var port = 8080;
+    String? certificatePath;
+    String? privateKeyPath;
     for (var index = 0; index < args.length; index++) {
       switch (args[index]) {
         case '--host':
           host = InternetAddress(args[++index]);
         case '--port':
           port = int.parse(args[++index]);
+        case '--tls-certificate':
+          certificatePath = args[++index];
+        case '--tls-private-key':
+          privateKeyPath = args[++index];
         default:
           throw FormatException('Unknown argument: ${args[index]}');
       }
     }
-    return BenchmarkServerOptions(host: host, port: port);
+    if ((certificatePath == null) != (privateKeyPath == null)) {
+      throw FormatException('--tls-certificate and --tls-private-key must be provided together');
+    }
+    return BenchmarkServerOptions(
+      host: host,
+      port: port,
+      certificatePath: certificatePath,
+      privateKeyPath: privateKeyPath,
+    );
   }
 }

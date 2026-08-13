@@ -10,7 +10,7 @@ use std::time::Instant;
 
 use futures_util::StreamExt;
 use reqwest::redirect::Policy;
-use reqwest::{Body, Client, Method, Version};
+use reqwest::{Body, Certificate, Client, Method, Version};
 use tokio::io::AsyncWriteExt;
 use tokio::runtime::Builder;
 use tokio::sync::Notify;
@@ -97,6 +97,7 @@ struct FlowState {
     resume_latency_ns: u64,
     ack_count: u64,
     acked_bytes: u64,
+    pending_bytes: u64,
     pause_started: Option<Instant>,
     last_credit: Option<Instant>,
 }
@@ -125,6 +126,7 @@ impl FlowControl {
                 resume_latency_ns: 0,
                 ack_count: 0,
                 acked_bytes: 0,
+                pending_bytes: 0,
                 pause_started: None,
                 last_credit: None,
             }),
@@ -178,6 +180,14 @@ impl FlowControl {
         state.chunk_notifications += 1;
     }
 
+    fn set_pending_bytes(&self, pending_bytes: u64) {
+        let mut state = self.state.lock().expect("flow-control mutex poisoned");
+        state.pending_bytes = pending_bytes;
+        state.max_buffered_bytes = state
+            .max_buffered_bytes
+            .max(state.in_flight_bytes.saturating_add(pending_bytes));
+    }
+
     fn acknowledge(&self, chunk_count: u64, byte_count: u64) {
         if chunk_count == 0 {
             return;
@@ -215,7 +225,8 @@ impl FlowControl {
         result.stream_ack_count = state.ack_count;
         result.stream_acked_bytes = state.acked_bytes;
         result.stream_in_flight_chunks_at_completion = state.in_flight_chunks;
-        result.stream_buffered_bytes_at_completion = state.in_flight_bytes;
+        result.stream_buffered_bytes_at_completion =
+            state.in_flight_bytes.saturating_add(state.pending_bytes);
     }
 }
 
@@ -262,6 +273,22 @@ pub struct AxRustClient {
     client: Client,
     runtime: Arc<tokio::runtime::Runtime>,
     stream_config: Mutex<StreamConfig>,
+}
+
+fn configured_client(redirect: Policy) -> Result<Client, String> {
+    let mut builder = Client::builder().redirect(redirect);
+    if let Ok(path) = std::env::var("ALPHAX_BENCHMARK_CA_CERT") {
+        if !path.is_empty() {
+            let pem = fs::read(&path)
+                .map_err(|error| format!("unable to read benchmark CA certificate: {error}"))?;
+            let certificate = Certificate::from_pem(&pem)
+                .map_err(|error| format!("unable to parse benchmark CA certificate: {error}"))?;
+            builder = builder.add_root_certificate(certificate);
+        }
+    }
+    builder
+        .build()
+        .map_err(|error| format!("unable to build reqwest client: {error}"))
 }
 
 /// Performs one request using a reusable reqwest client.
@@ -324,7 +351,7 @@ async fn run_request_inner(
     let client = if config.follow_redirects {
         shared_client
     } else {
-        match Client::builder().redirect(Policy::none()).build() {
+        match configured_client(Policy::none()) {
             Ok(client) => client,
             Err(_) => return error_result(started, ERROR_CLIENT),
         }
@@ -429,6 +456,7 @@ async fn run_request_inner(
                 );
             }
             pending_stream_bytes.extend_from_slice(&chunk);
+            flow.set_pending_bytes(pending_stream_bytes.len() as u64);
             while pending_stream_bytes.len() >= target_chunk_size {
                 // Split the accumulated response without copying the
                 // remainder. This gives Rust the same target-size batching
@@ -436,9 +464,14 @@ async fn run_request_inner(
                 let remainder = pending_stream_bytes.split_off(target_chunk_size);
                 let owned = std::mem::replace(&mut pending_stream_bytes, remainder);
                 let length = owned.len() as u64;
+                flow.set_pending_bytes(
+                    pending_stream_bytes.len().saturating_add(owned.len()) as u64
+                );
                 if !flow.reserve(length, &cancellation).await {
+                    flow.set_pending_bytes(0);
                     return cancelled_result(started);
                 }
+                flow.set_pending_bytes(pending_stream_bytes.len() as u64);
                 emit_owned_chunk(on_chunk, owned, user_data);
                 flow.record_notification();
             }
@@ -446,9 +479,12 @@ async fn run_request_inner(
     }
     if file.is_none() && !pending_stream_bytes.is_empty() {
         let length = pending_stream_bytes.len() as u64;
+        flow.set_pending_bytes(length);
         if !flow.reserve(length, &cancellation).await {
+            flow.set_pending_bytes(0);
             return cancelled_result(started);
         }
+        flow.set_pending_bytes(0);
         emit_owned_chunk(on_chunk, pending_stream_bytes, user_data);
         flow.record_notification();
     }
@@ -567,7 +603,7 @@ pub extern "C" fn ax_rust_get(url: *const c_char, out: *mut AxRustResult) -> i32
         Ok(runtime) => runtime,
         Err(_) => return ERROR_RUNTIME,
     };
-    let client = match Client::builder().build() {
+    let client = match configured_client(Policy::limited(10)) {
         Ok(client) => client,
         Err(_) => return ERROR_CLIENT,
     };
@@ -695,7 +731,7 @@ pub extern "C" fn ax_rust_client_create() -> *mut AxRustClient {
         Ok(runtime) => Arc::new(runtime),
         Err(_) => return ptr::null_mut(),
     };
-    let client = match Client::builder().redirect(Policy::limited(10)).build() {
+    let client = match configured_client(Policy::limited(10)) {
         Ok(client) => client,
         Err(_) => return ptr::null_mut(),
     };

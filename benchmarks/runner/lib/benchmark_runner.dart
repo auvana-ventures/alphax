@@ -289,6 +289,7 @@ Future<List<Map<String, Object?>>> runLocalScenarios(
     for (var index = 0; index < warmupIterations + measuredIterations; index++) {
       final measured = index >= warmupIterations;
       final processBefore = measured ? await captureProcessMetrics() : null;
+      final rssSampler = measured ? BenchmarkProcessRssSampler() : null;
       final stopwatch = Stopwatch()..start();
       final futures = List<Future<BenchmarkResponse>>.generate(
         concurrency,
@@ -305,6 +306,7 @@ Future<List<Map<String, Object?>>> runLocalScenarios(
         ),
       );
       stopwatch.stop();
+      final peakRssBytes = rssSampler?.stop();
       final processAfter = measured ? await captureProcessMetrics() : null;
       if (measured) {
         samples.add(
@@ -321,6 +323,7 @@ Future<List<Map<String, Object?>>> runLocalScenarios(
                 processBefore!,
                 processAfter!,
                 stopwatch.elapsed,
+                peakRssBytes: peakRssBytes,
               ),
             },
           ),
@@ -334,12 +337,14 @@ Future<List<Map<String, Object?>>> runLocalScenarios(
     for (var index = 0; index < warmupIterations + measuredIterations; index++) {
       final measured = index >= warmupIterations;
       final processBefore = measured ? await captureProcessMetrics() : null;
+      final rssSampler = measured ? BenchmarkProcessRssSampler() : null;
       final stopwatch = Stopwatch()..start();
       final responses = <BenchmarkResponse>[];
       for (var request = 0; request < 100; request++) {
         responses.add(await transport.getBytes(_uri(baseUri, '/bytes/1024')));
       }
       stopwatch.stop();
+      final peakRssBytes = rssSampler?.stop();
       final processAfter = measured ? await captureProcessMetrics() : null;
       if (measured) {
         samples.add(
@@ -357,6 +362,7 @@ Future<List<Map<String, Object?>>> runLocalScenarios(
                 processBefore!,
                 processAfter!,
                 stopwatch.elapsed,
+                peakRssBytes: peakRssBytes,
               ),
             },
           ),
@@ -376,7 +382,9 @@ Future<List<Map<String, Object?>>> runLocalScenarios(
     for (var index = 0; index < warmupIterations + measuredIterations; index++) {
       final measured = index >= warmupIterations;
       final processBefore = measured ? await captureProcessMetrics() : null;
+      final rssSampler = measured ? BenchmarkProcessRssSampler() : null;
       final response = await transport.downloadFile(_uri(baseUri, '/bytes/$size'), path);
+      final peakRssBytes = rssSampler?.stop();
       final processAfter = measured ? await captureProcessMetrics() : null;
       if (measured) {
         final actualDownloadHash = await _hashFile(path);
@@ -414,6 +422,7 @@ Future<List<Map<String, Object?>>> runLocalScenarios(
                 processBefore!,
                 processAfter!,
                 response.elapsed,
+                peakRssBytes: peakRssBytes,
               ),
             },
           ),
@@ -434,6 +443,7 @@ Future<List<Map<String, Object?>>> runLocalScenarios(
     for (var index = 0; index < warmupIterations + measuredIterations; index++) {
       final measured = index >= warmupIterations;
       final processBefore = measured ? await captureProcessMetrics() : null;
+      final rssSampler = measured ? BenchmarkProcessRssSampler() : null;
       final stopwatch = Stopwatch()..start();
       var statusCode = 0;
       var bytes = 0;
@@ -478,6 +488,7 @@ Future<List<Map<String, Object?>>> runLocalScenarios(
         await sink.close();
       }
       stopwatch.stop();
+      final peakRssBytes = rssSampler?.stop();
       final processAfter = measured ? await captureProcessMetrics() : null;
       if (measured) {
         final actualDownloadHash = await _hashFile(path);
@@ -510,6 +521,7 @@ Future<List<Map<String, Object?>>> runLocalScenarios(
                 processBefore!,
                 processAfter!,
                 stopwatch.elapsed,
+                peakRssBytes: peakRssBytes,
               ),
             },
           ),
@@ -531,11 +543,13 @@ Future<List<Map<String, Object?>>> runLocalScenarios(
     for (var index = 0; index < warmupIterations + measuredIterations; index++) {
       final measured = index >= warmupIterations;
       final processBefore = measured ? await captureProcessMetrics() : null;
+      final rssSampler = measured ? BenchmarkProcessRssSampler() : null;
       final response = await transport.uploadFile(
         _uri(baseUri, '/upload?expected=$size&expected_hash=$expectedHash'),
         path,
       );
       _validateUploadResponse(response, size, expectedHash);
+      final peakRssBytes = rssSampler?.stop();
       final processAfter = measured ? await captureProcessMetrics() : null;
       if (measured) {
         samples.add(
@@ -567,6 +581,7 @@ Future<List<Map<String, Object?>>> runLocalScenarios(
                 processBefore!,
                 processAfter!,
                 response.elapsed,
+                peakRssBytes: peakRssBytes,
               ),
             },
           ),
@@ -583,15 +598,21 @@ Future<List<Map<String, Object?>>> runLocalScenarios(
       }
       final measured = index >= warmupIterations;
       final processBefore = measured ? await captureProcessMetrics() : null;
+      final rssSampler = measured ? BenchmarkProcessRssSampler() : null;
       final stopwatch = Stopwatch()..start();
       var bytes = 0;
       Duration? timeToFirstByte;
       var statusCode = 0;
+      Map<String, List<String>> headers = const <String, List<String>>{};
       Map<String, Object?> streamDiagnostics = const <String, Object?>{};
       await for (final event in transport.getStreaming(_uri(baseUri, '/stream/32/65536'))) {
-        if (event case BenchmarkStreamStarted(statusCode: final startedStatus)) {
+        if (event case BenchmarkStreamStarted(
+          statusCode: final startedStatus,
+          headers: final startedHeaders,
+        )) {
           timeToFirstByte ??= stopwatch.elapsed;
           statusCode = startedStatus;
+          headers = startedHeaders;
         } else if (event case BenchmarkStreamChunk(bytes: final chunk)) {
           bytes += chunk.length;
         } else if (event case BenchmarkStreamCompleted(
@@ -603,6 +624,7 @@ Future<List<Map<String, Object?>>> runLocalScenarios(
         }
       }
       stopwatch.stop();
+      final peakRssBytes = rssSampler?.stop();
       final processAfter = measured ? await captureProcessMetrics() : null;
       if (measured) {
         samples.add(
@@ -615,10 +637,12 @@ Future<List<Map<String, Object?>>> runLocalScenarios(
             timeToFirstByte: timeToFirstByte,
             extra: <String, Object?>{
               ...streamDiagnostics,
+              ..._connectionDiagnosticsForTransfer(headers, streamDiagnostics),
               'process_metrics': _processDiagnostics(
                 processBefore!,
                 processAfter!,
                 stopwatch.elapsed,
+                peakRssBytes: peakRssBytes,
               ),
             },
           ),
@@ -634,15 +658,21 @@ Future<List<Map<String, Object?>>> runLocalScenarios(
       }
       final measured = index >= warmupIterations;
       final processBefore = measured ? await captureProcessMetrics() : null;
+      final rssSampler = measured ? BenchmarkProcessRssSampler() : null;
       final stopwatch = Stopwatch()..start();
       var bytes = 0;
       var statusCode = 0;
+      Map<String, List<String>> headers = const <String, List<String>>{};
       Duration? timeToFirstByte;
       Map<String, Object?> streamDiagnostics = const <String, Object?>{};
       await for (final event in transport.getStreaming(_uri(baseUri, '/stream/32/65536'))) {
-        if (event case BenchmarkStreamStarted(statusCode: final startedStatus)) {
+        if (event case BenchmarkStreamStarted(
+          statusCode: final startedStatus,
+          headers: final startedHeaders,
+        )) {
           statusCode = startedStatus;
           timeToFirstByte ??= stopwatch.elapsed;
+          headers = startedHeaders;
         } else if (event case BenchmarkStreamChunk(bytes: final chunk)) {
           bytes += chunk.length;
           await Future<void>.delayed(const Duration(milliseconds: 2));
@@ -655,6 +685,7 @@ Future<List<Map<String, Object?>>> runLocalScenarios(
         }
       }
       stopwatch.stop();
+      final peakRssBytes = rssSampler?.stop();
       final processAfter = measured ? await captureProcessMetrics() : null;
       if (measured) {
         samples.add(
@@ -667,10 +698,76 @@ Future<List<Map<String, Object?>>> runLocalScenarios(
             timeToFirstByte: timeToFirstByte,
             extra: <String, Object?>{
               ...streamDiagnostics,
+              ..._connectionDiagnosticsForTransfer(headers, streamDiagnostics),
               'process_metrics': _processDiagnostics(
                 processBefore!,
                 processAfter!,
                 stopwatch.elapsed,
+                peakRssBytes: peakRssBytes,
+              ),
+            },
+          ),
+        );
+      }
+    }
+  }
+
+  if (_scenarioEnabled(onlyScenarios, 'stream_2097152_bytes_paused_consumer')) {
+    for (var index = 0; index < warmupIterations + measuredIterations; index++) {
+      if (index == 0) {
+        stderr.writeln('Benchmark: $candidate temporarily paused consumer');
+      }
+      final measured = index >= warmupIterations;
+      final processBefore = measured ? await captureProcessMetrics() : null;
+      final rssSampler = measured ? BenchmarkProcessRssSampler() : null;
+      final stopwatch = Stopwatch()..start();
+      var bytes = 0;
+      var statusCode = 0;
+      Map<String, List<String>> headers = const <String, List<String>>{};
+      Duration? timeToFirstByte;
+      Map<String, Object?> streamDiagnostics = const <String, Object?>{};
+      await for (final event in transport.getStreaming(_uri(baseUri, '/stream/32/65536'))) {
+        if (event case BenchmarkStreamStarted(
+          statusCode: final startedStatus,
+          headers: final startedHeaders,
+        )) {
+          statusCode = startedStatus;
+          timeToFirstByte ??= stopwatch.elapsed;
+          headers = startedHeaders;
+        } else if (event case BenchmarkStreamChunk(bytes: final chunk)) {
+          bytes += chunk.length;
+          // Model a consumer that is intermittently paused long enough for a
+          // bounded producer to demonstrate its queue/transport pause path.
+          await Future<void>.delayed(const Duration(milliseconds: 20));
+        } else if (event case BenchmarkStreamCompleted(
+          statusCode: final completedStatus,
+          diagnostics: final diagnostics,
+        )) {
+          statusCode = completedStatus;
+          streamDiagnostics = diagnostics;
+        }
+      }
+      stopwatch.stop();
+      final peakRssBytes = rssSampler?.stop();
+      final processAfter = measured ? await captureProcessMetrics() : null;
+      if (measured) {
+        samples.add(
+          _sample(
+            candidate: candidate,
+            scenario: 'stream_2097152_bytes_paused_consumer',
+            statusCode: statusCode,
+            bytes: bytes,
+            elapsed: stopwatch.elapsed,
+            timeToFirstByte: timeToFirstByte,
+            extra: <String, Object?>{
+              ...streamDiagnostics,
+              ..._connectionDiagnosticsForTransfer(headers, streamDiagnostics),
+              'consumer_pause_delay_us': 20000,
+              'process_metrics': _processDiagnostics(
+                processBefore!,
+                processAfter!,
+                stopwatch.elapsed,
+                peakRssBytes: peakRssBytes,
               ),
             },
           ),
@@ -947,6 +1044,7 @@ Map<String, Object?> _connectionDiagnosticsFromHeaders(
   var connectionsEstablished = 0;
   var requestsObserved = 0;
   var maxRequestsOnConnection = 0;
+  String? serverProtocol;
   String? closeEvents;
   var observedRequests = 0;
   var observed = false;
@@ -956,6 +1054,7 @@ Map<String, Object?> _connectionDiagnosticsFromHeaders(
     final requestCount = _headerInt(headers, 'x-alphax-server-connection-request-count');
     final serverRequests = _headerInt(headers, 'x-alphax-server-requests-observed');
     closeEvents ??= headers['x-alphax-server-connection-close-events']?.first;
+    serverProtocol ??= headers['x-alphax-server-protocol']?.first;
     if (id != null) {
       observed = true;
       observedRequests++;
@@ -979,6 +1078,7 @@ Map<String, Object?> _connectionDiagnosticsFromHeaders(
       'requests_per_connection': null,
       'server_requests_observed': null,
       'connection_close_events': closeEvents ?? 'unavailable',
+      'server_protocol_observed': serverProtocol,
     };
   }
   return <String, Object?>{
@@ -990,6 +1090,7 @@ Map<String, Object?> _connectionDiagnosticsFromHeaders(
         : connectionsEstablished,
     'server_requests_observed': requestsObserved == 0 ? null : requestsObserved,
     'connection_close_events': closeEvents ?? 'unavailable',
+    'server_protocol_observed': serverProtocol ?? 'unavailable',
     'requests_per_connection': ids.isEmpty ? null : observedRequests / ids.length,
     'max_requests_on_one_connection': maxRequestsOnConnection == 0 ? null : maxRequestsOnConnection,
   };
@@ -1037,8 +1138,9 @@ Map<String, Object?> _nativeDiagnostics(List<BenchmarkResponse> responses) {
 Map<String, Object?> _processDiagnostics(
   BenchmarkProcessMetrics before,
   BenchmarkProcessMetrics after,
-  Duration elapsed,
-) {
+  Duration elapsed, {
+  int? peakRssBytes,
+}) {
   final cpuDelta = before.cpuTimeSeconds == null || after.cpuTimeSeconds == null
       ? null
       : after.cpuTimeSeconds! - before.cpuTimeSeconds!;
@@ -1056,6 +1158,10 @@ Map<String, Object?> _processDiagnostics(
     'peak_rss_delta_bytes': before.maxRssBytes == null || after.maxRssBytes == null
         ? null
         : after.maxRssBytes! - before.maxRssBytes!,
+    'sampled_peak_rss_bytes': peakRssBytes,
+    'sampled_peak_rss_delta_bytes': peakRssBytes == null || before.rssBytes == null
+        ? null
+        : peakRssBytes - before.rssBytes!,
   };
 }
 

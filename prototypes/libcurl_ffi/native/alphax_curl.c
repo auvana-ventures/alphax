@@ -5,6 +5,7 @@
 #include "alphax_curl.h"
 
 #include <curl/curl.h>
+#include <limits.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,6 +60,33 @@ static void set_error(const char *message) {
   snprintf(last_error, sizeof(last_error), "%s", message);
 }
 
+static void configure_benchmark_tls(CURL *easy) {
+  const char *certificate_path = getenv("ALPHAX_BENCHMARK_CA_CERT");
+  if (certificate_path != NULL && certificate_path[0] != '\0') {
+    // Verification remains enabled. The benchmark supplies only its local CA;
+    // it never installs a permissive certificate callback.
+    curl_easy_setopt(easy, CURLOPT_CAINFO, certificate_path);
+  }
+}
+
+static int benchmark_debug_callback(CURL *easy, curl_infotype type, char *data,
+                                    size_t size, void *userdata) {
+  (void)easy;
+  (void)userdata;
+  if (type == CURLINFO_TEXT || type == CURLINFO_HEADER_IN || type == CURLINFO_HEADER_OUT) {
+    fwrite(data, 1, size, stderr);
+  }
+  return 0;
+}
+
+static void configure_benchmark_debug(CURL *easy) {
+  const char *verbose = getenv("ALPHAX_CURL_VERBOSE");
+  if (verbose != NULL && verbose[0] != '\0') {
+    curl_easy_setopt(easy, CURLOPT_VERBOSE, 1L);
+    curl_easy_setopt(easy, CURLOPT_DEBUGFUNCTION, benchmark_debug_callback);
+  }
+}
+
 static int perform_request(const char *url, FILE *download, FILE *upload, AxCurlResult *out) {
   if (url == NULL || out == NULL) {
     set_error("url and output are required");
@@ -92,6 +120,8 @@ static int perform_request(const char *url, FILE *download, FILE *upload, AxCurl
   curl_easy_setopt(easy, CURLOPT_USERAGENT, "alphax-phase0-libcurl/0.1");
   curl_easy_setopt(easy, CURLOPT_WRITEFUNCTION, write_callback);
   curl_easy_setopt(easy, CURLOPT_WRITEDATA, &context);
+  configure_benchmark_tls(easy);
+  configure_benchmark_debug(easy);
 
   if (upload != NULL) {
     long file_size = 0;
@@ -223,9 +253,15 @@ ALPHAX_CURL_EXPORT int32_t ax_curl_upload(const char *url, const char *path, AxC
 
 struct AxCurlClient {
   CURLSH *share;
+  CURLM *multi;
+  pthread_t worker;
   pthread_mutex_t mutex;
+  pthread_cond_t condition;
   uint64_t stream_chunk_size;
   uint64_t stream_window_chunks;
+  int worker_started;
+  int shutdown_requested;
+  struct AxCurlStreamHandle *requests;
 };
 
 static void share_lock(CURL *easy,
@@ -247,12 +283,15 @@ static void share_unlock(CURL *easy, curl_lock_data data, void *userdata) {
 }
 
 struct AxCurlStreamHandle {
-  pthread_t thread;
   pthread_mutex_t mutex;
-  pthread_cond_t flow_condition;
-  int thread_started;
+  pthread_cond_t completion_condition;
   int cancel_requested;
-  CURLM *multi;
+  int setup_started;
+  int in_multi;
+  int completion_started;
+  int terminal_pending;
+  CURLcode terminal_code;
+  int callback_finished;
   int32_t request_kind;
   int32_t follow_redirects;
   char *url;
@@ -295,6 +334,8 @@ struct AxCurlStreamHandle {
   uint8_t *stream_batch_buffer;
   size_t stream_batch_length;
   size_t stream_batch_capacity;
+  CURL *easy;
+  struct AxCurlStreamHandle *next;
 };
 
 static char *duplicate_string(const char *value) {
@@ -316,6 +357,19 @@ static int is_cancelled(AxCurlStreamHandle *handle) {
   cancelled = handle->cancel_requested;
   pthread_mutex_unlock(&handle->mutex);
   return cancelled;
+}
+
+static void wake_client(AxCurlClient *client) {
+  if (client == NULL) {
+    return;
+  }
+  pthread_mutex_lock(&client->mutex);
+  CURLM *multi = client->multi;
+  pthread_cond_signal(&client->condition);
+  pthread_mutex_unlock(&client->mutex);
+  if (multi != NULL) {
+    curl_multi_wakeup(multi);
+  }
 }
 
 static int append_header_bytes(AxCurlStreamHandle *handle, const char *bytes, size_t length) {
@@ -430,137 +484,123 @@ static void emit_stream_start(AxCurlStreamHandle *handle) {
       handle->user_data);
 }
 
-static int reserve_stream_credit(AxCurlStreamHandle *handle, size_t length) {
-  pthread_mutex_lock(&handle->mutex);
-  while (handle->stream_credits == 0 && !handle->cancel_requested) {
-    if (!handle->stream_paused) {
-      handle->stream_paused = 1;
-      handle->stream_pause_started_ns = monotonic_now_ns();
-      handle->stream_pause_count++;
-      handle->stream_credit_exhausted_count++;
-    }
-    pthread_cond_wait(&handle->flow_condition, &handle->mutex);
+static void mark_stream_paused_locked(AxCurlStreamHandle *handle) {
+  if (handle->stream_paused) {
+    return;
   }
-  if (handle->cancel_requested) {
+  handle->stream_paused = 1;
+  handle->stream_pause_started_ns = monotonic_now_ns();
+  handle->stream_pause_count++;
+  handle->stream_credit_exhausted_count++;
+}
+
+static uint64_t stream_buffered_bytes_locked(const AxCurlStreamHandle *handle) {
+  return handle->stream_in_flight_bytes + (uint64_t)handle->stream_batch_length;
+}
+
+static int emit_pending_chunk(AxCurlStreamHandle *handle, size_t length) {
+  uint8_t *chunk = (uint8_t *)malloc(length);
+  if (chunk == NULL) {
+    pthread_mutex_lock(&handle->mutex);
+    handle->callback_failed = 1;
     pthread_mutex_unlock(&handle->mutex);
     return 0;
   }
-  const uint64_t resumed_ns = monotonic_now_ns();
-  if (handle->stream_paused) {
-    if (resumed_ns >= handle->stream_pause_started_ns) {
-      handle->stream_pause_wait_ns += resumed_ns - handle->stream_pause_started_ns;
-    }
-    if (handle->stream_last_credit_ns != 0 && resumed_ns >= handle->stream_last_credit_ns) {
-      handle->stream_resume_latency_ns += resumed_ns - handle->stream_last_credit_ns;
-    }
-    handle->stream_resume_count++;
-    handle->stream_paused = 0;
-    handle->stream_pause_started_ns = 0;
+
+  pthread_mutex_lock(&handle->mutex);
+  if (handle->cancel_requested || handle->stream_credits == 0 ||
+      handle->stream_batch_length < length) {
+    pthread_mutex_unlock(&handle->mutex);
+    free(chunk);
+    return 1;
   }
+  memcpy(chunk, handle->stream_batch_buffer, length);
+  const size_t remaining = handle->stream_batch_length - length;
+  if (remaining > 0) {
+    memmove(handle->stream_batch_buffer,
+            handle->stream_batch_buffer + length,
+            remaining);
+  }
+  handle->stream_batch_length = remaining;
   handle->stream_credits--;
   handle->stream_in_flight_chunks++;
   handle->stream_in_flight_bytes += length;
   if (handle->stream_in_flight_chunks > handle->stream_max_in_flight_chunks) {
     handle->stream_max_in_flight_chunks = handle->stream_in_flight_chunks;
   }
-  if (handle->stream_in_flight_bytes > handle->stream_max_buffered_bytes) {
-    handle->stream_max_buffered_bytes = handle->stream_in_flight_bytes;
+  if (stream_buffered_bytes_locked(handle) > handle->stream_max_buffered_bytes) {
+    handle->stream_max_buffered_bytes = stream_buffered_bytes_locked(handle);
   }
-  pthread_mutex_unlock(&handle->mutex);
-  return 1;
-}
-
-static void rollback_stream_credit(AxCurlStreamHandle *handle, size_t length) {
-  pthread_mutex_lock(&handle->mutex);
-  if (handle->stream_credits < handle->stream_window_chunks) {
-    handle->stream_credits++;
-  }
-  if (handle->stream_in_flight_chunks > 0) {
-    handle->stream_in_flight_chunks--;
-  }
-  if (handle->stream_in_flight_bytes >= length) {
-    handle->stream_in_flight_bytes -= length;
-  } else {
-    handle->stream_in_flight_bytes = 0;
-  }
-  pthread_cond_signal(&handle->flow_condition);
-  pthread_mutex_unlock(&handle->mutex);
-}
-
-static int emit_reserved_chunk(AxCurlStreamHandle *handle,
-                               const uint8_t *buffer,
-                               size_t length,
-                               size_t reserved_length) {
-  if (reserved_length != length) {
-    pthread_mutex_lock(&handle->mutex);
-    if (handle->stream_in_flight_bytes >= reserved_length) {
-      handle->stream_in_flight_bytes -= reserved_length;
-    } else {
-      handle->stream_in_flight_bytes = 0;
-    }
-    handle->stream_in_flight_bytes += length;
-    if (handle->stream_in_flight_bytes > handle->stream_max_buffered_bytes) {
-      handle->stream_max_buffered_bytes = handle->stream_in_flight_bytes;
-    }
-    pthread_mutex_unlock(&handle->mutex);
-  }
-  uint8_t *chunk = (uint8_t *)malloc(length);
-  if (chunk == NULL) {
-    rollback_stream_credit(handle, length);
-    handle->callback_failed = 1;
-    return 0;
-  }
-  memcpy(chunk, buffer, length);
   handle->stream_chunk_notifications++;
+  pthread_mutex_unlock(&handle->mutex);
+
   handle->on_chunk(chunk, length, handle->user_data);
   return 1;
 }
 
+static int drain_bounded_body(AxCurlStreamHandle *handle, int allow_partial) {
+  if (handle->on_chunk == NULL) {
+    return 1;
+  }
+  for (;;) {
+    pthread_mutex_lock(&handle->mutex);
+    if (handle->callback_failed || handle->cancel_requested ||
+        handle->stream_batch_length == 0 || handle->stream_credits == 0) {
+      if (handle->stream_batch_length > 0 && handle->stream_credits == 0 &&
+          !handle->cancel_requested) {
+        mark_stream_paused_locked(handle);
+      }
+      pthread_mutex_unlock(&handle->mutex);
+      return handle->callback_failed ? 0 : 1;
+    }
+    const size_t chunk_size = (size_t)handle->stream_chunk_size;
+    const size_t length = handle->stream_batch_length < chunk_size
+        ? handle->stream_batch_length
+        : chunk_size;
+    if (!allow_partial && length < chunk_size) {
+      pthread_mutex_unlock(&handle->mutex);
+      return 1;
+    }
+    pthread_mutex_unlock(&handle->mutex);
+    if (!emit_pending_chunk(handle, length)) {
+      return 0;
+    }
+  }
+}
+
+// libcurl may replay the complete callback buffer after CURL_WRITEFUNC_PAUSE.
+// Therefore this function either copies the whole callback into the bounded
+// queue or copies nothing and asks libcurl to pause. It never partially
+// consumes a callback buffer.
 static int append_bounded_body(AxCurlStreamHandle *handle,
                                const char *buffer,
                                size_t length) {
   if (length == 0) {
     return 1;
   }
-  const size_t chunk_size = (size_t)handle->stream_chunk_size;
-  size_t offset = 0;
-  while (offset < length) {
-    const size_t remaining = length - offset;
-    if (handle->stream_batch_length == 0) {
-      if (!reserve_stream_credit(handle, chunk_size)) {
-        return 0;
-      }
-    }
-    const size_t capacity = chunk_size - handle->stream_batch_length;
-    const size_t current = remaining < capacity ? remaining : capacity;
-    memcpy(handle->stream_batch_buffer + handle->stream_batch_length,
-           buffer + offset,
-           current);
-    handle->stream_batch_length += current;
-    offset += current;
-    if (handle->stream_batch_length == chunk_size) {
-      if (!emit_reserved_chunk(handle,
-                               handle->stream_batch_buffer,
-                               handle->stream_batch_length,
-                               chunk_size)) {
-        return 0;
-      }
-      handle->stream_batch_length = 0;
-    }
+  pthread_mutex_lock(&handle->mutex);
+  if (handle->cancel_requested) {
+    pthread_mutex_unlock(&handle->mutex);
+    return 0;
   }
-  return 1;
+  const uint64_t buffered = stream_buffered_bytes_locked(handle);
+  if ((uint64_t)length > handle->stream_batch_capacity ||
+      buffered > handle->stream_batch_capacity - (uint64_t)length) {
+    mark_stream_paused_locked(handle);
+    pthread_mutex_unlock(&handle->mutex);
+    return -1;
+  }
+  memcpy(handle->stream_batch_buffer + handle->stream_batch_length, buffer, length);
+  handle->stream_batch_length += length;
+  if (stream_buffered_bytes_locked(handle) > handle->stream_max_buffered_bytes) {
+    handle->stream_max_buffered_bytes = stream_buffered_bytes_locked(handle);
+  }
+  pthread_mutex_unlock(&handle->mutex);
+  return drain_bounded_body(handle, 0) ? 1 : 0;
 }
 
 static int flush_bounded_body(AxCurlStreamHandle *handle) {
-  if (handle->stream_batch_length == 0) {
-    return 1;
-  }
-  const int result = emit_reserved_chunk(handle,
-                                         handle->stream_batch_buffer,
-                                         handle->stream_batch_length,
-                                         (size_t)handle->stream_chunk_size);
-  handle->stream_batch_length = 0;
-  return result;
+  return drain_bounded_body(handle, 1);
 }
 
 static size_t async_write_callback(char *buffer,
@@ -573,7 +613,6 @@ static size_t async_write_callback(char *buffer,
     return 0;
   }
   handle->result.response_callback_count++;
-  handle->result.response_bytes_delivered += length;
   emit_stream_start(handle);
   if (handle->callback_failed) {
     return 0;
@@ -588,9 +627,14 @@ static size_t async_write_callback(char *buffer,
     handle->result.bytes_received += length;
     return length;
   }
-  if (!append_bounded_body(handle, buffer, length)) {
+  const int append_code = append_bounded_body(handle, buffer, length);
+  if (append_code < 0) {
+    return CURL_WRITEFUNC_PAUSE;
+  }
+  if (append_code == 0) {
     return 0;
   }
+  handle->result.response_bytes_delivered += length;
   handle->result.bytes_received += length;
   return length;
 }
@@ -683,6 +727,7 @@ static void populate_flow_result(AxCurlStreamHandle *handle) {
   pthread_mutex_lock(&handle->mutex);
   handle->result.stream_chunk_size = handle->stream_chunk_size;
   handle->result.stream_window_chunks = handle->stream_window_chunks;
+  handle->result.stream_queue_capacity_bytes = handle->stream_batch_capacity;
   handle->result.stream_max_in_flight_chunks = handle->stream_max_in_flight_chunks;
   handle->result.stream_max_buffered_bytes = handle->stream_max_buffered_bytes;
   handle->result.stream_chunk_notifications = handle->stream_chunk_notifications;
@@ -694,16 +739,39 @@ static void populate_flow_result(AxCurlStreamHandle *handle) {
   handle->result.stream_ack_count = handle->stream_ack_count;
   handle->result.stream_acked_bytes = handle->stream_acked_bytes;
   handle->result.stream_in_flight_chunks_at_completion = handle->stream_in_flight_chunks;
-  handle->result.stream_buffered_bytes_at_completion = handle->stream_in_flight_bytes;
+  handle->result.stream_buffered_bytes_at_completion = stream_buffered_bytes_locked(handle);
   pthread_mutex_unlock(&handle->mutex);
 }
 
-static int run_async_request(AxCurlStreamHandle *handle) {
+static void close_async_file(AxCurlStreamHandle *handle) {
+  if (handle->file != NULL) {
+    fclose(handle->file);
+    handle->file = NULL;
+  }
+}
+
+static void unlink_request(AxCurlStreamHandle *handle) {
+  AxCurlClient *client = handle->client;
+  pthread_mutex_lock(&client->mutex);
+  AxCurlStreamHandle **cursor = &client->requests;
+  while (*cursor != NULL) {
+    if (*cursor == handle) {
+      *cursor = handle->next;
+      handle->next = NULL;
+      break;
+    }
+    cursor = &(*cursor)->next;
+  }
+  pthread_mutex_unlock(&client->mutex);
+}
+
+static int start_async_request(AxCurlStreamHandle *handle) {
   const uint64_t request_created_ns = handle->result.request_created_ns;
   memset(&handle->result, 0, sizeof(handle->result));
   handle->result.request_created_ns = request_created_ns;
   handle->result.stream_chunk_size = handle->stream_chunk_size;
   handle->result.stream_window_chunks = handle->stream_window_chunks;
+  handle->result.stream_queue_capacity_bytes = handle->stream_batch_capacity;
   handle->result.body_preparation_start_ns = monotonic_now_ns();
   const int init_code = ensure_curl_initialized();
   if (init_code != 0) {
@@ -718,30 +786,20 @@ static int run_async_request(AxCurlStreamHandle *handle) {
   }
   handle->result.body_preparation_end_ns = monotonic_now_ns();
 
-  CURLM *multi = curl_multi_init();
   CURL *easy = curl_easy_init();
-  if (multi == NULL || easy == NULL) {
+  if (easy == NULL) {
     if (easy != NULL) {
       curl_easy_cleanup(easy);
     }
-    if (multi != NULL) {
-      curl_multi_cleanup(multi);
-    }
     set_error("unable to initialize libcurl handles");
-    if (handle->file != NULL) {
-      fclose(handle->file);
-      handle->file = NULL;
-    }
+    close_async_file(handle);
     handle->result.curl_code = CURLE_FAILED_INIT;
     return CURLE_FAILED_INIT;
   }
 
-  pthread_mutex_lock(&handle->mutex);
-  handle->multi = multi;
-  pthread_mutex_unlock(&handle->mutex);
-
   curl_easy_setopt(easy, CURLOPT_URL, handle->url);
   curl_easy_setopt(easy, CURLOPT_SHARE, handle->client->share);
+  curl_easy_setopt(easy, CURLOPT_PRIVATE, handle);
   curl_easy_setopt(easy, CURLOPT_FOLLOWLOCATION, handle->follow_redirects ? 1L : 0L);
   curl_easy_setopt(easy, CURLOPT_MAXREDIRS, 10L);
   curl_easy_setopt(easy, CURLOPT_NOSIGNAL, 1L);
@@ -753,6 +811,13 @@ static int run_async_request(AxCurlStreamHandle *handle) {
   curl_easy_setopt(easy, CURLOPT_XFERINFOFUNCTION, async_progress_callback);
   curl_easy_setopt(easy, CURLOPT_XFERINFODATA, handle);
   curl_easy_setopt(easy, CURLOPT_NOPROGRESS, 0L);
+  configure_benchmark_tls(easy);
+  configure_benchmark_debug(easy);
+  if (handle->on_chunk != NULL && handle->stream_batch_capacity <= LONG_MAX) {
+    // Keep libcurl's replayable write callback bounded by the native queue.
+    // The callback is accepted atomically; see append_bounded_body().
+    curl_easy_setopt(easy, CURLOPT_BUFFERSIZE, (long)handle->stream_batch_capacity);
+  }
 
   if (handle->request_kind == AX_CURL_POST_BYTES) {
     curl_easy_setopt(easy, CURLOPT_POST, 1L);
@@ -763,14 +828,7 @@ static int run_async_request(AxCurlStreamHandle *handle) {
     if (!get_async_file_size(handle->file, &file_size)) {
       set_error("unable to determine upload file size");
       curl_easy_cleanup(easy);
-      curl_multi_cleanup(multi);
-      pthread_mutex_lock(&handle->mutex);
-      handle->multi = NULL;
-      pthread_mutex_unlock(&handle->mutex);
-      if (handle->file != NULL) {
-        fclose(handle->file);
-        handle->file = NULL;
-      }
+      close_async_file(handle);
       handle->result.curl_code = CURLE_READ_ERROR;
       return CURLE_READ_ERROR;
     }
@@ -784,14 +842,7 @@ static int run_async_request(AxCurlStreamHandle *handle) {
     if (handle->request_headers == NULL) {
       set_error("unable to allocate upload request headers");
       curl_easy_cleanup(easy);
-      curl_multi_cleanup(multi);
-      pthread_mutex_lock(&handle->mutex);
-      handle->multi = NULL;
-      pthread_mutex_unlock(&handle->mutex);
-      if (handle->file != NULL) {
-        fclose(handle->file);
-        handle->file = NULL;
-      }
+      close_async_file(handle);
       handle->result.curl_code = CURLE_OUT_OF_MEMORY;
       return CURLE_OUT_OF_MEMORY;
     }
@@ -800,108 +851,343 @@ static int run_async_request(AxCurlStreamHandle *handle) {
 
   handle->result.easy_handle_configured_ns = monotonic_now_ns();
 
-  CURLMcode multi_code = curl_multi_add_handle(multi, easy);
+  handle->easy = easy;
+  CURLMcode multi_code = curl_multi_add_handle(handle->client->multi, easy);
   if (multi_code != CURLM_OK) {
     snprintf(last_error, sizeof(last_error), "curl_multi_add_handle failed: %s", curl_multi_strerror(multi_code));
     curl_easy_cleanup(easy);
+    handle->easy = NULL;
     curl_slist_free_all(handle->request_headers);
     handle->request_headers = NULL;
-    curl_multi_cleanup(multi);
-    pthread_mutex_lock(&handle->mutex);
-    handle->multi = NULL;
-    pthread_mutex_unlock(&handle->mutex);
-    if (handle->file != NULL) {
-      fclose(handle->file);
-      handle->file = NULL;
-    }
+    close_async_file(handle);
     handle->result.curl_code = CURLE_FAILED_INIT;
     return CURLE_FAILED_INIT;
   }
+  handle->in_multi = 1;
   handle->result.multi_add_handle_ns = monotonic_now_ns();
+  return CURLE_OK;
+}
 
-  int running = 0;
-  CURLcode result_code = CURLE_OK;
-  do {
-    multi_code = curl_multi_perform(multi, &running);
-    if (multi_code != CURLM_OK) {
-      snprintf(last_error, sizeof(last_error), "curl_multi_perform failed: %s", curl_multi_strerror(multi_code));
-      result_code = CURLE_FAILED_INIT;
-      break;
-    }
-    if (running > 0) {
-      long timeout_ms = -1;
-      multi_code = curl_multi_timeout(multi, &timeout_ms);
-      if (multi_code != CURLM_OK) {
-        snprintf(last_error, sizeof(last_error), "curl_multi_timeout failed: %s", curl_multi_strerror(multi_code));
-        result_code = CURLE_FAILED_INIT;
-        break;
-      }
-      if (timeout_ms < 0 || timeout_ms > 1000) {
-        timeout_ms = 1000;
-      }
-      int descriptors = 0;
-      const uint64_t wait_start_ns = monotonic_now_ns();
-      multi_code = curl_multi_poll(multi, NULL, 0, (int)timeout_ms, &descriptors);
-      const uint64_t wait_elapsed_ns = monotonic_now_ns() - wait_start_ns;
-      handle->result.event_loop_wait_count++;
-      handle->result.event_loop_wait_ns += wait_elapsed_ns;
-      if (wait_elapsed_ns > handle->result.event_loop_max_wait_ns) {
-        handle->result.event_loop_max_wait_ns = wait_elapsed_ns;
-      }
-      if (multi_code != CURLM_OK) {
-        snprintf(last_error, sizeof(last_error), "curl_multi_poll failed: %s", curl_multi_strerror(multi_code));
-        result_code = CURLE_FAILED_INIT;
-        break;
-      }
-    }
-  } while (running > 0);
-
-  if (result_code == CURLE_OK && !is_cancelled(handle) && !flush_bounded_body(handle)) {
-    result_code = CURLE_WRITE_ERROR;
+static void complete_async_request(AxCurlStreamHandle *handle, CURLcode result_code) {
+  pthread_mutex_lock(&handle->mutex);
+  if (handle->completion_started) {
+    pthread_mutex_unlock(&handle->mutex);
+    return;
   }
+  pthread_mutex_unlock(&handle->mutex);
+
+  if (result_code == CURLE_OK && is_cancelled(handle)) {
+    result_code = CURLE_ABORTED_BY_CALLBACK;
+  }
+  if (result_code == CURLE_OK) {
+    if (!flush_bounded_body(handle)) {
+      result_code = CURLE_WRITE_ERROR;
+    } else if (is_cancelled(handle)) {
+      result_code = CURLE_ABORTED_BY_CALLBACK;
+    } else {
+      pthread_mutex_lock(&handle->mutex);
+      if (handle->stream_batch_length > 0) {
+        handle->terminal_pending = 1;
+        handle->terminal_code = result_code;
+        pthread_mutex_unlock(&handle->mutex);
+        return;
+      }
+      handle->terminal_pending = 0;
+      pthread_mutex_unlock(&handle->mutex);
+    }
+  }
+  if (result_code != CURLE_OK) {
+    pthread_mutex_lock(&handle->mutex);
+    handle->stream_batch_length = 0;
+    handle->terminal_pending = 0;
+    pthread_mutex_unlock(&handle->mutex);
+  }
+
+  pthread_mutex_lock(&handle->mutex);
+  if (handle->completion_started) {
+    pthread_mutex_unlock(&handle->mutex);
+    return;
+  }
+  handle->completion_started = 1;
+  pthread_mutex_unlock(&handle->mutex);
   handle->result.response_body_complete_ns = monotonic_now_ns();
 
-  int messages_left = 0;
-  CURLMsg *message = NULL;
-  while ((message = curl_multi_info_read(multi, &messages_left)) != NULL) {
-    if (message->msg == CURLMSG_DONE) {
-      result_code = message->data.result;
-      handle->result.curl_done_ns = monotonic_now_ns();
+  CURL *easy = handle->easy;
+  if (easy != NULL) {
+    populate_async_metrics(easy, &handle->result);
+    if (handle->in_multi) {
+      curl_multi_remove_handle(handle->client->multi, easy);
+      handle->in_multi = 0;
     }
+    curl_easy_cleanup(easy);
+    handle->easy = NULL;
   }
-  populate_async_metrics(easy, &handle->result);
+  curl_slist_free_all(handle->request_headers);
+  handle->request_headers = NULL;
+  close_async_file(handle);
   if (handle->callback_failed && result_code == CURLE_OK) {
     result_code = CURLE_WRITE_ERROR;
   }
   handle->result.curl_code = (int32_t)result_code;
-
-  curl_multi_remove_handle(multi, easy);
-  curl_easy_cleanup(easy);
-  curl_slist_free_all(handle->request_headers);
-  handle->request_headers = NULL;
-  curl_multi_cleanup(multi);
-  pthread_mutex_lock(&handle->mutex);
-  handle->multi = NULL;
-  pthread_mutex_unlock(&handle->mutex);
-  if (handle->file != NULL) {
-    fclose(handle->file);
-    handle->file = NULL;
-  }
   populate_flow_result(handle);
   handle->result.native_cleanup_ns = monotonic_now_ns();
-  return (int)result_code;
-}
 
-static void *async_request_thread(void *userdata) {
-  AxCurlStreamHandle *handle = (AxCurlStreamHandle *)userdata;
-  const int code = run_async_request(handle);
-  populate_flow_result(handle);
+  unlink_request(handle);
   handle->result.native_completion_notification_ns = monotonic_now_ns();
   if (!handle->start_emitted) {
     emit_stream_start(handle);
   }
   if (handle->on_complete != NULL) {
-    handle->on_complete(&handle->result, code, handle->user_data);
+    handle->on_complete(&handle->result, (int32_t)result_code, handle->user_data);
+  }
+  pthread_mutex_lock(&handle->mutex);
+  handle->callback_finished = 1;
+  pthread_cond_broadcast(&handle->completion_condition);
+  pthread_mutex_unlock(&handle->mutex);
+}
+
+static void start_pending_requests(AxCurlClient *client) {
+  for (;;) {
+    AxCurlStreamHandle *pending = NULL;
+    pthread_mutex_lock(&client->mutex);
+    for (AxCurlStreamHandle *cursor = client->requests; cursor != NULL; cursor = cursor->next) {
+      pthread_mutex_lock(&cursor->mutex);
+      if (!cursor->setup_started && !cursor->completion_started) {
+        cursor->setup_started = 1;
+        pending = cursor;
+        pthread_mutex_unlock(&cursor->mutex);
+        break;
+      }
+      pthread_mutex_unlock(&cursor->mutex);
+    }
+    pthread_mutex_unlock(&client->mutex);
+    if (pending == NULL) {
+      return;
+    }
+    const int code = is_cancelled(pending) ? CURLE_ABORTED_BY_CALLBACK : start_async_request(pending);
+    if (code != CURLE_OK) {
+      complete_async_request(pending, (CURLcode)code);
+    }
+  }
+}
+
+static void mark_shutdown_requests(AxCurlClient *client) {
+  pthread_mutex_lock(&client->mutex);
+  for (AxCurlStreamHandle *cursor = client->requests; cursor != NULL; cursor = cursor->next) {
+    pthread_mutex_lock(&cursor->mutex);
+    cursor->cancel_requested = 1;
+    pthread_mutex_unlock(&cursor->mutex);
+  }
+  pthread_mutex_unlock(&client->mutex);
+}
+
+static void resume_paused_requests(AxCurlClient *client) {
+  pthread_mutex_lock(&client->mutex);
+  AxCurlStreamHandle *cursor = client->requests;
+  while (cursor != NULL) {
+    AxCurlStreamHandle *next = cursor->next;
+    // Never hold the client lock while draining a queue or calling curl. Both
+    // paths can synchronously enter a Dart callback, which may acknowledge a
+    // chunk and wake this same client.
+    pthread_mutex_unlock(&client->mutex);
+    pthread_mutex_lock(&cursor->mutex);
+    const int terminal_pending = cursor->terminal_pending && !cursor->completion_started;
+    const CURLcode terminal_code = cursor->terminal_code;
+    CURL *easy = cursor->easy;
+    pthread_mutex_unlock(&cursor->mutex);
+
+    if (!drain_bounded_body(cursor, terminal_pending ? 1 : 0)) {
+      pthread_mutex_lock(&cursor->mutex);
+      cursor->callback_failed = 1;
+      pthread_mutex_unlock(&cursor->mutex);
+    }
+
+    pthread_mutex_lock(&cursor->mutex);
+    const int terminal_ready = cursor->terminal_pending &&
+                               cursor->stream_batch_length == 0 &&
+                               !cursor->completion_started;
+    const int should_resume = cursor->easy != NULL && cursor->in_multi &&
+                              cursor->stream_paused && cursor->stream_batch_length == 0 &&
+                              cursor->stream_credits > 0 && !cursor->cancel_requested;
+    easy = cursor->easy;
+    pthread_mutex_unlock(&cursor->mutex);
+
+    if (terminal_ready) {
+      complete_async_request(cursor, terminal_code);
+    } else if (should_resume) {
+      const uint64_t resumed_ns = monotonic_now_ns();
+      pthread_mutex_lock(&cursor->mutex);
+      if (cursor->stream_paused) {
+        if (resumed_ns >= cursor->stream_pause_started_ns) {
+          cursor->stream_pause_wait_ns += resumed_ns - cursor->stream_pause_started_ns;
+        }
+        if (cursor->stream_last_credit_ns != 0 &&
+            resumed_ns >= cursor->stream_last_credit_ns) {
+          cursor->stream_resume_latency_ns +=
+              resumed_ns - cursor->stream_last_credit_ns;
+        }
+        cursor->stream_resume_count++;
+        cursor->stream_paused = 0;
+        cursor->stream_pause_started_ns = 0;
+      }
+      pthread_mutex_unlock(&cursor->mutex);
+      if (curl_easy_pause(easy, CURLPAUSE_CONT) != CURLE_OK) {
+        pthread_mutex_lock(&cursor->mutex);
+        cursor->callback_failed = 1;
+        pthread_mutex_unlock(&cursor->mutex);
+      }
+    }
+
+    pthread_mutex_lock(&client->mutex);
+    cursor = next;
+  }
+  pthread_mutex_unlock(&client->mutex);
+}
+
+static AxCurlStreamHandle *find_cancelled_request(AxCurlClient *client) {
+  AxCurlStreamHandle *cancelled = NULL;
+  pthread_mutex_lock(&client->mutex);
+  for (AxCurlStreamHandle *cursor = client->requests; cursor != NULL; cursor = cursor->next) {
+    pthread_mutex_lock(&cursor->mutex);
+    const int should_cancel = cursor->setup_started && !cursor->completion_started &&
+                              cursor->cancel_requested;
+    pthread_mutex_unlock(&cursor->mutex);
+    if (should_cancel) {
+      cancelled = cursor;
+      break;
+    }
+  }
+  pthread_mutex_unlock(&client->mutex);
+  return cancelled;
+}
+
+static void cancel_ready_requests(AxCurlClient *client) {
+  for (;;) {
+    AxCurlStreamHandle *cancelled = find_cancelled_request(client);
+    if (cancelled == NULL) {
+      return;
+    }
+    if (cancelled->easy != NULL && cancelled->in_multi) {
+      curl_multi_remove_handle(client->multi, cancelled->easy);
+      cancelled->in_multi = 0;
+    }
+    complete_async_request(cancelled, CURLE_ABORTED_BY_CALLBACK);
+  }
+}
+
+static int has_active_requests(AxCurlClient *client) {
+  int active = 0;
+  pthread_mutex_lock(&client->mutex);
+  for (AxCurlStreamHandle *cursor = client->requests; cursor != NULL; cursor = cursor->next) {
+    if (cursor->in_multi) {
+      active = 1;
+      break;
+    }
+  }
+  pthread_mutex_unlock(&client->mutex);
+  return active;
+}
+
+static void record_poll_wait(AxCurlClient *client, uint64_t elapsed_ns) {
+  pthread_mutex_lock(&client->mutex);
+  for (AxCurlStreamHandle *cursor = client->requests; cursor != NULL; cursor = cursor->next) {
+    if (cursor->in_multi) {
+      cursor->result.event_loop_wait_count++;
+      cursor->result.event_loop_wait_ns += elapsed_ns;
+      if (elapsed_ns > cursor->result.event_loop_max_wait_ns) {
+        cursor->result.event_loop_max_wait_ns = elapsed_ns;
+      }
+    }
+  }
+  pthread_mutex_unlock(&client->mutex);
+}
+
+static void process_completed_messages(AxCurlClient *client) {
+  int messages_left = 0;
+  CURLMsg *message = NULL;
+  while ((message = curl_multi_info_read(client->multi, &messages_left)) != NULL) {
+    if (message->msg != CURLMSG_DONE) {
+      continue;
+    }
+    AxCurlStreamHandle *handle = NULL;
+    curl_easy_getinfo(message->easy_handle, CURLINFO_PRIVATE, &handle);
+    if (handle == NULL) {
+      continue;
+    }
+    handle->result.curl_done_ns = monotonic_now_ns();
+    complete_async_request(handle, message->data.result);
+  }
+}
+
+static void *async_worker(void *userdata) {
+  AxCurlClient *client = (AxCurlClient *)userdata;
+  for (;;) {
+    pthread_mutex_lock(&client->mutex);
+    const int shutting_down_before_work = client->shutdown_requested;
+    pthread_mutex_unlock(&client->mutex);
+    if (shutting_down_before_work) {
+      mark_shutdown_requests(client);
+    }
+    start_pending_requests(client);
+    resume_paused_requests(client);
+    cancel_ready_requests(client);
+
+    int running = 0;
+    const CURLMcode perform_code = curl_multi_perform(client->multi, &running);
+    if (perform_code != CURLM_OK) {
+      snprintf(last_error, sizeof(last_error), "curl_multi_perform failed: %s",
+               curl_multi_strerror(perform_code));
+      pthread_mutex_lock(&client->mutex);
+      AxCurlStreamHandle *failed = client->requests;
+      pthread_mutex_unlock(&client->mutex);
+      while (failed != NULL) {
+        AxCurlStreamHandle *next = failed->next;
+        if (failed->in_multi) {
+          curl_multi_remove_handle(client->multi, failed->easy);
+          failed->in_multi = 0;
+          complete_async_request(failed, CURLE_FAILED_INIT);
+        }
+        failed = next;
+      }
+    }
+    process_completed_messages(client);
+    cancel_ready_requests(client);
+
+    pthread_mutex_lock(&client->mutex);
+    const int empty = client->requests == NULL;
+    const int shutting_down = client->shutdown_requested;
+    pthread_mutex_unlock(&client->mutex);
+    if (shutting_down && empty) {
+      break;
+    }
+    if (!has_active_requests(client)) {
+      pthread_mutex_lock(&client->mutex);
+      if (!client->shutdown_requested && client->requests == NULL) {
+        pthread_cond_wait(&client->condition, &client->mutex);
+      }
+      pthread_mutex_unlock(&client->mutex);
+      continue;
+    }
+
+    long timeout_ms = -1;
+    CURLMcode timeout_code = curl_multi_timeout(client->multi, &timeout_ms);
+    if (timeout_code != CURLM_OK) {
+      snprintf(last_error, sizeof(last_error), "curl_multi_timeout failed: %s",
+               curl_multi_strerror(timeout_code));
+      timeout_ms = 1000;
+    }
+    if (timeout_ms < 0 || timeout_ms > 1000) {
+      timeout_ms = 1000;
+    }
+    int descriptors = 0;
+    const uint64_t wait_start_ns = monotonic_now_ns();
+    const CURLMcode poll_code = curl_multi_poll(client->multi, NULL, 0, (int)timeout_ms, &descriptors);
+    const uint64_t wait_elapsed_ns = monotonic_now_ns() - wait_start_ns;
+    record_poll_wait(client, wait_elapsed_ns);
+    if (poll_code != CURLM_OK) {
+      snprintf(last_error, sizeof(last_error), "curl_multi_poll failed: %s",
+               curl_multi_strerror(poll_code));
+    }
   }
   return NULL;
 }
@@ -939,10 +1225,10 @@ ALPHAX_CURL_EXPORT AxCurlStreamHandle *ax_curl_request_start(
     set_error("unable to initialize async request mutex");
     return NULL;
   }
-  if (pthread_cond_init(&handle->flow_condition, NULL) != 0) {
+  if (pthread_cond_init(&handle->completion_condition, NULL) != 0) {
     pthread_mutex_destroy(&handle->mutex);
     free(handle);
-    set_error("unable to initialize async flow condition");
+    set_error("unable to initialize async completion condition");
     return NULL;
   }
   pthread_mutex_lock(&client->mutex);
@@ -957,10 +1243,30 @@ ALPHAX_CURL_EXPORT AxCurlStreamHandle *ax_curl_request_start(
   }
   handle->stream_credits = handle->stream_window_chunks;
   if (request_kind != AX_CURL_DOWNLOAD_FILE && on_chunk != NULL) {
-    handle->stream_batch_capacity = (size_t)handle->stream_chunk_size;
+    if (handle->stream_window_chunks > SIZE_MAX / handle->stream_chunk_size) {
+      pthread_cond_destroy(&handle->completion_condition);
+      pthread_mutex_destroy(&handle->mutex);
+      free(handle);
+      set_error("bounded stream buffer size overflows size_t");
+      return NULL;
+    }
+    const uint64_t configured_capacity =
+        handle->stream_chunk_size * handle->stream_window_chunks;
+    const uint64_t callback_capacity = (uint64_t)CURL_MAX_WRITE_SIZE;
+    const uint64_t effective_capacity = configured_capacity > callback_capacity
+        ? configured_capacity
+        : callback_capacity;
+    if (effective_capacity > SIZE_MAX) {
+      pthread_cond_destroy(&handle->completion_condition);
+      pthread_mutex_destroy(&handle->mutex);
+      free(handle);
+      set_error("effective bounded stream buffer size overflows size_t");
+      return NULL;
+    }
+    handle->stream_batch_capacity = (size_t)effective_capacity;
     handle->stream_batch_buffer = (uint8_t *)malloc(handle->stream_batch_capacity);
     if (handle->stream_batch_buffer == NULL) {
-      pthread_cond_destroy(&handle->flow_condition);
+      pthread_cond_destroy(&handle->completion_condition);
       pthread_mutex_destroy(&handle->mutex);
       free(handle);
       set_error("unable to allocate bounded stream buffer");
@@ -978,7 +1284,7 @@ ALPHAX_CURL_EXPORT AxCurlStreamHandle *ax_curl_request_start(
   handle->user_data = user_data;
   handle->client = client;
   if (handle->url == NULL || (file_path != NULL && handle->file_path == NULL)) {
-    pthread_cond_destroy(&handle->flow_condition);
+    pthread_cond_destroy(&handle->completion_condition);
     pthread_mutex_destroy(&handle->mutex);
     free(handle->stream_batch_buffer);
     free(handle->url);
@@ -988,7 +1294,7 @@ ALPHAX_CURL_EXPORT AxCurlStreamHandle *ax_curl_request_start(
     return NULL;
   }
   if (body_length > SIZE_MAX) {
-    pthread_cond_destroy(&handle->flow_condition);
+    pthread_cond_destroy(&handle->completion_condition);
     pthread_mutex_destroy(&handle->mutex);
     free(handle->stream_batch_buffer);
     free(handle->url);
@@ -1000,7 +1306,7 @@ ALPHAX_CURL_EXPORT AxCurlStreamHandle *ax_curl_request_start(
   if (body_length > 0) {
     handle->body = (uint8_t *)malloc((size_t)body_length);
     if (handle->body == NULL) {
-      pthread_cond_destroy(&handle->flow_condition);
+      pthread_cond_destroy(&handle->completion_condition);
       pthread_mutex_destroy(&handle->mutex);
       free(handle->stream_batch_buffer);
       free(handle->url);
@@ -1012,18 +1318,24 @@ ALPHAX_CURL_EXPORT AxCurlStreamHandle *ax_curl_request_start(
     memcpy(handle->body, body, (size_t)body_length);
   }
   handle->body_length = (size_t)body_length;
-  if (pthread_create(&handle->thread, NULL, async_request_thread, handle) != 0) {
-    pthread_cond_destroy(&handle->flow_condition);
+  pthread_mutex_lock(&client->mutex);
+  if (client->shutdown_requested) {
+    pthread_mutex_unlock(&client->mutex);
+    pthread_cond_destroy(&handle->completion_condition);
     pthread_mutex_destroy(&handle->mutex);
     free(handle->stream_batch_buffer);
     free(handle->body);
     free(handle->url);
     free(handle->file_path);
     free(handle);
-    set_error("unable to create async request thread");
+    set_error("libcurl client is shutting down");
     return NULL;
   }
-  handle->thread_started = 1;
+  handle->next = client->requests;
+  client->requests = handle;
+  pthread_cond_signal(&client->condition);
+  pthread_mutex_unlock(&client->mutex);
+  wake_client(client);
   return handle;
 }
 
@@ -1048,6 +1360,20 @@ ALPHAX_CURL_EXPORT AxCurlClient *ax_curl_client_create(void) {
     set_error("unable to allocate libcurl client");
     return NULL;
   }
+  if (pthread_cond_init(&client->condition, NULL) != 0) {
+    pthread_mutex_destroy(&client->mutex);
+    free(client);
+    set_error("unable to initialize libcurl worker condition");
+    return NULL;
+  }
+  client->multi = curl_multi_init();
+  if (client->multi == NULL) {
+    pthread_cond_destroy(&client->condition);
+    pthread_mutex_destroy(&client->mutex);
+    free(client);
+    set_error("unable to initialize persistent libcurl multi handle");
+    return NULL;
+  }
   client->stream_chunk_size = 64 * 1024;
   client->stream_window_chunks = 4;
   client->share = curl_share_init();
@@ -1059,11 +1385,23 @@ ALPHAX_CURL_EXPORT AxCurlClient *ax_curl_client_create(void) {
     if (client->share != NULL) {
       curl_share_cleanup(client->share);
     }
+    curl_multi_cleanup(client->multi);
+    pthread_cond_destroy(&client->condition);
     pthread_mutex_destroy(&client->mutex);
     free(client);
     set_error("unable to configure libcurl shared connection state");
     return NULL;
   }
+  if (pthread_create(&client->worker, NULL, async_worker, client) != 0) {
+    curl_share_cleanup(client->share);
+    curl_multi_cleanup(client->multi);
+    pthread_cond_destroy(&client->condition);
+    pthread_mutex_destroy(&client->mutex);
+    free(client);
+    set_error("unable to create persistent libcurl worker");
+    return NULL;
+  }
+  client->worker_started = 1;
   return client;
 }
 
@@ -1085,7 +1423,16 @@ ALPHAX_CURL_EXPORT void ax_curl_client_free(AxCurlClient *client) {
   if (client == NULL) {
     return;
   }
+  pthread_mutex_lock(&client->mutex);
+  client->shutdown_requested = 1;
+  pthread_mutex_unlock(&client->mutex);
+  wake_client(client);
+  if (client->worker_started) {
+    pthread_join(client->worker, NULL);
+  }
   curl_share_cleanup(client->share);
+  curl_multi_cleanup(client->multi);
+  pthread_cond_destroy(&client->condition);
   pthread_mutex_destroy(&client->mutex);
   free(client);
 }
@@ -1094,15 +1441,11 @@ ALPHAX_CURL_EXPORT int32_t ax_curl_request_cancel(AxCurlStreamHandle *handle) {
   if (handle == NULL) {
     return CURLE_BAD_FUNCTION_ARGUMENT;
   }
-  CURLM *multi = NULL;
   pthread_mutex_lock(&handle->mutex);
   handle->cancel_requested = 1;
-  multi = handle->multi;
-  pthread_cond_broadcast(&handle->flow_condition);
+  AxCurlClient *client = handle->client;
   pthread_mutex_unlock(&handle->mutex);
-  if (multi != NULL) {
-    curl_multi_wakeup(multi);
-  }
+  wake_client(client);
   return CURLE_OK;
 }
 
@@ -1121,18 +1464,21 @@ ALPHAX_CURL_EXPORT int32_t ax_curl_stream_ack(
     const uint64_t restored_credits =
         acknowledged_chunks < available_credits ? acknowledged_chunks : available_credits;
     handle->stream_credits += restored_credits;
-    handle->stream_in_flight_chunks -= acknowledged_chunks;
-    if (byte_count >= handle->stream_in_flight_bytes) {
+    handle->stream_in_flight_chunks -= restored_credits;
+    const uint64_t acknowledged_bytes =
+        byte_count < handle->stream_in_flight_bytes ? byte_count : handle->stream_in_flight_bytes;
+    if (acknowledged_bytes >= handle->stream_in_flight_bytes) {
       handle->stream_in_flight_bytes = 0;
     } else {
-      handle->stream_in_flight_bytes -= byte_count;
+      handle->stream_in_flight_bytes -= acknowledged_bytes;
     }
-    handle->stream_ack_count += acknowledged_chunks;
-    handle->stream_acked_bytes += byte_count;
+    handle->stream_ack_count += restored_credits;
+    handle->stream_acked_bytes += acknowledged_bytes;
     handle->stream_last_credit_ns = monotonic_now_ns();
-    pthread_cond_broadcast(&handle->flow_condition);
   }
+  AxCurlClient *client = handle->client;
   pthread_mutex_unlock(&handle->mutex);
+  wake_client(client);
   return CURLE_OK;
 }
 
@@ -1141,10 +1487,12 @@ ALPHAX_CURL_EXPORT void ax_curl_request_free(AxCurlStreamHandle *handle) {
     return;
   }
   ax_curl_request_cancel(handle);
-  if (handle->thread_started) {
-    pthread_join(handle->thread, NULL);
+  pthread_mutex_lock(&handle->mutex);
+  while (!handle->callback_finished) {
+    pthread_cond_wait(&handle->completion_condition, &handle->mutex);
   }
-  pthread_cond_destroy(&handle->flow_condition);
+  pthread_mutex_unlock(&handle->mutex);
+  pthread_cond_destroy(&handle->completion_condition);
   pthread_mutex_destroy(&handle->mutex);
   free(handle->body);
   free(handle->url);

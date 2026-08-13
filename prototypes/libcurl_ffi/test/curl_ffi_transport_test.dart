@@ -21,11 +21,19 @@ void main() {
   late CurlFfiClient transport;
   late Uri baseUri;
   late Directory tempDirectory;
+  final connectionIds = <String, int>{};
+  var nextConnectionId = 0;
 
   setUp(() async {
     server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     baseUri = Uri.parse('http://127.0.0.1:${server.port}');
     server.listen((request) async {
+      final connectionInfo = request.connectionInfo;
+      final connectionKey = connectionInfo == null
+          ? 'unknown-${identityHashCode(request)}'
+          : '${connectionInfo.remoteAddress.address}:${connectionInfo.remotePort}';
+      final connectionId = connectionIds.putIfAbsent(connectionKey, () => ++nextConnectionId);
+      request.response.headers.set('x-test-connection-id', '$connectionId');
       switch (request.uri.path) {
         case '/stream':
           for (final chunk in <List<int>>[
@@ -94,6 +102,16 @@ void main() {
     expect(post.bodyBytes, <int>[4, 5]);
   });
 
+  test('reuses one persistent connection for sequential requests', () async {
+    final ids = <String>{};
+    for (var index = 0; index < 100; index++) {
+      final response = await transport.getBytes(uriFor(baseUri, '/bytes/1'));
+      ids.add(response.header('x-test-connection-id')!);
+    }
+    expect(ids.length, lessThanOrEqualTo(2));
+    expect(ids.length, lessThan(100));
+  });
+
   test('completes streaming and direct file transfers', () async {
     final events = await transport.getStreaming(uriFor(baseUri, '/stream')).toList();
     final downloadPath = '${tempDirectory.path}/download.bin';
@@ -138,7 +156,11 @@ void main() {
     expect(received, List<int>.generate(64, (index) => index));
     expect(flow['window_chunks'], 2);
     expect(flow['max_in_flight_chunks'], lessThanOrEqualTo(2));
-    expect(flow['max_buffered_bytes'], lessThanOrEqualTo(8));
+    expect(flow['queue_capacity_bytes'], greaterThanOrEqualTo(8));
+    expect(
+      flow['max_buffered_bytes'],
+      lessThanOrEqualTo(flow['queue_capacity_bytes']! as num),
+    );
     expect(flow['pause_count'], greaterThan(0));
     expect(flow['ack_count'], greaterThan(0));
   });

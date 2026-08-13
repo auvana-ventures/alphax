@@ -1,0 +1,299 @@
+{
+  "metadata": {
+    "os": "macos",
+    "os_version": "Version 26.5.2 (Build 25F84)",
+    "architecture": "arm64",
+    "cpu": "Apple M4",
+    "dart": "3.12.2 (stable) (Tue Jun 9 01:11:39 2026 -0700) on \"macos_arm64\"",
+    "flutter": {
+      "frameworkVersion": "3.44.6",
+      "channel": "stable",
+      "repositoryUrl": "https://github.com/flutter/flutter.git",
+      "frameworkRevision": "ee80f08bbf97172ec030b8751ceab557177a34a6",
+      "frameworkCommitDate": "2026-07-08 15:02:06 -0700",
+      "engineRevision": "83675ed27633283e7fc296c8bca22e841224c096",
+      "engineCommitDate": "2026-06-30 16:59:03.000Z",
+      "engineContentHash": "d3a3293399556a85388faf8c6f0723a7a5597aa8",
+      "engineBuildDate": "2026-07-01 00:28:16.871",
+      "dartSdkVersion": "3.12.2",
+      "devToolsVersion": "2.57.0",
+      "flutterVersion": "3.44.6"
+    },
+    "libcurl": "curl 8.7.1 (x86_64-apple-darwin25.0) libcurl/8.7.1 (SecureTransport) LibreSSL/3.3.6 zlib/1.2.12 nghttp2/1.68.1\nRelease-Date: 2024-03-27\nProtocols: dict file ftp ftps gopher gophers http https imap imaps ipfs ipns ldap ldaps mqtt pop3 pop3s rtsp smb smbs smtp smtps telnet tftp\nFeatures: alt-svc AsynchDNS GSS-API HSTS HTTP2 HTTPS-proxy IPv6 Kerberos Largefile libz MultiSSL NTLM SPNEGO SSL threadsafe UnixSockets",
+    "rust": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "build_mode": "Dart VM benchmark; native candidates release library where configured",
+    "network_profile": "local",
+    "protocol_profile": "HTTP/2 over TLS; ALPN h2 verified by server response metadata",
+    "transport_security": "tls",
+    "process_metrics_idle_baseline": {
+      "cpu_time_seconds": 1.93,
+      "cpu_utilization_percent": 5.8,
+      "rss_bytes": 244056064,
+      "max_rss_bytes": 458080256
+    },
+    "git_commit": "3a141600757f7cc89c5b4fe40a010119de2f9cee",
+    "git_worktree_dirty": true,
+    "base_url": "https://127.0.0.1:18445",
+    "candidate_process_name": "dart_io",
+    "warmup_iterations": 3,
+    "measured_iterations": 30,
+    "stream_chunk_size_bytes": 65536,
+    "stream_window_chunks": 4,
+    "include_external_references": false,
+    "selected_scenarios": [
+      "small_1024_warm",
+      "connection_reuse_sequential",
+      "concurrency_100",
+      "concurrency_250",
+      "stream_2097152_bytes",
+      "download_10485760_bytes",
+      "upload_10485760_bytes"
+    ],
+    "methodology": {
+      "statistics": [
+        "min",
+        "mean",
+        "p25",
+        "p50",
+        "p75",
+        "p90",
+        "p95",
+        "p99 where n >= 20",
+        "max",
+        "standard deviation"
+      ],
+      "p99_minimum_sample_count": 20,
+      "raw_samples": true,
+      "json_decode_in_transport_samples": false,
+      "connection_reuse": "candidate behavior is recorded; no reuse claim is inferred",
+      "large_transfer_scope": [
+        10485760,
+        104857600
+      ],
+      "timing_boundaries": {
+        "upload_start": "before file length/stat preparation for every candidate",
+        "upload_end": "after response body completion and candidate/native cleanup notification",
+        "download_start": "before request creation",
+        "download_end": "after response bytes are written and file sink closes",
+        "concurrency_start": "before the first candidate future is created",
+        "concurrency_end": "after all candidate futures complete"
+      },
+      "upload_validation": "server byte count plus deterministic FNV-1a 64 content hash",
+      "process_metrics": "macOS ps CPU time/utilization plus Dart RSS/peak RSS; unavailable is reported explicitly",
+      "classification_rule": "approximately equivalent <=5% p50 difference; clear >=20% with non-overlapping p25-p75 and <=10% CV; likely >=10% and <=20% CV; otherwise inconclusive"
+    }
+  },
+  "correctness": [
+    {
+      "candidate": "dart_io",
+      "passed": true,
+      "checks": 10,
+      "failures": []
+    }
+  ],
+  "performance_errors": [],
+  "scenario_summaries": [
+    {
+      "candidate": "dart_io",
+      "scenario": "small_1024_warm",
+      "stats": {
+        "count": 30,
+        "min_us": 966,
+        "mean_us": 1565.3666666666666,
+        "p25_us": 1266,
+        "p50_us": 1562,
+        "p75_us": 1782,
+        "p90_us": 2067,
+        "p95_us": 2272,
+        "p99_us": 2413,
+        "max_us": 2413,
+        "stddev_us": 372.0954611685316,
+        "ttfb_p50_us": 1299,
+        "mean_throughput_bytes_per_second": 692211.1490293418,
+        "mean_bytes": 1024.0
+      }
+    },
+    {
+      "candidate": "dart_io",
+      "scenario": "concurrency_100",
+      "stats": {
+        "count": 30,
+        "min_us": 35191,
+        "mean_us": 39622.76666666667,
+        "p25_us": 36855,
+        "p50_us": 38773,
+        "p75_us": 41276,
+        "p90_us": 45203,
+        "p95_us": 46017,
+        "p99_us": 46951,
+        "max_us": 46951,
+        "stddev_us": 3329.703857535815,
+        "mean_throughput_bytes_per_second": 2601934.0517340177,
+        "mean_bytes": 102400.0
+      }
+    },
+    {
+      "candidate": "dart_io",
+      "scenario": "concurrency_250",
+      "stats": {
+        "count": 30,
+        "min_us": 72493,
+        "mean_us": 92369.0,
+        "p25_us": 90301,
+        "p50_us": 91788,
+        "p75_us": 95957,
+        "p90_us": 97581,
+        "p95_us": 110397,
+        "p99_us": 110467,
+        "max_us": 110467,
+        "stddev_us": 8505.762662258257,
+        "mean_throughput_bytes_per_second": 2796348.0210365322,
+        "mean_bytes": 256000.0
+      }
+    },
+    {
+      "candidate": "dart_io",
+      "scenario": "connection_reuse_sequential",
+      "stats": {
+        "count": 30,
+        "min_us": 64305,
+        "mean_us": 131704.6,
+        "p25_us": 67648,
+        "p50_us": 73439,
+        "p75_us": 121322,
+        "p90_us": 262436,
+        "p95_us": 378938,
+        "p99_us": 790443,
+        "max_us": 790443,
+        "stddev_us": 142610.16129518964,
+        "mean_throughput_bytes_per_second": 1163716.9299947033,
+        "mean_bytes": 102400.0
+      }
+    },
+    {
+      "candidate": "dart_io",
+      "scenario": "download_10485760_bytes",
+      "stats": {
+        "count": 30,
+        "min_us": 686614,
+        "mean_us": 748431.5,
+        "p25_us": 691461,
+        "p50_us": 695409,
+        "p75_us": 712813,
+        "p90_us": 780598,
+        "p95_us": 1009283,
+        "p99_us": 1561092,
+        "max_us": 1561092,
+        "stddev_us": 165774.20249760416,
+        "ttfb_p50_us": 1613,
+        "mean_throughput_bytes_per_second": 14396390.29259253,
+        "mean_bytes": 10485760.0
+      }
+    },
+    {
+      "candidate": "dart_io",
+      "scenario": "upload_10485760_bytes",
+      "stats": {
+        "count": 30,
+        "min_us": 1206753,
+        "mean_us": 1225765.7666666666,
+        "p25_us": 1215764,
+        "p50_us": 1219341,
+        "p75_us": 1231966,
+        "p90_us": 1238579,
+        "p95_us": 1265565,
+        "p99_us": 1286486,
+        "max_us": 1286486,
+        "stddev_us": 16474.86868067711,
+        "ttfb_p50_us": 1219274,
+        "mean_throughput_bytes_per_second": 8555960.49992736,
+        "mean_bytes": 10485760.0
+      }
+    },
+    {
+      "candidate": "dart_io",
+      "scenario": "stream_2097152_bytes",
+      "stats": {
+        "count": 30,
+        "min_us": 138230,
+        "mean_us": 145477.4,
+        "p25_us": 138813,
+        "p50_us": 139143,
+        "p75_us": 140294,
+        "p90_us": 184647,
+        "p95_us": 185576,
+        "p99_us": 187004,
+        "max_us": 187004,
+        "stddev_us": 15773.977400769914,
+        "ttfb_p50_us": 1395,
+        "mean_throughput_bytes_per_second": 14554454.58850289,
+        "mean_bytes": 2097152.0
+      }
+    }
+  ],
+  "interpretation": [
+    {
+      "scenario": "small_1024_warm",
+      "assessment": "only one candidate has measured samples",
+      "classification": "inconclusive",
+      "classification_rule": "at least two comparable candidate distributions are required",
+      "p50_order": [
+        "dart_io"
+      ]
+    },
+    {
+      "scenario": "concurrency_100",
+      "assessment": "only one candidate has measured samples",
+      "classification": "inconclusive",
+      "classification_rule": "at least two comparable candidate distributions are required",
+      "p50_order": [
+        "dart_io"
+      ]
+    },
+    {
+      "scenario": "concurrency_250",
+      "assessment": "only one candidate has measured samples",
+      "classification": "inconclusive",
+      "classification_rule": "at least two comparable candidate distributions are required",
+      "p50_order": [
+        "dart_io"
+      ]
+    },
+    {
+      "scenario": "connection_reuse_sequential",
+      "assessment": "only one candidate has measured samples",
+      "classification": "inconclusive",
+      "classification_rule": "at least two comparable candidate distributions are required",
+      "p50_order": [
+        "dart_io"
+      ]
+    },
+    {
+      "scenario": "download_10485760_bytes",
+      "assessment": "only one candidate has measured samples",
+      "classification": "inconclusive",
+      "classification_rule": "at least two comparable candidate distributions are required",
+      "p50_order": [
+        "dart_io"
+      ]
+    },
+    {
+      "scenario": "upload_10485760_bytes",
+      "assessment": "only one candidate has measured samples",
+      "classification": "inconclusive",
+      "classification_rule": "at least two comparable candidate distributions are required",
+      "p50_order": [
+        "dart_io"
+      ]
+    },
+    {
+      "scenario": "stream_2097152_bytes",
+      "assessment": "only one candidate has measured samples",
+      "classification": "inconclusive",
+      "classification_rule": "at least two comparable candidate distributions are required",
+      "p50_order": [
+        "dart_io"
+      ]
+    }
+  ]
+}
