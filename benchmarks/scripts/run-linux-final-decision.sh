@@ -228,14 +228,15 @@ for profile in "${profiles[@]}"; do
       ;;
     typical-mobile)
       run_h1_profile "$profile" 30 3 2
-      run_h2_profile "$profile" 30 3 1
+      run_h2_profile "$profile" 30 3 2
       ;;
     poor-mobile)
       # The poor profile keeps the request/concurrency comparison at 30
-      # samples. Large transfers are intentionally limited to one sample per
-      # protocol path because 100 MB at the constrained rate is long.
-      run_h1_profile "$profile" 30 2 1
-      run_h2_profile "$profile" 30 2 1
+      # samples. Large transfers are intentionally limited to two samples per
+      # protocol path because the runner requires at least two measured
+      # iterations and 100 MB at the constrained rate is long.
+      run_h1_profile "$profile" 30 2 2
+      run_h2_profile "$profile" 30 2 2
       ;;
     *)
       printf 'Unknown profile: %s\n' "$profile" >&2
