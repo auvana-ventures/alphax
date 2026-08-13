@@ -61,10 +61,13 @@ Codex, with maintainer review required before ADR 0004 or Phase 1.
 - [x] Review and push Round 4 as a historical investigation.
 - [x] Add a reproducible Linux client/server Docker topology and symmetric
   `tc`/`netem` profile application/reset path.
-- [*] Run the targeted TLS/HTTP/2 decision scenarios for all profiles.
-- [ ] Measure Linux native artifacts and complete cross-platform accounting.
-- [ ] Write the final decision report and exactly one recommendation.
-- [ ] Run final validation, update this task, and stop without ADR 0004 or
+- [x] Run the targeted TLS/HTTP/2 decision scenarios for all profiles; record
+  the Rust poor-profile H2 correctness limitation and exclude incomplete
+  performance claims.
+- [x] Measure Linux native artifacts and complete cross-platform accounting;
+  Android, iOS, and Linux x64 remain explicitly unbuilt.
+- [x] Write the final decision report and exactly one recommendation.
+- [*] Run final validation, update this task, and stop without ADR 0004 or
   Phase 1.
 
 ## Validation
@@ -79,10 +82,18 @@ Planned:
   fixture syntax, and `git diff --check`.
 - Secret, credential, local-path, generated-binary, and network-cleanup review.
 
+Completed evidence:
+
+- 33 final raw result files, 3,934 samples, and 0 included correctness/hash/
+  protocol integrity failures.
+- Linux arm64 release artifact accounting and existing macOS arm64 accounting.
+- Final report at
+  `benchmarks/results/summaries/phase0-final-transport-decision.md`.
+
 ## Next Action
 
-Complete the Linux shaped-network run, then perform the artifact accounting and
-write the final recommendation report.
+Run the consolidated repository validation, update the outcome with the final
+commit/push references, and stop for maintainer review.
 
 ## Blockers
 
@@ -91,7 +102,8 @@ cannot be built, record the exact failure and use a clearly labeled estimate.
 
 ## Outcome
 
-Pending.
+Pending final validation and push. The evidence recommendation is Dart IO; this
+does not accept ADR 0004 or change the production architecture.
 
 ## References
 
@@ -107,3 +119,7 @@ Pending.
 ## History
 
 - 2026-08-13: Created after Round 4 commit `4272aa0` was validated and pushed.
+- 2026-08-14: Completed the targeted Linux TLS/HTTP/2 and artifact experiment;
+  recorded the libcurl multiplexing correction, deterministic netem seeds, the
+  Rust poor-profile H2 correctness limitation, and the final recommendation
+  report. Final validation and commit references remain pending.
