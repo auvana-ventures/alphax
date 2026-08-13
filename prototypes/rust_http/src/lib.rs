@@ -401,6 +401,7 @@ async fn run_request_inner(
     let time_to_first_byte_ms = started.elapsed().as_secs_f64() * 1000.0;
     let connection_id = response_connection_id(response.headers());
     let http_version = protocol_code(response.version());
+    let expected_body_bytes = response.content_length();
     let headers = serialize_headers(status_code, response.headers());
     emit_owned_buffer(on_start, status_code, headers, user_data);
 
@@ -427,7 +428,12 @@ async fn run_request_inner(
             Ok(chunk) => chunk,
             Err(_) if cancellation.is_cancelled() => return cancelled_result(started),
             Err(error) => {
-                eprintln!("AlphaX Rust response stream failed: {error:?}");
+                eprintln!(
+                    "AlphaX Rust response stream failed after {} bytes (declared body length: {:?}): {:?}",
+                    bytes_received,
+                    expected_body_bytes,
+                    error,
+                );
                 return error_result_with_status(
                     started,
                     status_code,

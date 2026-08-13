@@ -1,0 +1,1213 @@
+{
+  "metadata": {
+    "os": "linux",
+    "os_version": "Linux 6.12.76-linuxkit #1 SMP Mon Jul 27 16:56:11 UTC 2026",
+    "architecture": "aarch64",
+    "cpu": "unavailable",
+    "dart": "3.13.0 (stable) (Wed Aug 5 00:28:05 2026 -0700) on \"linux_arm64\"",
+    "flutter": "unavailable",
+    "libcurl": "curl 8.14.1 (aarch64-unknown-linux-gnu) libcurl/8.14.1 OpenSSL/3.5.6 zlib/1.3.1 brotli/1.1.0 zstd/1.5.7 libidn2/2.3.8 libpsl/0.21.2 libssh2/1.11.1 nghttp2/1.64.0 nghttp3/1.8.0 librtmp/2.3 OpenLDAP/2.6.10\nRelease-Date: 2025-06-04, security patched: 8.14.1-2+deb13u4\nProtocols: dict file ftp ftps gopher gophers http https imap imaps ipfs ipns ldap ldaps mqtt pop3 pop3s rtmp rtsp scp sftp smb smbs smtp smtps telnet tftp ws wss\nFeatures: alt-svc AsynchDNS brotli GSS-API HSTS HTTP2 HTTP3 HTTPS-proxy IDN IPv6 Kerberos Largefile libz NTLM PSL SPNEGO SSL threadsafe TLS-SRP UnixSockets zstd",
+    "rust": "rustc 1.86.0 (05f9846f8 2025-03-31)",
+    "build_mode": "Dart VM benchmark; native candidates release library where configured",
+    "network_profile": "poor-mobile",
+    "protocol_profile": "HTTP/1.1 over TLS",
+    "transport_security": "tls",
+    "git_commit": "3521f256dd0a8f059b87655437187ae76a2654ea",
+    "git_worktree_dirty": true,
+    "warmup_iterations": 0,
+    "measured_iterations": 2,
+    "stream_chunk_size_bytes": 65536,
+    "stream_window_chunks": 4,
+    "include_external_references": false,
+    "selected_scenarios": [
+      "download_104857600_bytes",
+      "upload_104857600_bytes"
+    ],
+    "methodology": {
+      "statistics": [
+        "min",
+        "mean",
+        "p25",
+        "p50",
+        "p75",
+        "p90",
+        "p95",
+        "p99 where n >= 20",
+        "max",
+        "standard deviation"
+      ],
+      "p99_minimum_sample_count": 20,
+      "raw_samples": true,
+      "json_decode_in_transport_samples": false,
+      "connection_reuse": "candidate behavior is recorded; no reuse claim is inferred",
+      "large_transfer_scope": [
+        10485760,
+        104857600
+      ],
+      "timing_boundaries": {
+        "upload_start": "before file length/stat preparation for every candidate",
+        "upload_end": "after response body completion and candidate/native cleanup notification",
+        "download_start": "before request creation",
+        "download_end": "after response bytes are written and file sink closes",
+        "concurrency_start": "before the first candidate future is created",
+        "concurrency_end": "after all candidate futures complete"
+      },
+      "upload_validation": "server byte count plus deterministic FNV-1a 64 content hash",
+      "process_metrics": "macOS ps CPU time/utilization plus Dart RSS/peak RSS; unavailable is reported explicitly",
+      "classification_rule": "approximately equivalent <=5% p50 difference; clear >=20% with non-overlapping p25-p75 and <=10% CV; likely >=10% and <=20% CV; otherwise inconclusive"
+    },
+    "process_metrics_idle_baselines": {
+      "dart_io": {
+        "cpu_time_seconds": 5.0,
+        "cpu_utilization_percent": 167.0,
+        "rss_bytes": 279158784,
+        "max_rss_bytes": 430112768
+      },
+      "libcurl_ffi": {
+        "cpu_time_seconds": 4.0,
+        "cpu_utilization_percent": 147.0,
+        "rss_bytes": 245932032,
+        "max_rss_bytes": 431841280
+      },
+      "rust_reqwest_ffi": {
+        "cpu_time_seconds": 3.0,
+        "cpu_utilization_percent": 164.0,
+        "rss_bytes": 245231616,
+        "max_rss_bytes": 394887168
+      }
+    },
+    "candidate_process_isolation": true,
+    "candidate_order": [
+      "dart_io",
+      "libcurl_ffi",
+      "rust_reqwest_ffi"
+    ]
+  },
+  "correctness": [
+    {
+      "candidate": "dart_io",
+      "passed": true,
+      "checks": 10,
+      "failures": []
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "passed": true,
+      "checks": 10,
+      "failures": []
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "passed": true,
+      "checks": 10,
+      "failures": []
+    }
+  ],
+  "samples": [
+    {
+      "candidate": "dart_io",
+      "scenario": "download_104857600_bytes",
+      "status_code": 200,
+      "bytes": 104857600,
+      "elapsed_us": 1658819430,
+      "ttfb_us": 311108,
+      "throughput_bytes_per_second": 63212.184583586655,
+      "memory_rss_after_bytes": 253947904,
+      "memory_max_rss_bytes": 430112768,
+      "dart_future_completed_us": 1658819430,
+      "connection_reuse": "server remote-address/port observation",
+      "connection_ids_observed": [
+        "6291"
+      ],
+      "distinct_connections_observed": 1,
+      "connections_established_cumulative": 10390,
+      "server_requests_observed": 199538,
+      "connection_close_events": "unavailable:dart-http-server-api",
+      "server_protocol_observed": "1.1",
+      "requests_per_connection": 1.0,
+      "max_requests_on_one_connection": 9,
+      "file_transfer_path": "network_to_dart_stream_to_file",
+      "download_validation": {
+        "expected_bytes": 104857600,
+        "actual_bytes": 104857600,
+        "expected_hash": "5db029fd007b7ea5",
+        "actual_hash": "5db029fd007b7ea5",
+        "hash_algorithm": "fnv1a64"
+      },
+      "process_metrics": {
+        "before": {
+          "cpu_time_seconds": 9.0,
+          "cpu_utilization_percent": 79.2,
+          "rss_bytes": 266579968,
+          "max_rss_bytes": 430112768
+        },
+        "after": {
+          "cpu_time_seconds": 73.0,
+          "cpu_utilization_percent": 4.4,
+          "rss_bytes": 253878272,
+          "max_rss_bytes": 430112768
+        },
+        "cpu_time_delta_seconds": 64.0,
+        "cpu_utilization_percent": 3.8581655629630527,
+        "rss_delta_bytes": -12701696,
+        "peak_rss_delta_bytes": 0,
+        "sampled_peak_rss_bytes": 268173312,
+        "sampled_peak_rss_delta_bytes": 1593344
+      }
+    },
+    {
+      "candidate": "dart_io",
+      "scenario": "download_104857600_bytes",
+      "status_code": 200,
+      "bytes": 104857600,
+      "elapsed_us": 1639719848,
+      "ttfb_us": 318836,
+      "throughput_bytes_per_second": 63948.484936556066,
+      "memory_rss_after_bytes": 257703936,
+      "memory_max_rss_bytes": 430112768,
+      "dart_future_completed_us": 1639719848,
+      "connection_reuse": "server remote-address/port observation",
+      "connection_ids_observed": [
+        "6291"
+      ],
+      "distinct_connections_observed": 1,
+      "connections_established_cumulative": 10390,
+      "server_requests_observed": 199539,
+      "connection_close_events": "unavailable:dart-http-server-api",
+      "server_protocol_observed": "1.1",
+      "requests_per_connection": 1.0,
+      "max_requests_on_one_connection": 10,
+      "file_transfer_path": "network_to_dart_stream_to_file",
+      "download_validation": {
+        "expected_bytes": 104857600,
+        "actual_bytes": 104857600,
+        "expected_hash": "5db029fd007b7ea5",
+        "actual_hash": "5db029fd007b7ea5",
+        "hash_algorithm": "fnv1a64"
+      },
+      "process_metrics": {
+        "before": {
+          "cpu_time_seconds": 75.0,
+          "cpu_utilization_percent": 4.5,
+          "rss_bytes": 253947904,
+          "max_rss_bytes": 430112768
+        },
+        "after": {
+          "cpu_time_seconds": 139.0,
+          "cpu_utilization_percent": 4.2,
+          "rss_bytes": 256274432,
+          "max_rss_bytes": 430112768
+        },
+        "cpu_time_delta_seconds": 64.0,
+        "cpu_utilization_percent": 3.903105770053471,
+        "rss_delta_bytes": 2326528,
+        "peak_rss_delta_bytes": 0,
+        "sampled_peak_rss_bytes": 256274432,
+        "sampled_peak_rss_delta_bytes": 2326528
+      }
+    },
+    {
+      "candidate": "dart_io",
+      "scenario": "upload_104857600_bytes",
+      "status_code": 200,
+      "bytes": 104857600,
+      "elapsed_us": 1664625764,
+      "ttfb_us": 1664621573,
+      "throughput_bytes_per_second": 62991.69595214796,
+      "memory_rss_after_bytes": 1200988160,
+      "memory_max_rss_bytes": 1199972352,
+      "dart_file_preparation_us": 105,
+      "dart_future_completed_us": 1664625764,
+      "upload_validation": {
+        "expected_bytes": 104857600,
+        "server_bytes": 104857600,
+        "expected_hash": "5db029fd007b7ea5",
+        "server_hash": "5db029fd007b7ea5",
+        "hash_algorithm": "fnv1a64",
+        "server_body_read_us": 1664294949
+      },
+      "connection_reuse": "server remote-address/port observation",
+      "connection_ids_observed": [
+        "6291"
+      ],
+      "distinct_connections_observed": 1,
+      "connections_established_cumulative": 10390,
+      "server_requests_observed": 199540,
+      "connection_close_events": "unavailable:dart-http-server-api",
+      "server_protocol_observed": "1.1",
+      "requests_per_connection": 1.0,
+      "max_requests_on_one_connection": 11,
+      "file_transfer_path": "file_to_dart_stream_to_network",
+      "process_metrics": {
+        "before": {
+          "cpu_time_seconds": 148.0,
+          "cpu_utilization_percent": 4.4,
+          "rss_bytes": 1198768128,
+          "max_rss_bytes": 1197744128
+        },
+        "after": {
+          "cpu_time_seconds": 194.0,
+          "cpu_utilization_percent": 3.9,
+          "rss_bytes": 1200988160,
+          "max_rss_bytes": 1199972352
+        },
+        "cpu_time_delta_seconds": 46.0,
+        "cpu_utilization_percent": 2.7633838785160125,
+        "rss_delta_bytes": 2220032,
+        "peak_rss_delta_bytes": 2228224,
+        "sampled_peak_rss_bytes": 1200988160,
+        "sampled_peak_rss_delta_bytes": 2220032
+      }
+    },
+    {
+      "candidate": "dart_io",
+      "scenario": "upload_104857600_bytes",
+      "status_code": 200,
+      "bytes": 104857600,
+      "elapsed_us": 1681064487,
+      "ttfb_us": 1681063274,
+      "throughput_bytes_per_second": 62375.71539395681,
+      "memory_rss_after_bytes": 1204785152,
+      "memory_max_rss_bytes": 1204822016,
+      "dart_file_preparation_us": 241,
+      "dart_future_completed_us": 1681064487,
+      "upload_validation": {
+        "expected_bytes": 104857600,
+        "server_bytes": 104857600,
+        "expected_hash": "5db029fd007b7ea5",
+        "server_hash": "5db029fd007b7ea5",
+        "hash_algorithm": "fnv1a64",
+        "server_body_read_us": 1680751583
+      },
+      "connection_reuse": "server remote-address/port observation",
+      "connection_ids_observed": [
+        "6291"
+      ],
+      "distinct_connections_observed": 1,
+      "connections_established_cumulative": 10390,
+      "server_requests_observed": 199541,
+      "connection_close_events": "unavailable:dart-http-server-api",
+      "server_protocol_observed": "1.1",
+      "requests_per_connection": 1.0,
+      "max_requests_on_one_connection": 12,
+      "file_transfer_path": "file_to_dart_stream_to_network",
+      "process_metrics": {
+        "before": {
+          "cpu_time_seconds": 194.0,
+          "cpu_utilization_percent": 3.9,
+          "rss_bytes": 1200988160,
+          "max_rss_bytes": 1199972352
+        },
+        "after": {
+          "cpu_time_seconds": 238.0,
+          "cpu_utilization_percent": 3.5,
+          "rss_bytes": 1204785152,
+          "max_rss_bytes": 1204822016
+        },
+        "cpu_time_delta_seconds": 44.0,
+        "cpu_utilization_percent": 2.6173891805020326,
+        "rss_delta_bytes": 3796992,
+        "peak_rss_delta_bytes": 4849664,
+        "sampled_peak_rss_bytes": 1204785152,
+        "sampled_peak_rss_delta_bytes": 3796992
+      }
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "scenario": "download_104857600_bytes",
+      "status_code": 200,
+      "bytes": 104857600,
+      "elapsed_us": 1647038912,
+      "ttfb_us": 313916,
+      "throughput_bytes_per_second": 63664.31250411162,
+      "memory_rss_after_bytes": 262975488,
+      "memory_max_rss_bytes": 431841280,
+      "libcurl_lifecycle": {
+        "request_created_ns": 32789356603655,
+        "body_preparation_start_us": 113,
+        "body_preparation_end_us": 128,
+        "easy_handle_configured_us": 171,
+        "multi_add_handle_us": 175,
+        "first_upload_callback_us": null,
+        "first_upload_byte_us": null,
+        "last_upload_byte_us": null,
+        "response_headers_us": 312849,
+        "response_body_complete_us": 1647029114,
+        "curl_done_us": 1647029112,
+        "native_completion_notification_us": 1647029449,
+        "native_cleanup_us": 1647029449,
+        "server_body_read_us": null
+      },
+      "libcurl_event_loop": {
+        "poll_count": 35403,
+        "poll_wait_us": 1643213320,
+        "max_poll_wait_us": 824620
+      },
+      "libcurl_callbacks": {
+        "upload_read_callbacks": 0,
+        "upload_bytes_read": 0,
+        "upload_bytes_submitted": 0,
+        "response_callbacks": 27121,
+        "response_bytes_delivered": 0
+      },
+      "stream_flow_control": {
+        "chunk_size_bytes": 65536,
+        "window_chunks": 4,
+        "queue_capacity_bytes": 0,
+        "max_in_flight_chunks": 0,
+        "max_buffered_bytes": 0,
+        "ffi_notifications": 0,
+        "credit_exhausted_count": 0,
+        "pause_count": 0,
+        "resume_count": 0,
+        "pause_latency_us": null,
+        "resume_latency_us": null,
+        "ack_count": 0,
+        "acked_bytes": 0,
+        "in_flight_chunks_at_completion": 0,
+        "buffered_bytes_at_completion": 0
+      },
+      "libcurl_metrics": {
+        "curl_total_ms": 1647028.6300000001,
+        "curl_ttfb_ms": 312.65700000000004,
+        "curl_http_version_code": 2,
+        "curl_http_version": "http/1.1"
+      },
+      "stream_metrics": {
+        "producer_chunk_count": 0,
+        "producer_bytes": 0,
+        "consumer_chunk_count": 0,
+        "consumer_bytes": 0,
+        "max_buffered_bytes": 0,
+        "dart_queue_max_pending_bytes": 0,
+        "buffered_bytes_current": 0,
+        "buffered_bytes_at_native_completion": 0,
+        "consumer_chunk_count_at_native_completion": 0,
+        "consumer_bytes_at_native_completion": 0,
+        "queue_capacity_bytes": 0,
+        "queue_policy": "native credit/ack window bounds FFI-delivered chunks",
+        "pause_supported": true,
+        "pause_count": 0,
+        "resume_count": 0,
+        "pause_latency_us": null,
+        "resume_latency_us": null,
+        "pause_behavior": "native response delivery waits for Dart chunk acknowledgments when credits are exhausted"
+      },
+      "dart_completion_notification_us": 1647033780,
+      "dart_handle_cleanup_returned_us": 1647037448,
+      "dart_future_completed_us": 1647038912,
+      "connection_reuse": "server remote-address/port observation",
+      "connection_ids_observed": [
+        "1711"
+      ],
+      "distinct_connections_observed": 1,
+      "connections_established_cumulative": 10390,
+      "server_requests_observed": 199554,
+      "connection_close_events": "unavailable:dart-http-server-api",
+      "server_protocol_observed": "1.1",
+      "requests_per_connection": 1.0,
+      "max_requests_on_one_connection": 13,
+      "file_transfer_path": "network_to_native_to_file",
+      "download_validation": {
+        "expected_bytes": 104857600,
+        "actual_bytes": 104857600,
+        "expected_hash": "5db029fd007b7ea5",
+        "actual_hash": "5db029fd007b7ea5",
+        "hash_algorithm": "fnv1a64"
+      },
+      "process_metrics": {
+        "before": {
+          "cpu_time_seconds": 8.0,
+          "cpu_utilization_percent": 75.9,
+          "rss_bytes": 270872576,
+          "max_rss_bytes": 431841280
+        },
+        "after": {
+          "cpu_time_seconds": 51.0,
+          "cpu_utilization_percent": 3.1,
+          "rss_bytes": 262987776,
+          "max_rss_bytes": 431841280
+        },
+        "cpu_time_delta_seconds": 43.0,
+        "cpu_utilization_percent": 2.610745847393799,
+        "rss_delta_bytes": -7884800,
+        "peak_rss_delta_bytes": 0,
+        "sampled_peak_rss_bytes": 270884864,
+        "sampled_peak_rss_delta_bytes": 12288
+      }
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "scenario": "download_104857600_bytes",
+      "status_code": 200,
+      "bytes": 104857600,
+      "elapsed_us": 1594653553,
+      "ttfb_us": 326894,
+      "throughput_bytes_per_second": 65755.72468561138,
+      "memory_rss_after_bytes": 263045120,
+      "memory_max_rss_bytes": 431841280,
+      "libcurl_lifecycle": {
+        "request_created_ns": 34437673806865,
+        "body_preparation_start_us": 18,
+        "body_preparation_end_us": 6119,
+        "easy_handle_configured_us": 6239,
+        "multi_add_handle_us": 6262,
+        "first_upload_callback_us": null,
+        "first_upload_byte_us": null,
+        "last_upload_byte_us": null,
+        "response_headers_us": 325922,
+        "response_body_complete_us": 1594646416,
+        "curl_done_us": 1594646416,
+        "native_completion_notification_us": 1594646677,
+        "native_cleanup_us": 1594646676,
+        "server_body_read_us": null
+      },
+      "libcurl_event_loop": {
+        "poll_count": 35293,
+        "poll_wait_us": 1591020988,
+        "max_poll_wait_us": 983466
+      },
+      "libcurl_callbacks": {
+        "upload_read_callbacks": 0,
+        "upload_bytes_read": 0,
+        "upload_bytes_submitted": 0,
+        "response_callbacks": 27156,
+        "response_bytes_delivered": 0
+      },
+      "stream_flow_control": {
+        "chunk_size_bytes": 65536,
+        "window_chunks": 4,
+        "queue_capacity_bytes": 0,
+        "max_in_flight_chunks": 0,
+        "max_buffered_bytes": 0,
+        "ffi_notifications": 0,
+        "credit_exhausted_count": 0,
+        "pause_count": 0,
+        "resume_count": 0,
+        "pause_latency_us": null,
+        "resume_latency_us": null,
+        "ack_count": 0,
+        "acked_bytes": 0,
+        "in_flight_chunks_at_completion": 0,
+        "buffered_bytes_at_completion": 0
+      },
+      "libcurl_metrics": {
+        "curl_total_ms": 1594639.979,
+        "curl_ttfb_ms": 319.466,
+        "curl_http_version_code": 2,
+        "curl_http_version": "http/1.1"
+      },
+      "stream_metrics": {
+        "producer_chunk_count": 0,
+        "producer_bytes": 0,
+        "consumer_chunk_count": 0,
+        "consumer_bytes": 0,
+        "max_buffered_bytes": 0,
+        "dart_queue_max_pending_bytes": 0,
+        "buffered_bytes_current": 0,
+        "buffered_bytes_at_native_completion": 0,
+        "consumer_chunk_count_at_native_completion": 0,
+        "consumer_bytes_at_native_completion": 0,
+        "queue_capacity_bytes": 0,
+        "queue_policy": "native credit/ack window bounds FFI-delivered chunks",
+        "pause_supported": true,
+        "pause_count": 0,
+        "resume_count": 0,
+        "pause_latency_us": null,
+        "resume_latency_us": null,
+        "pause_behavior": "native response delivery waits for Dart chunk acknowledgments when credits are exhausted"
+      },
+      "dart_completion_notification_us": 1594650519,
+      "dart_handle_cleanup_returned_us": 1594652961,
+      "dart_future_completed_us": 1594653553,
+      "connection_reuse": "server remote-address/port observation",
+      "connection_ids_observed": [
+        "1711"
+      ],
+      "distinct_connections_observed": 1,
+      "connections_established_cumulative": 10390,
+      "server_requests_observed": 199555,
+      "connection_close_events": "unavailable:dart-http-server-api",
+      "server_protocol_observed": "1.1",
+      "requests_per_connection": 1.0,
+      "max_requests_on_one_connection": 14,
+      "file_transfer_path": "network_to_native_to_file",
+      "download_validation": {
+        "expected_bytes": 104857600,
+        "actual_bytes": 104857600,
+        "expected_hash": "5db029fd007b7ea5",
+        "actual_hash": "5db029fd007b7ea5",
+        "hash_algorithm": "fnv1a64"
+      },
+      "process_metrics": {
+        "before": {
+          "cpu_time_seconds": 53.0,
+          "cpu_utilization_percent": 3.2,
+          "rss_bytes": 262975488,
+          "max_rss_bytes": 431841280
+        },
+        "after": {
+          "cpu_time_seconds": 94.0,
+          "cpu_utilization_percent": 2.8,
+          "rss_bytes": 262975488,
+          "max_rss_bytes": 431841280
+        },
+        "cpu_time_delta_seconds": 41.0,
+        "cpu_utilization_percent": 2.571091377363268,
+        "rss_delta_bytes": 0,
+        "peak_rss_delta_bytes": 0,
+        "sampled_peak_rss_bytes": 262975488,
+        "sampled_peak_rss_delta_bytes": 0
+      }
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "scenario": "upload_104857600_bytes",
+      "status_code": 200,
+      "bytes": 104857600,
+      "elapsed_us": 1676391869,
+      "ttfb_us": 1676384468,
+      "throughput_bytes_per_second": 62549.57563266492,
+      "memory_rss_after_bytes": 1206263808,
+      "memory_max_rss_bytes": 1205719040,
+      "libcurl_lifecycle": {
+        "request_created_ns": 36036661346012,
+        "body_preparation_start_us": 124,
+        "body_preparation_end_us": 318,
+        "easy_handle_configured_us": 319,
+        "multi_add_handle_us": 342,
+        "first_upload_callback_us": 1952,
+        "first_upload_byte_us": 325293,
+        "last_upload_byte_us": 1658866424,
+        "response_headers_us": 1676375849,
+        "response_body_complete_us": 1676376331,
+        "curl_done_us": 1676376309,
+        "native_completion_notification_us": 1676376453,
+        "native_cleanup_us": 1676376453,
+        "server_body_read_us": 1675746723
+      },
+      "libcurl_event_loop": {
+        "poll_count": 1845,
+        "poll_wait_us": 1675548276,
+        "max_poll_wait_us": 1007911
+      },
+      "libcurl_callbacks": {
+        "upload_read_callbacks": 1601,
+        "upload_bytes_read": 104857600,
+        "upload_bytes_submitted": 104857600,
+        "response_callbacks": 1,
+        "response_bytes_delivered": 111
+      },
+      "stream_flow_control": {
+        "chunk_size_bytes": 65536,
+        "window_chunks": 4,
+        "queue_capacity_bytes": 262144,
+        "max_in_flight_chunks": 1,
+        "max_buffered_bytes": 111,
+        "ffi_notifications": 1,
+        "credit_exhausted_count": 0,
+        "pause_count": 0,
+        "resume_count": 0,
+        "pause_latency_us": null,
+        "resume_latency_us": null,
+        "ack_count": 0,
+        "acked_bytes": 0,
+        "in_flight_chunks_at_completion": 1,
+        "buffered_bytes_at_completion": 111
+      },
+      "libcurl_metrics": {
+        "curl_total_ms": 1676375.885,
+        "curl_ttfb_ms": 1676375.417,
+        "curl_http_version_code": 2,
+        "curl_http_version": "http/1.1"
+      },
+      "stream_metrics": {
+        "producer_chunk_count": 1,
+        "producer_bytes": 111,
+        "consumer_chunk_count": 1,
+        "consumer_bytes": 111,
+        "max_buffered_bytes": 111,
+        "dart_queue_max_pending_bytes": 111,
+        "buffered_bytes_current": 0,
+        "buffered_bytes_at_native_completion": 0,
+        "consumer_chunk_count_at_native_completion": 1,
+        "consumer_bytes_at_native_completion": 111,
+        "queue_capacity_bytes": 262144,
+        "queue_policy": "native credit/ack window bounds FFI-delivered chunks",
+        "pause_supported": true,
+        "pause_count": 0,
+        "resume_count": 0,
+        "pause_latency_us": null,
+        "resume_latency_us": null,
+        "pause_behavior": "native response delivery waits for Dart chunk acknowledgments when credits are exhausted"
+      },
+      "dart_completion_notification_us": 1676390351,
+      "dart_handle_cleanup_returned_us": 1676390954,
+      "dart_file_preparation_us": 256,
+      "dart_future_completed_us": 1676391869,
+      "upload_validation": {
+        "expected_bytes": 104857600,
+        "server_bytes": 104857600,
+        "expected_hash": "5db029fd007b7ea5",
+        "server_hash": "5db029fd007b7ea5",
+        "hash_algorithm": "fnv1a64",
+        "server_body_read_us": 1675746723
+      },
+      "connection_reuse": "server remote-address/port observation",
+      "connection_ids_observed": [
+        "1711"
+      ],
+      "distinct_connections_observed": 1,
+      "connections_established_cumulative": 10390,
+      "server_requests_observed": 199556,
+      "connection_close_events": "unavailable:dart-http-server-api",
+      "server_protocol_observed": "1.1",
+      "requests_per_connection": 1.0,
+      "max_requests_on_one_connection": 15,
+      "file_transfer_path": "file_to_native_to_network",
+      "process_metrics": {
+        "before": {
+          "cpu_time_seconds": 99.0,
+          "cpu_utilization_percent": 3.0,
+          "rss_bytes": 1206259712,
+          "max_rss_bytes": 1205587968
+        },
+        "after": {
+          "cpu_time_seconds": 137.0,
+          "cpu_utilization_percent": 2.7,
+          "rss_bytes": 1206263808,
+          "max_rss_bytes": 1205719040
+        },
+        "cpu_time_delta_seconds": 38.0,
+        "cpu_utilization_percent": 2.2667731037533443,
+        "rss_delta_bytes": 4096,
+        "peak_rss_delta_bytes": 131072,
+        "sampled_peak_rss_bytes": 1206263808,
+        "sampled_peak_rss_delta_bytes": 4096
+      }
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "scenario": "upload_104857600_bytes",
+      "status_code": 200,
+      "bytes": 104857600,
+      "elapsed_us": 1675628142,
+      "ttfb_us": 1675622966,
+      "throughput_bytes_per_second": 62578.0848218769,
+      "memory_rss_after_bytes": 1206263808,
+      "memory_max_rss_bytes": 1205719040,
+      "libcurl_lifecycle": {
+        "request_created_ns": 37713138464612,
+        "body_preparation_start_us": 19,
+        "body_preparation_end_us": 100,
+        "easy_handle_configured_us": 100,
+        "multi_add_handle_us": 112,
+        "first_upload_callback_us": 370,
+        "first_upload_byte_us": 685,
+        "last_upload_byte_us": 1668730159,
+        "response_headers_us": 1675617003,
+        "response_body_complete_us": 1675618004,
+        "curl_done_us": 1675617942,
+        "native_completion_notification_us": 1675618272,
+        "native_cleanup_us": 1675618271,
+        "server_body_read_us": 1674993969
+      },
+      "libcurl_event_loop": {
+        "poll_count": 1840,
+        "poll_wait_us": 1674911478,
+        "max_poll_wait_us": 1010381
+      },
+      "libcurl_callbacks": {
+        "upload_read_callbacks": 1601,
+        "upload_bytes_read": 104857600,
+        "upload_bytes_submitted": 104857600,
+        "response_callbacks": 1,
+        "response_bytes_delivered": 111
+      },
+      "stream_flow_control": {
+        "chunk_size_bytes": 65536,
+        "window_chunks": 4,
+        "queue_capacity_bytes": 262144,
+        "max_in_flight_chunks": 1,
+        "max_buffered_bytes": 111,
+        "ffi_notifications": 1,
+        "credit_exhausted_count": 0,
+        "pause_count": 0,
+        "resume_count": 0,
+        "pause_latency_us": null,
+        "resume_latency_us": null,
+        "ack_count": 0,
+        "acked_bytes": 0,
+        "in_flight_chunks_at_completion": 1,
+        "buffered_bytes_at_completion": 111
+      },
+      "libcurl_metrics": {
+        "curl_total_ms": 1675617.722,
+        "curl_ttfb_ms": 1675616.8090000001,
+        "curl_http_version_code": 2,
+        "curl_http_version": "http/1.1"
+      },
+      "stream_metrics": {
+        "producer_chunk_count": 1,
+        "producer_bytes": 111,
+        "consumer_chunk_count": 1,
+        "consumer_bytes": 111,
+        "max_buffered_bytes": 111,
+        "dart_queue_max_pending_bytes": 111,
+        "buffered_bytes_current": 0,
+        "buffered_bytes_at_native_completion": 0,
+        "consumer_chunk_count_at_native_completion": 1,
+        "consumer_bytes_at_native_completion": 111,
+        "queue_capacity_bytes": 262144,
+        "queue_policy": "native credit/ack window bounds FFI-delivered chunks",
+        "pause_supported": true,
+        "pause_count": 0,
+        "resume_count": 0,
+        "pause_latency_us": null,
+        "resume_latency_us": null,
+        "pause_behavior": "native response delivery waits for Dart chunk acknowledgments when credits are exhausted"
+      },
+      "dart_completion_notification_us": 1675626732,
+      "dart_handle_cleanup_returned_us": 1675627383,
+      "dart_file_preparation_us": 780,
+      "dart_future_completed_us": 1675628142,
+      "upload_validation": {
+        "expected_bytes": 104857600,
+        "server_bytes": 104857600,
+        "expected_hash": "5db029fd007b7ea5",
+        "server_hash": "5db029fd007b7ea5",
+        "hash_algorithm": "fnv1a64",
+        "server_body_read_us": 1674993969
+      },
+      "connection_reuse": "server remote-address/port observation",
+      "connection_ids_observed": [
+        "1711"
+      ],
+      "distinct_connections_observed": 1,
+      "connections_established_cumulative": 10390,
+      "server_requests_observed": 199557,
+      "connection_close_events": "unavailable:dart-http-server-api",
+      "server_protocol_observed": "1.1",
+      "requests_per_connection": 1.0,
+      "max_requests_on_one_connection": 16,
+      "file_transfer_path": "file_to_native_to_network",
+      "process_metrics": {
+        "before": {
+          "cpu_time_seconds": 137.0,
+          "cpu_utilization_percent": 2.7,
+          "rss_bytes": 1206263808,
+          "max_rss_bytes": 1205719040
+        },
+        "after": {
+          "cpu_time_seconds": 174.0,
+          "cpu_utilization_percent": 2.6,
+          "rss_bytes": 1206263808,
+          "max_rss_bytes": 1205719040
+        },
+        "cpu_time_delta_seconds": 37.0,
+        "cpu_utilization_percent": 2.208127153787084,
+        "rss_delta_bytes": 0,
+        "peak_rss_delta_bytes": 0,
+        "sampled_peak_rss_bytes": 1206263808,
+        "sampled_peak_rss_delta_bytes": 0
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "download_104857600_bytes",
+      "status_code": 200,
+      "bytes": 104857600,
+      "elapsed_us": 1593031767,
+      "ttfb_us": 311680,
+      "throughput_bytes_per_second": 65822.66730152407,
+      "memory_rss_after_bytes": 240467968,
+      "memory_max_rss_bytes": 394887168,
+      "rust_metrics": {
+        "native_total_ms": 1593027.924432,
+        "native_ttfb_ms": 310.950666,
+        "native_error_code": 0,
+        "native_http_version_code": 11,
+        "native_http_version": "http/1.1"
+      },
+      "stream_flow_control": {
+        "chunk_size_bytes": 65536,
+        "window_chunks": 4,
+        "queue_capacity_bytes": 262144,
+        "max_in_flight_chunks": 0,
+        "max_buffered_bytes": 0,
+        "ffi_notifications": 0,
+        "credit_exhausted_count": 0,
+        "pause_count": 0,
+        "resume_count": 0,
+        "pause_latency_us": null,
+        "resume_latency_us": null,
+        "ack_count": 0,
+        "acked_bytes": 0,
+        "in_flight_chunks_at_completion": 0,
+        "buffered_bytes_at_completion": 0
+      },
+      "dart_completion_notification_us": 1593029727,
+      "rust_connection_id": 7045,
+      "stream_metrics": {
+        "producer_chunk_count": 0,
+        "producer_bytes": 0,
+        "consumer_chunk_count": 0,
+        "consumer_bytes": 0,
+        "max_buffered_bytes": 0,
+        "dart_queue_max_pending_bytes": 0,
+        "buffered_bytes_current": 0,
+        "buffered_bytes_at_native_completion": 0,
+        "consumer_chunk_count_at_native_completion": 0,
+        "consumer_bytes_at_native_completion": 0,
+        "queue_capacity_bytes": 262144,
+        "queue_policy": "native credit/ack window bounds FFI-delivered chunks",
+        "pause_supported": true,
+        "pause_count": 0,
+        "resume_count": 0,
+        "pause_latency_us": null,
+        "resume_latency_us": null,
+        "pause_behavior": "native response delivery waits for Dart chunk acknowledgments when credits are exhausted"
+      },
+      "dart_handle_cleanup_returned_us": 1593031368,
+      "dart_future_completed_us": 1593031767,
+      "connection_reuse": "server remote-address/port observation",
+      "connection_ids_observed": [
+        "7045"
+      ],
+      "distinct_connections_observed": 1,
+      "connections_established_cumulative": 10391,
+      "server_requests_observed": 199570,
+      "connection_close_events": "unavailable:dart-http-server-api",
+      "server_protocol_observed": "1.1",
+      "requests_per_connection": 1.0,
+      "max_requests_on_one_connection": 8,
+      "file_transfer_path": "network_to_native_to_file",
+      "download_validation": {
+        "expected_bytes": 104857600,
+        "actual_bytes": 104857600,
+        "expected_hash": "5db029fd007b7ea5",
+        "actual_hash": "5db029fd007b7ea5",
+        "hash_algorithm": "fnv1a64"
+      },
+      "process_metrics": {
+        "before": {
+          "cpu_time_seconds": 7.0,
+          "cpu_utilization_percent": 73.2,
+          "rss_bytes": 259678208,
+          "max_rss_bytes": 394887168
+        },
+        "after": {
+          "cpu_time_seconds": 49.0,
+          "cpu_utilization_percent": 3.0,
+          "rss_bytes": 240234496,
+          "max_rss_bytes": 394887168
+        },
+        "cpu_time_delta_seconds": 42.0,
+        "cpu_utilization_percent": 2.6364822641983134,
+        "rss_delta_bytes": -19443712,
+        "peak_rss_delta_bytes": 0,
+        "sampled_peak_rss_bytes": 259719168,
+        "sampled_peak_rss_delta_bytes": 40960
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "download_104857600_bytes",
+      "status_code": 200,
+      "bytes": 104857600,
+      "elapsed_us": 1666444602,
+      "ttfb_us": 311017,
+      "throughput_bytes_per_second": 62922.94377752138,
+      "memory_rss_after_bytes": 240721920,
+      "memory_max_rss_bytes": 394887168,
+      "rust_metrics": {
+        "native_total_ms": 1666436.509969,
+        "native_ttfb_ms": 309.876125,
+        "native_error_code": 0,
+        "native_http_version_code": 11,
+        "native_http_version": "http/1.1"
+      },
+      "stream_flow_control": {
+        "chunk_size_bytes": 65536,
+        "window_chunks": 4,
+        "queue_capacity_bytes": 262144,
+        "max_in_flight_chunks": 0,
+        "max_buffered_bytes": 0,
+        "ffi_notifications": 0,
+        "credit_exhausted_count": 0,
+        "pause_count": 0,
+        "resume_count": 0,
+        "pause_latency_us": null,
+        "resume_latency_us": null,
+        "ack_count": 0,
+        "acked_bytes": 0,
+        "in_flight_chunks_at_completion": 0,
+        "buffered_bytes_at_completion": 0
+      },
+      "dart_completion_notification_us": 1666439513,
+      "rust_connection_id": 7045,
+      "stream_metrics": {
+        "producer_chunk_count": 0,
+        "producer_bytes": 0,
+        "consumer_chunk_count": 0,
+        "consumer_bytes": 0,
+        "max_buffered_bytes": 0,
+        "dart_queue_max_pending_bytes": 0,
+        "buffered_bytes_current": 0,
+        "buffered_bytes_at_native_completion": 0,
+        "consumer_chunk_count_at_native_completion": 0,
+        "consumer_bytes_at_native_completion": 0,
+        "queue_capacity_bytes": 262144,
+        "queue_policy": "native credit/ack window bounds FFI-delivered chunks",
+        "pause_supported": true,
+        "pause_count": 0,
+        "resume_count": 0,
+        "pause_latency_us": null,
+        "resume_latency_us": null,
+        "pause_behavior": "native response delivery waits for Dart chunk acknowledgments when credits are exhausted"
+      },
+      "dart_handle_cleanup_returned_us": 1666443240,
+      "dart_future_completed_us": 1666444602,
+      "connection_reuse": "server remote-address/port observation",
+      "connection_ids_observed": [
+        "7045"
+      ],
+      "distinct_connections_observed": 1,
+      "connections_established_cumulative": 10391,
+      "server_requests_observed": 199571,
+      "connection_close_events": "unavailable:dart-http-server-api",
+      "server_protocol_observed": "1.1",
+      "requests_per_connection": 1.0,
+      "max_requests_on_one_connection": 9,
+      "file_transfer_path": "network_to_native_to_file",
+      "download_validation": {
+        "expected_bytes": 104857600,
+        "actual_bytes": 104857600,
+        "expected_hash": "5db029fd007b7ea5",
+        "actual_hash": "5db029fd007b7ea5",
+        "hash_algorithm": "fnv1a64"
+      },
+      "process_metrics": {
+        "before": {
+          "cpu_time_seconds": 51.0,
+          "cpu_utilization_percent": 3.1,
+          "rss_bytes": 240467968,
+          "max_rss_bytes": 394887168
+        },
+        "after": {
+          "cpu_time_seconds": 95.0,
+          "cpu_utilization_percent": 2.9,
+          "rss_bytes": 239955968,
+          "max_rss_bytes": 394887168
+        },
+        "cpu_time_delta_seconds": 44.0,
+        "cpu_utilization_percent": 2.6403517973050508,
+        "rss_delta_bytes": -512000,
+        "peak_rss_delta_bytes": 0,
+        "sampled_peak_rss_bytes": 240467968,
+        "sampled_peak_rss_delta_bytes": 0
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "upload_104857600_bytes",
+      "status_code": 200,
+      "bytes": 104857600,
+      "elapsed_us": 1630913483,
+      "ttfb_us": 1630909904,
+      "throughput_bytes_per_second": 64293.78449132608,
+      "memory_rss_after_bytes": 313384960,
+      "memory_max_rss_bytes": 1169653760,
+      "rust_metrics": {
+        "native_total_ms": 1630904.66237,
+        "native_ttfb_ms": 1630903.991578,
+        "native_error_code": 0,
+        "native_http_version_code": 11,
+        "native_http_version": "http/1.1"
+      },
+      "stream_flow_control": {
+        "chunk_size_bytes": 65536,
+        "window_chunks": 4,
+        "queue_capacity_bytes": 262144,
+        "max_in_flight_chunks": 1,
+        "max_buffered_bytes": 111,
+        "ffi_notifications": 1,
+        "credit_exhausted_count": 0,
+        "pause_count": 0,
+        "resume_count": 0,
+        "pause_latency_us": null,
+        "resume_latency_us": null,
+        "ack_count": 0,
+        "acked_bytes": 0,
+        "in_flight_chunks_at_completion": 1,
+        "buffered_bytes_at_completion": 111
+      },
+      "dart_completion_notification_us": 1630912402,
+      "rust_connection_id": 7045,
+      "stream_metrics": {
+        "producer_chunk_count": 1,
+        "producer_bytes": 111,
+        "consumer_chunk_count": 1,
+        "consumer_bytes": 111,
+        "max_buffered_bytes": 111,
+        "dart_queue_max_pending_bytes": 111,
+        "buffered_bytes_current": 0,
+        "buffered_bytes_at_native_completion": 0,
+        "consumer_chunk_count_at_native_completion": 1,
+        "consumer_bytes_at_native_completion": 111,
+        "queue_capacity_bytes": 262144,
+        "queue_policy": "native credit/ack window bounds FFI-delivered chunks",
+        "pause_supported": true,
+        "pause_count": 0,
+        "resume_count": 0,
+        "pause_latency_us": null,
+        "resume_latency_us": null,
+        "pause_behavior": "native response delivery waits for Dart chunk acknowledgments when credits are exhausted"
+      },
+      "dart_handle_cleanup_returned_us": 1630913268,
+      "dart_file_preparation_us": 515,
+      "dart_future_completed_us": 1630913483,
+      "upload_validation": {
+        "expected_bytes": 104857600,
+        "server_bytes": 104857600,
+        "expected_hash": "5db029fd007b7ea5",
+        "server_hash": "5db029fd007b7ea5",
+        "hash_algorithm": "fnv1a64",
+        "server_body_read_us": 1630582011
+      },
+      "connection_reuse": "server remote-address/port observation",
+      "connection_ids_observed": [
+        "7045"
+      ],
+      "distinct_connections_observed": 1,
+      "connections_established_cumulative": 10391,
+      "server_requests_observed": 199572,
+      "connection_close_events": "unavailable:dart-http-server-api",
+      "server_protocol_observed": "1.1",
+      "requests_per_connection": 1.0,
+      "max_requests_on_one_connection": 10,
+      "file_transfer_path": "file_to_native_to_network",
+      "process_metrics": {
+        "before": {
+          "cpu_time_seconds": 101.0,
+          "cpu_utilization_percent": 3.1,
+          "rss_bytes": 312512512,
+          "max_rss_bytes": 1169653760
+        },
+        "after": {
+          "cpu_time_seconds": 145.0,
+          "cpu_utilization_percent": 2.9,
+          "rss_bytes": 313384960,
+          "max_rss_bytes": 1169653760
+        },
+        "cpu_time_delta_seconds": 44.0,
+        "cpu_utilization_percent": 2.697874562853191,
+        "rss_delta_bytes": 872448,
+        "peak_rss_delta_bytes": 0,
+        "sampled_peak_rss_bytes": 313384960,
+        "sampled_peak_rss_delta_bytes": 872448
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "upload_104857600_bytes",
+      "status_code": 200,
+      "bytes": 104857600,
+      "elapsed_us": 1671191557,
+      "ttfb_us": 1671186081,
+      "throughput_bytes_per_second": 62744.213588676,
+      "memory_rss_after_bytes": 312963072,
+      "memory_max_rss_bytes": 1169653760,
+      "rust_metrics": {
+        "native_total_ms": 1671182.3144679999,
+        "native_ttfb_ms": 1671180.618885,
+        "native_error_code": 0,
+        "native_http_version_code": 11,
+        "native_http_version": "http/1.1"
+      },
+      "stream_flow_control": {
+        "chunk_size_bytes": 65536,
+        "window_chunks": 4,
+        "queue_capacity_bytes": 262144,
+        "max_in_flight_chunks": 1,
+        "max_buffered_bytes": 111,
+        "ffi_notifications": 1,
+        "credit_exhausted_count": 0,
+        "pause_count": 0,
+        "resume_count": 0,
+        "pause_latency_us": null,
+        "resume_latency_us": null,
+        "ack_count": 0,
+        "acked_bytes": 0,
+        "in_flight_chunks_at_completion": 1,
+        "buffered_bytes_at_completion": 111
+      },
+      "dart_completion_notification_us": 1671190886,
+      "rust_connection_id": 7045,
+      "stream_metrics": {
+        "producer_chunk_count": 1,
+        "producer_bytes": 111,
+        "consumer_chunk_count": 1,
+        "consumer_bytes": 111,
+        "max_buffered_bytes": 111,
+        "dart_queue_max_pending_bytes": 111,
+        "buffered_bytes_current": 0,
+        "buffered_bytes_at_native_completion": 0,
+        "consumer_chunk_count_at_native_completion": 1,
+        "consumer_bytes_at_native_completion": 111,
+        "queue_capacity_bytes": 262144,
+        "queue_policy": "native credit/ack window bounds FFI-delivered chunks",
+        "pause_supported": true,
+        "pause_count": 0,
+        "resume_count": 0,
+        "pause_latency_us": null,
+        "resume_latency_us": null,
+        "pause_behavior": "native response delivery waits for Dart chunk acknowledgments when credits are exhausted"
+      },
+      "dart_handle_cleanup_returned_us": 1671191282,
+      "dart_file_preparation_us": 1120,
+      "dart_future_completed_us": 1671191557,
+      "upload_validation": {
+        "expected_bytes": 104857600,
+        "server_bytes": 104857600,
+        "expected_hash": "5db029fd007b7ea5",
+        "server_hash": "5db029fd007b7ea5",
+        "hash_algorithm": "fnv1a64",
+        "server_body_read_us": 1670562788
+      },
+      "connection_reuse": "server remote-address/port observation",
+      "connection_ids_observed": [
+        "7045"
+      ],
+      "distinct_connections_observed": 1,
+      "connections_established_cumulative": 10391,
+      "server_requests_observed": 199573,
+      "connection_close_events": "unavailable:dart-http-server-api",
+      "server_protocol_observed": "1.1",
+      "requests_per_connection": 1.0,
+      "max_requests_on_one_connection": 11,
+      "file_transfer_path": "file_to_native_to_network",
+      "process_metrics": {
+        "before": {
+          "cpu_time_seconds": 145.0,
+          "cpu_utilization_percent": 2.9,
+          "rss_bytes": 313384960,
+          "max_rss_bytes": 1169653760
+        },
+        "after": {
+          "cpu_time_seconds": 187.0,
+          "cpu_utilization_percent": 2.8,
+          "rss_bytes": 312954880,
+          "max_rss_bytes": 1169653760
+        },
+        "cpu_time_delta_seconds": 42.0,
+        "cpu_utilization_percent": 2.5131768901103895,
+        "rss_delta_bytes": -430080,
+        "peak_rss_delta_bytes": 0,
+        "sampled_peak_rss_bytes": 313389056,
+        "sampled_peak_rss_delta_bytes": 4096
+      }
+    }
+  ],
+  "performance_errors": []
+}

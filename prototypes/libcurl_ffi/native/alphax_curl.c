@@ -799,6 +799,10 @@ static int start_async_request(AxCurlStreamHandle *handle) {
 
   curl_easy_setopt(easy, CURLOPT_URL, handle->url);
   curl_easy_setopt(easy, CURLOPT_SHARE, handle->client->share);
+  // HTTP/2 multiplexing is a property of the persistent multi handle. Without
+  // enabling it, concurrent easy handles open separate connections even after
+  // ALPN has negotiated HTTP/2, defeating the shared connection pool.
+  curl_easy_setopt(easy, CURLOPT_PIPEWAIT, 1L);
   curl_easy_setopt(easy, CURLOPT_PRIVATE, handle);
   curl_easy_setopt(easy, CURLOPT_FOLLOWLOCATION, handle->follow_redirects ? 1L : 0L);
   curl_easy_setopt(easy, CURLOPT_MAXREDIRS, 10L);
@@ -1374,6 +1378,14 @@ ALPHAX_CURL_EXPORT AxCurlClient *ax_curl_client_create(void) {
     pthread_mutex_destroy(&client->mutex);
     free(client);
     set_error("unable to initialize persistent libcurl multi handle");
+    return NULL;
+  }
+  if (curl_multi_setopt(client->multi, CURLMOPT_PIPELINING, CURLPIPE_MULTIPLEX) != CURLM_OK) {
+    curl_multi_cleanup(client->multi);
+    pthread_cond_destroy(&client->condition);
+    pthread_mutex_destroy(&client->mutex);
+    free(client);
+    set_error("unable to enable libcurl HTTP/2 multiplexing");
     return NULL;
   }
   client->stream_chunk_size = 64 * 1024;

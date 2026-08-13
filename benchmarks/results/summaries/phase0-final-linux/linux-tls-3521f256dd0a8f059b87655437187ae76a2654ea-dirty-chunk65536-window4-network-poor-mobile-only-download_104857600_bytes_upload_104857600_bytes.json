@@ -1,0 +1,253 @@
+{
+  "metadata": {
+    "os": "linux",
+    "os_version": "Linux 6.12.76-linuxkit #1 SMP Mon Jul 27 16:56:11 UTC 2026",
+    "architecture": "aarch64",
+    "cpu": "unavailable",
+    "dart": "3.13.0 (stable) (Wed Aug 5 00:28:05 2026 -0700) on \"linux_arm64\"",
+    "flutter": "unavailable",
+    "libcurl": "curl 8.14.1 (aarch64-unknown-linux-gnu) libcurl/8.14.1 OpenSSL/3.5.6 zlib/1.3.1 brotli/1.1.0 zstd/1.5.7 libidn2/2.3.8 libpsl/0.21.2 libssh2/1.11.1 nghttp2/1.64.0 nghttp3/1.8.0 librtmp/2.3 OpenLDAP/2.6.10\nRelease-Date: 2025-06-04, security patched: 8.14.1-2+deb13u4\nProtocols: dict file ftp ftps gopher gophers http https imap imaps ipfs ipns ldap ldaps mqtt pop3 pop3s rtmp rtsp scp sftp smb smbs smtp smtps telnet tftp ws wss\nFeatures: alt-svc AsynchDNS brotli GSS-API HSTS HTTP2 HTTP3 HTTPS-proxy IDN IPv6 Kerberos Largefile libz NTLM PSL SPNEGO SSL threadsafe TLS-SRP UnixSockets zstd",
+    "rust": "rustc 1.86.0 (05f9846f8 2025-03-31)",
+    "build_mode": "Dart VM benchmark; native candidates release library where configured",
+    "network_profile": "poor-mobile",
+    "protocol_profile": "HTTP/1.1 over TLS",
+    "transport_security": "tls",
+    "git_commit": "3521f256dd0a8f059b87655437187ae76a2654ea",
+    "git_worktree_dirty": true,
+    "warmup_iterations": 0,
+    "measured_iterations": 2,
+    "stream_chunk_size_bytes": 65536,
+    "stream_window_chunks": 4,
+    "include_external_references": false,
+    "selected_scenarios": [
+      "download_104857600_bytes",
+      "upload_104857600_bytes"
+    ],
+    "methodology": {
+      "statistics": [
+        "min",
+        "mean",
+        "p25",
+        "p50",
+        "p75",
+        "p90",
+        "p95",
+        "p99 where n >= 20",
+        "max",
+        "standard deviation"
+      ],
+      "p99_minimum_sample_count": 20,
+      "raw_samples": true,
+      "json_decode_in_transport_samples": false,
+      "connection_reuse": "candidate behavior is recorded; no reuse claim is inferred",
+      "large_transfer_scope": [
+        10485760,
+        104857600
+      ],
+      "timing_boundaries": {
+        "upload_start": "before file length/stat preparation for every candidate",
+        "upload_end": "after response body completion and candidate/native cleanup notification",
+        "download_start": "before request creation",
+        "download_end": "after response bytes are written and file sink closes",
+        "concurrency_start": "before the first candidate future is created",
+        "concurrency_end": "after all candidate futures complete"
+      },
+      "upload_validation": "server byte count plus deterministic FNV-1a 64 content hash",
+      "process_metrics": "macOS ps CPU time/utilization plus Dart RSS/peak RSS; unavailable is reported explicitly",
+      "classification_rule": "approximately equivalent <=5% p50 difference; clear >=20% with non-overlapping p25-p75 and <=10% CV; likely >=10% and <=20% CV; otherwise inconclusive"
+    },
+    "process_metrics_idle_baselines": {
+      "dart_io": {
+        "cpu_time_seconds": 5.0,
+        "cpu_utilization_percent": 167.0,
+        "rss_bytes": 279158784,
+        "max_rss_bytes": 430112768
+      },
+      "libcurl_ffi": {
+        "cpu_time_seconds": 4.0,
+        "cpu_utilization_percent": 147.0,
+        "rss_bytes": 245932032,
+        "max_rss_bytes": 431841280
+      },
+      "rust_reqwest_ffi": {
+        "cpu_time_seconds": 3.0,
+        "cpu_utilization_percent": 164.0,
+        "rss_bytes": 245231616,
+        "max_rss_bytes": 394887168
+      }
+    },
+    "candidate_process_isolation": true,
+    "candidate_order": [
+      "dart_io",
+      "libcurl_ffi",
+      "rust_reqwest_ffi"
+    ]
+  },
+  "correctness": [
+    {
+      "candidate": "dart_io",
+      "passed": true,
+      "checks": 10,
+      "failures": []
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "passed": true,
+      "checks": 10,
+      "failures": []
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "passed": true,
+      "checks": 10,
+      "failures": []
+    }
+  ],
+  "performance_errors": [],
+  "scenario_summaries": [
+    {
+      "candidate": "dart_io",
+      "scenario": "download_104857600_bytes",
+      "stats": {
+        "count": 2,
+        "min_us": 1639719848,
+        "mean_us": 1649269639.0,
+        "p25_us": 1639719848,
+        "p50_us": 1639719848,
+        "p75_us": 1658819430,
+        "p90_us": 1658819430,
+        "p95_us": 1658819430,
+        "p99_us": null,
+        "max_us": 1658819430,
+        "stddev_us": 9549791.0,
+        "ttfb_p50_us": 311108,
+        "mean_throughput_bytes_per_second": 63580.33476007136,
+        "mean_bytes": 104857600.0
+      }
+    },
+    {
+      "candidate": "dart_io",
+      "scenario": "upload_104857600_bytes",
+      "stats": {
+        "count": 2,
+        "min_us": 1664625764,
+        "mean_us": 1672845125.5,
+        "p25_us": 1664625764,
+        "p50_us": 1664625764,
+        "p75_us": 1681064487,
+        "p90_us": 1681064487,
+        "p95_us": 1681064487,
+        "p99_us": null,
+        "max_us": 1681064487,
+        "stddev_us": 8219361.5,
+        "ttfb_p50_us": 1664621573,
+        "mean_throughput_bytes_per_second": 62683.705673052384,
+        "mean_bytes": 104857600.0
+      }
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "scenario": "download_104857600_bytes",
+      "stats": {
+        "count": 2,
+        "min_us": 1594653553,
+        "mean_us": 1620846232.5,
+        "p25_us": 1594653553,
+        "p50_us": 1594653553,
+        "p75_us": 1647038912,
+        "p90_us": 1647038912,
+        "p95_us": 1647038912,
+        "p99_us": null,
+        "max_us": 1647038912,
+        "stddev_us": 26192679.5,
+        "ttfb_p50_us": 313916,
+        "mean_throughput_bytes_per_second": 64710.018594861496,
+        "mean_bytes": 104857600.0
+      }
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "scenario": "upload_104857600_bytes",
+      "stats": {
+        "count": 2,
+        "min_us": 1675628142,
+        "mean_us": 1676010005.5,
+        "p25_us": 1675628142,
+        "p50_us": 1675628142,
+        "p75_us": 1676391869,
+        "p90_us": 1676391869,
+        "p95_us": 1676391869,
+        "p99_us": null,
+        "max_us": 1676391869,
+        "stddev_us": 381863.5,
+        "ttfb_p50_us": 1675622966,
+        "mean_throughput_bytes_per_second": 62563.83022727091,
+        "mean_bytes": 104857600.0
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "download_104857600_bytes",
+      "stats": {
+        "count": 2,
+        "min_us": 1593031767,
+        "mean_us": 1629738184.5,
+        "p25_us": 1593031767,
+        "p50_us": 1593031767,
+        "p75_us": 1666444602,
+        "p90_us": 1666444602,
+        "p95_us": 1666444602,
+        "p99_us": null,
+        "max_us": 1666444602,
+        "stddev_us": 36706417.5,
+        "ttfb_p50_us": 311017,
+        "mean_throughput_bytes_per_second": 64372.80553952273,
+        "mean_bytes": 104857600.0
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "upload_104857600_bytes",
+      "stats": {
+        "count": 2,
+        "min_us": 1630913483,
+        "mean_us": 1651052520.0,
+        "p25_us": 1630913483,
+        "p50_us": 1630913483,
+        "p75_us": 1671191557,
+        "p90_us": 1671191557,
+        "p95_us": 1671191557,
+        "p99_us": null,
+        "max_us": 1671191557,
+        "stddev_us": 20139037.0,
+        "ttfb_p50_us": 1630909904,
+        "mean_throughput_bytes_per_second": 63518.99904000104,
+        "mean_bytes": 104857600.0
+      }
+    }
+  ],
+  "interpretation": [
+    {
+      "scenario": "download_104857600_bytes",
+      "assessment": "approximately equivalent: p50 values differ by at most 5%",
+      "classification": "approximately equivalent",
+      "classification_rule": "approximately equivalent when p50 differs <=5%; clear difference requires >=20% separation, non-overlapping p25-p75 intervals, and <=10% coefficient of variation for both; likely difference requires >=10% separation and <=20% coefficient of variation; otherwise inconclusive",
+      "p50_order": [
+        "rust_reqwest_ffi",
+        "libcurl_ffi",
+        "dart_io"
+      ]
+    },
+    {
+      "scenario": "upload_104857600_bytes",
+      "assessment": "approximately equivalent: p50 values differ by at most 5%",
+      "classification": "approximately equivalent",
+      "classification_rule": "approximately equivalent when p50 differs <=5%; clear difference requires >=20% separation, non-overlapping p25-p75 intervals, and <=10% coefficient of variation for both; likely difference requires >=10% separation and <=20% coefficient of variation; otherwise inconclusive",
+      "p50_order": [
+        "rust_reqwest_ffi",
+        "dart_io",
+        "libcurl_ffi"
+      ]
+    }
+  ]
+}

@@ -50,23 +50,23 @@ reset() {
 
 apply_profile() {
   require_interface
-  local delay bandwidth loss
+  local delay bandwidth loss seed
   case "$1" in
     local) reset; return ;;
     # Apply the profile to both isolated endpoints for an approximate RTT of
     # twice this one-way delay.
-    good-network) delay='15ms'; bandwidth='100mbit'; loss='0%' ;;
-    typical-mobile) delay='50ms'; bandwidth='10mbit'; loss='0.5%' ;;
-    poor-mobile) delay='150ms'; bandwidth='5mbit'; loss='2%' ;;
+    good-network) delay='15ms'; bandwidth='100mbit'; loss='0%'; seed='1001' ;;
+    typical-mobile) delay='50ms'; bandwidth='10mbit'; loss='0.5%'; seed='2001' ;;
+    poor-mobile) delay='150ms'; bandwidth='5mbit'; loss='2%'; seed='3001' ;;
     *) describe "$1"; return 2 ;;
   esac
 
   # netem applies delay, loss, and the rate ceiling on the isolated endpoint.
   # Run this on both client and server endpoints to approximate symmetric RTT.
   run_tc qdisc replace dev "$interface" root netem \
-    delay "$delay" loss "$loss" rate "$bandwidth" limit 10000
-  printf 'Applied %s to %s (one-way delay %s). Always run %s reset afterwards.\n' \
-    "$1" "$interface" "$delay" "$0"
+    delay "$delay" loss "$loss" rate "$bandwidth" limit 10000 seed "$seed"
+  printf 'Applied %s to %s (one-way delay %s, deterministic seed %s). Always run %s reset afterwards.\n' \
+    "$1" "$interface" "$delay" "$seed" "$0"
 }
 
 case "$profile_command" in

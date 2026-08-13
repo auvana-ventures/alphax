@@ -1,0 +1,139 @@
+{
+  "metadata": {
+    "os": "linux",
+    "os_version": "Linux 6.12.76-linuxkit #1 SMP Mon Jul 27 16:56:11 UTC 2026",
+    "architecture": "aarch64",
+    "cpu": "unavailable",
+    "dart": "3.13.0 (stable) (Wed Aug 5 00:28:05 2026 -0700) on \"linux_arm64\"",
+    "flutter": "unavailable",
+    "libcurl": "curl 8.14.1 (aarch64-unknown-linux-gnu) libcurl/8.14.1 OpenSSL/3.5.6 zlib/1.3.1 brotli/1.1.0 zstd/1.5.7 libidn2/2.3.8 libpsl/0.21.2 libssh2/1.11.1 nghttp2/1.64.0 nghttp3/1.8.0 librtmp/2.3 OpenLDAP/2.6.10\nRelease-Date: 2025-06-04, security patched: 8.14.1-2+deb13u4\nProtocols: dict file ftp ftps gopher gophers http https imap imaps ipfs ipns ldap ldaps mqtt pop3 pop3s rtmp rtsp scp sftp smb smbs smtp smtps telnet tftp ws wss\nFeatures: alt-svc AsynchDNS brotli GSS-API HSTS HTTP2 HTTP3 HTTPS-proxy IDN IPv6 Kerberos Largefile libz NTLM PSL SPNEGO SSL threadsafe TLS-SRP UnixSockets zstd",
+    "rust": "rustc 1.86.0 (05f9846f8 2025-03-31)",
+    "build_mode": "Dart VM benchmark; native candidates release library where configured",
+    "network_profile": "local",
+    "protocol_profile": "HTTP/2 over TLS; ALPN h2 verified",
+    "transport_security": "tls",
+    "process_metrics_idle_baseline": {
+      "cpu_time_seconds": 3.0,
+      "cpu_utilization_percent": 159.0,
+      "rss_bytes": 253784064,
+      "max_rss_bytes": 404545536
+    },
+    "git_commit": "3521f256dd0a8f059b87655437187ae76a2654ea",
+    "git_worktree_dirty": true,
+    "base_url": "https://alphax-h2-server:8443",
+    "candidate_process_name": "libcurl_ffi",
+    "warmup_iterations": 1,
+    "measured_iterations": 3,
+    "stream_chunk_size_bytes": 65536,
+    "stream_window_chunks": 4,
+    "include_external_references": false,
+    "selected_scenarios": [
+      "download_104857600_bytes",
+      "upload_104857600_bytes"
+    ],
+    "methodology": {
+      "statistics": [
+        "min",
+        "mean",
+        "p25",
+        "p50",
+        "p75",
+        "p90",
+        "p95",
+        "p99 where n >= 20",
+        "max",
+        "standard deviation"
+      ],
+      "p99_minimum_sample_count": 20,
+      "raw_samples": true,
+      "json_decode_in_transport_samples": false,
+      "connection_reuse": "candidate behavior is recorded; no reuse claim is inferred",
+      "large_transfer_scope": [
+        10485760,
+        104857600
+      ],
+      "timing_boundaries": {
+        "upload_start": "before file length/stat preparation for every candidate",
+        "upload_end": "after response body completion and candidate/native cleanup notification",
+        "download_start": "before request creation",
+        "download_end": "after response bytes are written and file sink closes",
+        "concurrency_start": "before the first candidate future is created",
+        "concurrency_end": "after all candidate futures complete"
+      },
+      "upload_validation": "server byte count plus deterministic FNV-1a 64 content hash",
+      "process_metrics": "macOS ps CPU time/utilization plus Dart RSS/peak RSS; unavailable is reported explicitly",
+      "classification_rule": "approximately equivalent <=5% p50 difference; clear >=20% with non-overlapping p25-p75 and <=10% CV; likely >=10% and <=20% CV; otherwise inconclusive"
+    }
+  },
+  "correctness": [
+    {
+      "candidate": "libcurl_ffi",
+      "passed": true,
+      "checks": 10,
+      "failures": []
+    }
+  ],
+  "performance_errors": [],
+  "scenario_summaries": [
+    {
+      "candidate": "libcurl_ffi",
+      "scenario": "download_104857600_bytes",
+      "stats": {
+        "count": 3,
+        "min_us": 7837017,
+        "mean_us": 8047041.666666667,
+        "p25_us": 7837017,
+        "p50_us": 7893677,
+        "p75_us": 8410431,
+        "p90_us": 8410431,
+        "p95_us": 8410431,
+        "p99_us": null,
+        "max_us": 8410431,
+        "stddev_us": 257994.11438420234,
+        "ttfb_p50_us": 13092,
+        "mean_throughput_bytes_per_second": 13043698.740112811,
+        "mean_bytes": 104857600.0
+      }
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "scenario": "upload_104857600_bytes",
+      "stats": {
+        "count": 3,
+        "min_us": 13502022,
+        "mean_us": 14090993.333333334,
+        "p25_us": 13502022,
+        "p50_us": 14030534,
+        "p75_us": 14740424,
+        "p90_us": 14740424,
+        "p95_us": 14740424,
+        "p99_us": null,
+        "max_us": 14740424,
+        "stddev_us": 507379.78979677765,
+        "ttfb_p50_us": 14028136,
+        "mean_throughput_bytes_per_second": 7451067.793383251,
+        "mean_bytes": 104857600.0
+      }
+    }
+  ],
+  "interpretation": [
+    {
+      "scenario": "download_104857600_bytes",
+      "assessment": "only one candidate has measured samples",
+      "classification": "inconclusive",
+      "classification_rule": "at least two comparable candidate distributions are required",
+      "p50_order": [
+        "libcurl_ffi"
+      ]
+    },
+    {
+      "scenario": "upload_104857600_bytes",
+      "assessment": "only one candidate has measured samples",
+      "classification": "inconclusive",
+      "classification_rule": "at least two comparable candidate distributions are required",
+      "p50_order": [
+        "libcurl_ffi"
+      ]
+    }
+  ]
+}

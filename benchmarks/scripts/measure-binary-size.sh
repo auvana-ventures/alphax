@@ -32,14 +32,21 @@ dependency_json() {
       | awk '{ path=$1; sub(/^.*\//, "", path); $1=path; print }' \
       | jq -Rsc 'split("\n") | map(select(length > 0))'
   else
-    ldd "$artifact" \
-      | sed -E 's#([^[:space:]]*/)+([^[:space:]]+)#\2#g' \
+    readelf -d "$artifact" 2>/dev/null \
+      | awk -F'[][]' '/\(NEEDED\)/ { print $2 }' \
       | jq -Rsc 'split("\n") | map(select(length > 0))'
   fi
 }
 
 description_json() {
-  file "$1" | sed -E 's#^[^:]+: #artifact: #'
+  if command -v file >/dev/null 2>&1; then
+    file "$1" | sed -E 's#^[^:]+: #artifact: #'
+  elif [[ "$(uname -s)" == "Darwin" ]]; then
+    otool -hv "$1" | tail -n 1
+  else
+    readelf -h "$1" \
+      | awk -F: '/Class:|Data:|Type:|Machine:/ { gsub(/^[[:space:]]+/, "", $2); values[++count]=$2 } END { printf "ELF (%s)", values[1]; for (i=2; i<=count; i++) printf ", %s", values[i] }'
+  fi
 }
 
 dart compile exe prototypes/dart_io/bin/benchmark.dart -o "${temporary_directory}/dart-baseline-app"

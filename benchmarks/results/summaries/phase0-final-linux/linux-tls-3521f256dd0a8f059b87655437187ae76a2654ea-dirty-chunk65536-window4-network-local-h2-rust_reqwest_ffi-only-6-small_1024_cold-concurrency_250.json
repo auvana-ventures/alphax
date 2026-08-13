@@ -1,0 +1,255 @@
+{
+  "metadata": {
+    "os": "linux",
+    "os_version": "Linux 6.12.76-linuxkit #1 SMP Mon Jul 27 16:56:11 UTC 2026",
+    "architecture": "aarch64",
+    "cpu": "unavailable",
+    "dart": "3.13.0 (stable) (Wed Aug 5 00:28:05 2026 -0700) on \"linux_arm64\"",
+    "flutter": "unavailable",
+    "libcurl": "curl 8.14.1 (aarch64-unknown-linux-gnu) libcurl/8.14.1 OpenSSL/3.5.6 zlib/1.3.1 brotli/1.1.0 zstd/1.5.7 libidn2/2.3.8 libpsl/0.21.2 libssh2/1.11.1 nghttp2/1.64.0 nghttp3/1.8.0 librtmp/2.3 OpenLDAP/2.6.10\nRelease-Date: 2025-06-04, security patched: 8.14.1-2+deb13u4\nProtocols: dict file ftp ftps gopher gophers http https imap imaps ipfs ipns ldap ldaps mqtt pop3 pop3s rtmp rtsp scp sftp smb smbs smtp smtps telnet tftp ws wss\nFeatures: alt-svc AsynchDNS brotli GSS-API HSTS HTTP2 HTTP3 HTTPS-proxy IDN IPv6 Kerberos Largefile libz NTLM PSL SPNEGO SSL threadsafe TLS-SRP UnixSockets zstd",
+    "rust": "rustc 1.86.0 (05f9846f8 2025-03-31)",
+    "build_mode": "Dart VM benchmark; native candidates release library where configured",
+    "network_profile": "local",
+    "protocol_profile": "HTTP/2 over TLS; ALPN h2 verified",
+    "transport_security": "tls",
+    "process_metrics_idle_baseline": {
+      "cpu_time_seconds": 3.0,
+      "cpu_utilization_percent": 169.0,
+      "rss_bytes": 248758272,
+      "max_rss_bytes": 395956224
+    },
+    "git_commit": "3521f256dd0a8f059b87655437187ae76a2654ea",
+    "git_worktree_dirty": true,
+    "base_url": "https://alphax-h2-server:8443",
+    "candidate_process_name": "rust_reqwest_ffi",
+    "warmup_iterations": 3,
+    "measured_iterations": 30,
+    "stream_chunk_size_bytes": 65536,
+    "stream_window_chunks": 4,
+    "include_external_references": false,
+    "selected_scenarios": [
+      "small_1024_cold",
+      "small_1024_warm",
+      "connection_reuse_sequential",
+      "concurrency_50",
+      "concurrency_100",
+      "concurrency_250"
+    ],
+    "methodology": {
+      "statistics": [
+        "min",
+        "mean",
+        "p25",
+        "p50",
+        "p75",
+        "p90",
+        "p95",
+        "p99 where n >= 20",
+        "max",
+        "standard deviation"
+      ],
+      "p99_minimum_sample_count": 20,
+      "raw_samples": true,
+      "json_decode_in_transport_samples": false,
+      "connection_reuse": "candidate behavior is recorded; no reuse claim is inferred",
+      "large_transfer_scope": [
+        10485760,
+        104857600
+      ],
+      "timing_boundaries": {
+        "upload_start": "before file length/stat preparation for every candidate",
+        "upload_end": "after response body completion and candidate/native cleanup notification",
+        "download_start": "before request creation",
+        "download_end": "after response bytes are written and file sink closes",
+        "concurrency_start": "before the first candidate future is created",
+        "concurrency_end": "after all candidate futures complete"
+      },
+      "upload_validation": "server byte count plus deterministic FNV-1a 64 content hash",
+      "process_metrics": "macOS ps CPU time/utilization plus Dart RSS/peak RSS; unavailable is reported explicitly",
+      "classification_rule": "approximately equivalent <=5% p50 difference; clear >=20% with non-overlapping p25-p75 and <=10% CV; likely >=10% and <=20% CV; otherwise inconclusive"
+    }
+  },
+  "correctness": [
+    {
+      "candidate": "rust_reqwest_ffi",
+      "passed": true,
+      "checks": 10,
+      "failures": []
+    }
+  ],
+  "performance_errors": [],
+  "scenario_summaries": [
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "small_1024_cold",
+      "stats": {
+        "count": 30,
+        "min_us": 3334,
+        "mean_us": 4459.766666666666,
+        "p25_us": 3822,
+        "p50_us": 4162,
+        "p75_us": 4571,
+        "p90_us": 5224,
+        "p95_us": 6478,
+        "p99_us": 9683,
+        "max_us": 9683,
+        "stddev_us": 1186.944106612532,
+        "ttfb_p50_us": 3766,
+        "mean_throughput_bytes_per_second": 240184.34875284042,
+        "mean_bytes": 1024.0
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "small_1024_warm",
+      "stats": {
+        "count": 30,
+        "min_us": 849,
+        "mean_us": 1182.9,
+        "p25_us": 1020,
+        "p50_us": 1142,
+        "p75_us": 1355,
+        "p90_us": 1455,
+        "p95_us": 1615,
+        "p99_us": 1637,
+        "max_us": 1637,
+        "stddev_us": 204.22379064806987,
+        "ttfb_p50_us": 855,
+        "mean_throughput_bytes_per_second": 890820.4376019883,
+        "mean_bytes": 1024.0
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "concurrency_50",
+      "stats": {
+        "count": 30,
+        "min_us": 20030,
+        "mean_us": 25180.6,
+        "p25_us": 22449,
+        "p50_us": 23898,
+        "p75_us": 26881,
+        "p90_us": 29823,
+        "p95_us": 34446,
+        "p99_us": 37085,
+        "max_us": 37085,
+        "stddev_us": 4090.4788929089136,
+        "mean_throughput_bytes_per_second": 2079302.538565281,
+        "mean_bytes": 51200.0
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "concurrency_100",
+      "stats": {
+        "count": 30,
+        "min_us": 37330,
+        "mean_us": 44356.36666666667,
+        "p25_us": 40644,
+        "p50_us": 43013,
+        "p75_us": 46617,
+        "p90_us": 48880,
+        "p95_us": 56984,
+        "p99_us": 57860,
+        "max_us": 57860,
+        "stddev_us": 5055.649021858838,
+        "mean_throughput_bytes_per_second": 2335606.11143109,
+        "mean_bytes": 102400.0
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "concurrency_250",
+      "stats": {
+        "count": 30,
+        "min_us": 107454,
+        "mean_us": 128457.26666666666,
+        "p25_us": 117497,
+        "p50_us": 124121,
+        "p75_us": 135904,
+        "p90_us": 152411,
+        "p95_us": 162575,
+        "p99_us": 164967,
+        "max_us": 164967,
+        "stddev_us": 15827.786153751536,
+        "mean_throughput_bytes_per_second": 2021253.0848870785,
+        "mean_bytes": 256000.0
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "connection_reuse_sequential",
+      "stats": {
+        "count": 30,
+        "min_us": 73706,
+        "mean_us": 85195.43333333333,
+        "p25_us": 77555,
+        "p50_us": 81233,
+        "p75_us": 87593,
+        "p90_us": 98733,
+        "p95_us": 110488,
+        "p99_us": 121480,
+        "max_us": 121480,
+        "stddev_us": 10680.01128177723,
+        "mean_throughput_bytes_per_second": 1217854.9153601823,
+        "mean_bytes": 102400.0
+      }
+    }
+  ],
+  "interpretation": [
+    {
+      "scenario": "small_1024_cold",
+      "assessment": "only one candidate has measured samples",
+      "classification": "inconclusive",
+      "classification_rule": "at least two comparable candidate distributions are required",
+      "p50_order": [
+        "rust_reqwest_ffi"
+      ]
+    },
+    {
+      "scenario": "small_1024_warm",
+      "assessment": "only one candidate has measured samples",
+      "classification": "inconclusive",
+      "classification_rule": "at least two comparable candidate distributions are required",
+      "p50_order": [
+        "rust_reqwest_ffi"
+      ]
+    },
+    {
+      "scenario": "concurrency_50",
+      "assessment": "only one candidate has measured samples",
+      "classification": "inconclusive",
+      "classification_rule": "at least two comparable candidate distributions are required",
+      "p50_order": [
+        "rust_reqwest_ffi"
+      ]
+    },
+    {
+      "scenario": "concurrency_100",
+      "assessment": "only one candidate has measured samples",
+      "classification": "inconclusive",
+      "classification_rule": "at least two comparable candidate distributions are required",
+      "p50_order": [
+        "rust_reqwest_ffi"
+      ]
+    },
+    {
+      "scenario": "concurrency_250",
+      "assessment": "only one candidate has measured samples",
+      "classification": "inconclusive",
+      "classification_rule": "at least two comparable candidate distributions are required",
+      "p50_order": [
+        "rust_reqwest_ffi"
+      ]
+    },
+    {
+      "scenario": "connection_reuse_sequential",
+      "assessment": "only one candidate has measured samples",
+      "classification": "inconclusive",
+      "classification_rule": "at least two comparable candidate distributions are required",
+      "p50_order": [
+        "rust_reqwest_ffi"
+      ]
+    }
+  ]
+}

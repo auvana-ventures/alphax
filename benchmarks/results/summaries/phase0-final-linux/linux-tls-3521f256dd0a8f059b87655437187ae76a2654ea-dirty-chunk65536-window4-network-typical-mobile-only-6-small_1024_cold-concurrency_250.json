@@ -1,0 +1,529 @@
+{
+  "metadata": {
+    "os": "linux",
+    "os_version": "Linux 6.12.76-linuxkit #1 SMP Mon Jul 27 16:56:11 UTC 2026",
+    "architecture": "aarch64",
+    "cpu": "unavailable",
+    "dart": "3.13.0 (stable) (Wed Aug 5 00:28:05 2026 -0700) on \"linux_arm64\"",
+    "flutter": "unavailable",
+    "libcurl": "curl 8.14.1 (aarch64-unknown-linux-gnu) libcurl/8.14.1 OpenSSL/3.5.6 zlib/1.3.1 brotli/1.1.0 zstd/1.5.7 libidn2/2.3.8 libpsl/0.21.2 libssh2/1.11.1 nghttp2/1.64.0 nghttp3/1.8.0 librtmp/2.3 OpenLDAP/2.6.10\nRelease-Date: 2025-06-04, security patched: 8.14.1-2+deb13u4\nProtocols: dict file ftp ftps gopher gophers http https imap imaps ipfs ipns ldap ldaps mqtt pop3 pop3s rtmp rtsp scp sftp smb smbs smtp smtps telnet tftp ws wss\nFeatures: alt-svc AsynchDNS brotli GSS-API HSTS HTTP2 HTTP3 HTTPS-proxy IDN IPv6 Kerberos Largefile libz NTLM PSL SPNEGO SSL threadsafe TLS-SRP UnixSockets zstd",
+    "rust": "rustc 1.86.0 (05f9846f8 2025-03-31)",
+    "build_mode": "Dart VM benchmark; native candidates release library where configured",
+    "network_profile": "typical-mobile",
+    "protocol_profile": "HTTP/1.1 over TLS",
+    "transport_security": "tls",
+    "git_commit": "3521f256dd0a8f059b87655437187ae76a2654ea",
+    "git_worktree_dirty": true,
+    "warmup_iterations": 3,
+    "measured_iterations": 30,
+    "stream_chunk_size_bytes": 65536,
+    "stream_window_chunks": 4,
+    "include_external_references": false,
+    "selected_scenarios": [
+      "small_1024_cold",
+      "small_1024_warm",
+      "connection_reuse_sequential",
+      "concurrency_50",
+      "concurrency_100",
+      "concurrency_250"
+    ],
+    "methodology": {
+      "statistics": [
+        "min",
+        "mean",
+        "p25",
+        "p50",
+        "p75",
+        "p90",
+        "p95",
+        "p99 where n >= 20",
+        "max",
+        "standard deviation"
+      ],
+      "p99_minimum_sample_count": 20,
+      "raw_samples": true,
+      "json_decode_in_transport_samples": false,
+      "connection_reuse": "candidate behavior is recorded; no reuse claim is inferred",
+      "large_transfer_scope": [
+        10485760,
+        104857600
+      ],
+      "timing_boundaries": {
+        "upload_start": "before file length/stat preparation for every candidate",
+        "upload_end": "after response body completion and candidate/native cleanup notification",
+        "download_start": "before request creation",
+        "download_end": "after response bytes are written and file sink closes",
+        "concurrency_start": "before the first candidate future is created",
+        "concurrency_end": "after all candidate futures complete"
+      },
+      "upload_validation": "server byte count plus deterministic FNV-1a 64 content hash",
+      "process_metrics": "macOS ps CPU time/utilization plus Dart RSS/peak RSS; unavailable is reported explicitly",
+      "classification_rule": "approximately equivalent <=5% p50 difference; clear >=20% with non-overlapping p25-p75 and <=10% CV; likely >=10% and <=20% CV; otherwise inconclusive"
+    },
+    "process_metrics_idle_baselines": {
+      "dart_io": {
+        "cpu_time_seconds": 2.0,
+        "cpu_utilization_percent": 171.0,
+        "rss_bytes": 247328768,
+        "max_rss_bytes": 396566528
+      },
+      "libcurl_ffi": {
+        "cpu_time_seconds": 3.0,
+        "cpu_utilization_percent": 169.0,
+        "rss_bytes": 248463360,
+        "max_rss_bytes": 395952128
+      },
+      "rust_reqwest_ffi": {
+        "cpu_time_seconds": 3.0,
+        "cpu_utilization_percent": 166.0,
+        "rss_bytes": 249884672,
+        "max_rss_bytes": 396283904
+      }
+    },
+    "candidate_process_isolation": true,
+    "candidate_order": [
+      "dart_io",
+      "libcurl_ffi",
+      "rust_reqwest_ffi"
+    ]
+  },
+  "correctness": [
+    {
+      "candidate": "dart_io",
+      "passed": true,
+      "checks": 10,
+      "failures": []
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "passed": true,
+      "checks": 10,
+      "failures": []
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "passed": true,
+      "checks": 10,
+      "failures": []
+    }
+  ],
+  "performance_errors": [],
+  "scenario_summaries": [
+    {
+      "candidate": "dart_io",
+      "scenario": "small_1024_cold",
+      "stats": {
+        "count": 30,
+        "min_us": 310821,
+        "mean_us": 315408.13333333336,
+        "p25_us": 313475,
+        "p50_us": 315503,
+        "p75_us": 316925,
+        "p90_us": 318312,
+        "p95_us": 319884,
+        "p99_us": 323432,
+        "max_us": 323432,
+        "stddev_us": 2763.603091778718,
+        "ttfb_p50_us": 314898,
+        "mean_throughput_bytes_per_second": 3246.8353667490796,
+        "mean_bytes": 1024.0
+      }
+    },
+    {
+      "candidate": "dart_io",
+      "scenario": "small_1024_warm",
+      "stats": {
+        "count": 30,
+        "min_us": 103387,
+        "mean_us": 106022.93333333333,
+        "p25_us": 104820,
+        "p50_us": 105673,
+        "p75_us": 106461,
+        "p90_us": 107356,
+        "p95_us": 110324,
+        "p99_us": 112091,
+        "max_us": 112091,
+        "stddev_us": 1844.9689235564074,
+        "ttfb_p50_us": 105182,
+        "mean_throughput_bytes_per_second": 9661.140558948851,
+        "mean_bytes": 1024.0
+      }
+    },
+    {
+      "candidate": "dart_io",
+      "scenario": "concurrency_50",
+      "stats": {
+        "count": 30,
+        "min_us": 171229,
+        "mean_us": 282610.6,
+        "p25_us": 173288,
+        "p50_us": 176191,
+        "p75_us": 439413,
+        "p90_us": 460809,
+        "p95_us": 514527,
+        "p99_us": 610276,
+        "max_us": 610276,
+        "stddev_us": 144268.52296686202,
+        "mean_throughput_bytes_per_second": 225554.87422737564,
+        "mean_bytes": 51200.0
+      }
+    },
+    {
+      "candidate": "dart_io",
+      "scenario": "concurrency_100",
+      "stats": {
+        "count": 30,
+        "min_us": 237346,
+        "mean_us": 530360.7666666667,
+        "p25_us": 243240,
+        "p50_us": 530239,
+        "p75_us": 747392,
+        "p90_us": 876912,
+        "p95_us": 920372,
+        "p99_us": 956558,
+        "max_us": 956558,
+        "stddev_us": 241304.08491537307,
+        "mean_throughput_bytes_per_second": 247167.72566844933,
+        "mean_bytes": 102400.0
+      }
+    },
+    {
+      "candidate": "dart_io",
+      "scenario": "concurrency_250",
+      "stats": {
+        "count": 30,
+        "min_us": 440364,
+        "mean_us": 888044.8666666667,
+        "p25_us": 659031,
+        "p50_us": 840889,
+        "p75_us": 1082795,
+        "p90_us": 1340604,
+        "p95_us": 1428857,
+        "p99_us": 1497513,
+        "max_us": 1497513,
+        "stddev_us": 282882.6020449394,
+        "mean_throughput_bytes_per_second": 319697.52590411383,
+        "mean_bytes": 256000.0
+      }
+    },
+    {
+      "candidate": "dart_io",
+      "scenario": "connection_reuse_sequential",
+      "stats": {
+        "count": 30,
+        "min_us": 10489262,
+        "mean_us": 10950570.266666668,
+        "p25_us": 10783582,
+        "p50_us": 10818854,
+        "p75_us": 11043768,
+        "p90_us": 11338357,
+        "p95_us": 11910066,
+        "p99_us": 12273175,
+        "max_us": 12273175,
+        "stddev_us": 380089.1682359929,
+        "mean_throughput_bytes_per_second": 9361.773247910054,
+        "mean_bytes": 102400.0
+      }
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "scenario": "small_1024_cold",
+      "stats": {
+        "count": 30,
+        "min_us": 310738,
+        "mean_us": 350116.3333333333,
+        "p25_us": 314094,
+        "p50_us": 315286,
+        "p75_us": 316980,
+        "p90_us": 320101,
+        "p95_us": 327018,
+        "p99_us": 1351684,
+        "max_us": 1351684,
+        "stddev_us": 186012.48257726026,
+        "ttfb_p50_us": 314138,
+        "mean_throughput_bytes_per_second": 3162.2268191136554,
+        "mean_bytes": 1024.0
+      }
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "scenario": "small_1024_warm",
+      "stats": {
+        "count": 30,
+        "min_us": 103171,
+        "mean_us": 104849.9,
+        "p25_us": 104328,
+        "p50_us": 104718,
+        "p75_us": 105144,
+        "p90_us": 106066,
+        "p95_us": 106429,
+        "p99_us": 108114,
+        "max_us": 108114,
+        "stddev_us": 937.5527487382598,
+        "ttfb_p50_us": 103961,
+        "mean_throughput_bytes_per_second": 9767.113759728998,
+        "mean_bytes": 1024.0
+      }
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "scenario": "concurrency_50",
+      "stats": {
+        "count": 30,
+        "min_us": 335029,
+        "mean_us": 658867.3666666667,
+        "p25_us": 373476,
+        "p50_us": 379428,
+        "p75_us": 1100024,
+        "p90_us": 1326163,
+        "p95_us": 1375961,
+        "p99_us": 1766581,
+        "max_us": 1766581,
+        "stddev_us": 414104.45604987827,
+        "mean_throughput_bytes_per_second": 103436.08388465967,
+        "mean_bytes": 51200.0
+      }
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "scenario": "concurrency_100",
+      "stats": {
+        "count": 30,
+        "min_us": 379050,
+        "mean_us": 850311.8,
+        "p25_us": 536500,
+        "p50_us": 692218,
+        "p75_us": 1251734,
+        "p90_us": 1357396,
+        "p95_us": 1371682,
+        "p99_us": 1486690,
+        "max_us": 1486690,
+        "stddev_us": 365500.0426381553,
+        "mean_throughput_bytes_per_second": 146352.6240635006,
+        "mean_bytes": 102400.0
+      }
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "scenario": "concurrency_250",
+      "stats": {
+        "count": 30,
+        "min_us": 696175,
+        "mean_us": 1410081.2,
+        "p25_us": 1202305,
+        "p50_us": 1404114,
+        "p75_us": 1576894,
+        "p90_us": 1718628,
+        "p95_us": 2327779,
+        "p99_us": 2432745,
+        "max_us": 2432745,
+        "stddev_us": 405960.9506557989,
+        "mean_throughput_bytes_per_second": 198557.83758660624,
+        "mean_bytes": 256000.0
+      }
+    },
+    {
+      "candidate": "libcurl_ffi",
+      "scenario": "connection_reuse_sequential",
+      "stats": {
+        "count": 30,
+        "min_us": 10458766,
+        "mean_us": 10841106.866666667,
+        "p25_us": 10512774,
+        "p50_us": 10784518,
+        "p75_us": 11071052,
+        "p90_us": 11355935,
+        "p95_us": 11531016,
+        "p99_us": 11738848,
+        "max_us": 11738848,
+        "stddev_us": 354229.66690823,
+        "mean_throughput_bytes_per_second": 9455.366657091701,
+        "mean_bytes": 102400.0
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "small_1024_cold",
+      "stats": {
+        "count": 30,
+        "min_us": 307894,
+        "mean_us": 324819.63333333336,
+        "p25_us": 311578,
+        "p50_us": 312379,
+        "p75_us": 314814,
+        "p90_us": 317997,
+        "p95_us": 330680,
+        "p99_us": 650190,
+        "max_us": 650190,
+        "stddev_us": 60552.9944723261,
+        "ttfb_p50_us": 311564,
+        "mean_throughput_bytes_per_second": 3209.479368732849,
+        "mean_bytes": 1024.0
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "small_1024_warm",
+      "stats": {
+        "count": 30,
+        "min_us": 104119,
+        "mean_us": 105983.73333333334,
+        "p25_us": 105322,
+        "p50_us": 105845,
+        "p75_us": 106420,
+        "p90_us": 107582,
+        "p95_us": 107984,
+        "p99_us": 108503,
+        "max_us": 108503,
+        "stddev_us": 959.5978648487198,
+        "ttfb_p50_us": 104822,
+        "mean_throughput_bytes_per_second": 9662.646591810217,
+        "mean_bytes": 1024.0
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "concurrency_50",
+      "stats": {
+        "count": 30,
+        "min_us": 168756,
+        "mean_us": 390580.73333333334,
+        "p25_us": 171055,
+        "p50_us": 435464,
+        "p75_us": 589121,
+        "p90_us": 700146,
+        "p95_us": 712547,
+        "p99_us": 713760,
+        "max_us": 713760,
+        "stddev_us": 213276.0792186086,
+        "mean_throughput_bytes_per_second": 184104.21825717253,
+        "mean_bytes": 51200.0
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "concurrency_100",
+      "stats": {
+        "count": 30,
+        "min_us": 234399,
+        "mean_us": 532177.8333333334,
+        "p25_us": 237088,
+        "p50_us": 492733,
+        "p75_us": 787377,
+        "p90_us": 797864,
+        "p95_us": 802671,
+        "p99_us": 821155,
+        "max_us": 821155,
+        "stddev_us": 249113.8006752581,
+        "mean_throughput_bytes_per_second": 255436.96036735878,
+        "mean_bytes": 102400.0
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "concurrency_250",
+      "stats": {
+        "count": 30,
+        "min_us": 430635,
+        "mean_us": 893655.7666666667,
+        "p25_us": 568796,
+        "p50_us": 876503,
+        "p75_us": 1180508,
+        "p90_us": 1306687,
+        "p95_us": 1403005,
+        "p99_us": 1403420,
+        "max_us": 1403420,
+        "stddev_us": 326007.85236010124,
+        "mean_throughput_bytes_per_second": 338595.9682608605,
+        "mean_bytes": 256000.0
+      }
+    },
+    {
+      "candidate": "rust_reqwest_ffi",
+      "scenario": "connection_reuse_sequential",
+      "stats": {
+        "count": 30,
+        "min_us": 10458974,
+        "mean_us": 10929881.7,
+        "p25_us": 10553692,
+        "p50_us": 10837266,
+        "p75_us": 11241165,
+        "p90_us": 11418158,
+        "p95_us": 11514748,
+        "p99_us": 11870211,
+        "max_us": 11870211,
+        "stddev_us": 370884.7438280658,
+        "mean_throughput_bytes_per_second": 9379.406199978908,
+        "mean_bytes": 102400.0
+      }
+    }
+  ],
+  "interpretation": [
+    {
+      "scenario": "small_1024_cold",
+      "assessment": "approximately equivalent: p50 values differ by at most 5%",
+      "classification": "approximately equivalent",
+      "classification_rule": "approximately equivalent when p50 differs <=5%; clear difference requires >=20% separation, non-overlapping p25-p75 intervals, and <=10% coefficient of variation for both; likely difference requires >=10% separation and <=20% coefficient of variation; otherwise inconclusive",
+      "p50_order": [
+        "rust_reqwest_ffi",
+        "libcurl_ffi",
+        "dart_io"
+      ]
+    },
+    {
+      "scenario": "small_1024_warm",
+      "assessment": "approximately equivalent: p50 values differ by at most 5%",
+      "classification": "approximately equivalent",
+      "classification_rule": "approximately equivalent when p50 differs <=5%; clear difference requires >=20% separation, non-overlapping p25-p75 intervals, and <=10% coefficient of variation for both; likely difference requires >=10% separation and <=20% coefficient of variation; otherwise inconclusive",
+      "p50_order": [
+        "libcurl_ffi",
+        "dart_io",
+        "rust_reqwest_ffi"
+      ]
+    },
+    {
+      "scenario": "concurrency_50",
+      "assessment": "inconclusive: the observed separation is not stable enough for a stronger claim",
+      "classification": "inconclusive",
+      "classification_rule": "approximately equivalent when p50 differs <=5%; clear difference requires >=20% separation, non-overlapping p25-p75 intervals, and <=10% coefficient of variation for both; likely difference requires >=10% separation and <=20% coefficient of variation; otherwise inconclusive",
+      "p50_order": [
+        "dart_io",
+        "libcurl_ffi",
+        "rust_reqwest_ffi"
+      ]
+    },
+    {
+      "scenario": "concurrency_100",
+      "assessment": "inconclusive: the observed separation is not stable enough for a stronger claim",
+      "classification": "inconclusive",
+      "classification_rule": "approximately equivalent when p50 differs <=5%; clear difference requires >=20% separation, non-overlapping p25-p75 intervals, and <=10% coefficient of variation for both; likely difference requires >=10% separation and <=20% coefficient of variation; otherwise inconclusive",
+      "p50_order": [
+        "rust_reqwest_ffi",
+        "dart_io",
+        "libcurl_ffi"
+      ]
+    },
+    {
+      "scenario": "concurrency_250",
+      "assessment": "approximately equivalent: p50 values differ by at most 5%",
+      "classification": "approximately equivalent",
+      "classification_rule": "approximately equivalent when p50 differs <=5%; clear difference requires >=20% separation, non-overlapping p25-p75 intervals, and <=10% coefficient of variation for both; likely difference requires >=10% separation and <=20% coefficient of variation; otherwise inconclusive",
+      "p50_order": [
+        "dart_io",
+        "rust_reqwest_ffi",
+        "libcurl_ffi"
+      ]
+    },
+    {
+      "scenario": "connection_reuse_sequential",
+      "assessment": "approximately equivalent: p50 values differ by at most 5%",
+      "classification": "approximately equivalent",
+      "classification_rule": "approximately equivalent when p50 differs <=5%; clear difference requires >=20% separation, non-overlapping p25-p75 intervals, and <=10% coefficient of variation for both; likely difference requires >=10% separation and <=20% coefficient of variation; otherwise inconclusive",
+      "p50_order": [
+        "libcurl_ffi",
+        "dart_io",
+        "rust_reqwest_ffi"
+      ]
+    }
+  ]
+}
