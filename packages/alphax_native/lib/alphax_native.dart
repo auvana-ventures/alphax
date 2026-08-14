@@ -3,7 +3,10 @@ library;
 
 import 'package:alphax/alphax.dart';
 
-/// Placeholder transport used until a Phase 1 platform adapter is implemented.
+export 'src/dart_io_transport.dart';
+
+/// Placeholder transport used until a platform-native Phase 1 adapter is
+/// implemented. [DartIoTransport] is the available Phase 1B fallback.
 final class ExperimentalAlphaXNativeTransport extends AlphaXTransport {
   /// Creates a placeholder native transport.
   const ExperimentalAlphaXNativeTransport();

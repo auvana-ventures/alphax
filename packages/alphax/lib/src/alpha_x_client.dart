@@ -298,6 +298,7 @@ final class AlphaXClient {
   );
 
   Future<AlphaXResponse> _sendAt(int index, AlphaXRequest request) {
+    _ensureOpen();
     if (index == middleware.length) {
       return transport.send(request);
     }
@@ -306,6 +307,7 @@ final class AlphaXClient {
   }
 
   Stream<AlphaXEvent> _streamAt(int index, AlphaXRequest request) {
+    _ensureOpen();
     if (index == middleware.length) {
       return transport.sendStreaming(request);
     }

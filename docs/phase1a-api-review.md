@@ -1,7 +1,7 @@
 # AlphaX Phase 1A API review
 
-Status: Phase 1A implementation complete; maintainer review required before
-Phase 1B.
+Status: Phase 1A implementation complete and approved; this document is the
+historical contract review for the Phase 1B implementation boundary.
 
 Phase 1A only stabilizes pure-Dart, transport-independent contracts. It does not
 implement Dart IO, Cronet/HttpEngine, URLSession, FFI, a C++ engine, or any

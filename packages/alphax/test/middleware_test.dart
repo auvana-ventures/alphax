@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:alphax/alphax.dart';
 import 'package:test/test.dart';
 
@@ -41,6 +43,20 @@ final class _Middleware extends AlphaXMiddleware {
   }
 }
 
+final class _DelayedMiddleware extends AlphaXMiddleware {
+  _DelayedMiddleware(this.started, this.resume);
+
+  final Completer<void> started;
+  final Completer<void> resume;
+
+  @override
+  Future<AlphaXResponse> intercept(AlphaXRequest request, AlphaXNext next) async {
+    started.complete();
+    await resume.future;
+    return next(request);
+  }
+}
+
 void main() {
   test('middleware enters in order and unwinds in reverse order', () async {
     final order = <String>[];
@@ -72,5 +88,20 @@ void main() {
       client.get(Uri.parse('https://example.com')),
       throwsA(isA<AlphaXClientClosedException>()),
     );
+  });
+
+  test('middleware cannot resume into a closed client', () async {
+    final started = Completer<void>();
+    final resume = Completer<void>();
+    final client = AlphaXClient(
+      transport: _RecordingTransport(),
+      middleware: <AlphaXMiddleware>[_DelayedMiddleware(started, resume)],
+    );
+    final request = client.get(Uri.parse('https://example.com'));
+    await started.future;
+    await client.close();
+    resume.complete();
+
+    await expectLater(request, throwsA(isA<AlphaXClientClosedException>()));
   });
 }

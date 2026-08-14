@@ -16,5 +16,6 @@ dependencies:
   alphax: ^0.1.0
 
 dev_dependencies:
+  alphax_test: ^0.1.0
   lints: ^5.1.1
   test: ^1.25.0

@@ -6,6 +6,9 @@ import 'file_fixtures.dart';
 /// Creates one fresh transport instance for each conformance test.
 typedef AlphaXTransportFactory = AlphaXTransport Function();
 
+/// Resolves the fixture URI when a conformance test starts.
+typedef AlphaXTransportUriProvider = Uri Function();
+
 /// Defines the shared contract tests for a transport implementation.
 ///
 /// Adapter packages should call this from their own test entry point. The
@@ -13,17 +16,22 @@ typedef AlphaXTransportFactory = AlphaXTransport Function();
 /// its instance.
 void defineAlphaXTransportConformanceTests(
   String name,
-  AlphaXTransportFactory createTransport,
-) {
+  AlphaXTransportFactory createTransport, {
+  Uri? baseUri,
+  AlphaXTransportUriProvider? baseUriProvider,
+}) {
   group('AlphaXTransport conformance: $name', () {
-    final uri = Uri.parse('https://example.com/resource');
+    Uri uri() =>
+        baseUriProvider?.call() ??
+        baseUri?.resolve('/resource') ??
+        Uri.parse('https://example.com/resource');
 
     test('sends a typed request and returns a response', () async {
       final transport = createTransport();
       addTearDown(transport.close);
 
       final response = await transport.send(
-        AlphaXRequest(method: HttpMethod.get, uri: uri),
+        AlphaXRequest(method: HttpMethod.get, uri: uri()),
       );
 
       expect(response.statusCode, inInclusiveRange(100, 599));
@@ -34,7 +42,7 @@ void defineAlphaXTransportConformanceTests(
       addTearDown(transport.close);
 
       final events = await transport
-          .sendStreaming(AlphaXRequest(method: HttpMethod.get, uri: uri))
+          .sendStreaming(AlphaXRequest(method: HttpMethod.get, uri: uri()))
           .toList();
 
       expect(events, isNotEmpty);
@@ -54,7 +62,7 @@ void defineAlphaXTransportConformanceTests(
         transport.send(
           AlphaXRequest(
             method: HttpMethod.get,
-            uri: uri,
+            uri: uri(),
             cancellationToken: token,
           ),
         ),
@@ -75,7 +83,7 @@ void defineAlphaXTransportConformanceTests(
       final target = InMemoryAlphaXFileTarget();
 
       final result = await transport.download(
-        AlphaXRequest(method: HttpMethod.get, uri: uri),
+        AlphaXRequest(method: HttpMethod.get, uri: uri()),
         target,
       );
 

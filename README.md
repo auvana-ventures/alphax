@@ -51,7 +51,7 @@ supports them. No C++ engine or production Rust transport is part of the accepte
 | Package | Purpose | Current status |
 | --- | --- | --- |
 | [`alphax`](packages/alphax) | Pure Dart request/response, transport, cancellation, metrics, and error contracts | In development |
-| [`alphax_native`](packages/alphax_native) | Platform transport integration boundary | Skeleton; implementation deferred to Phase 1C/1D |
+| [`alphax_native`](packages/alphax_native) | Platform transport integration boundary and Dart IO fallback | Dart IO fallback implemented; Cronet/URLSession deferred to Phase 1C/1D |
 | [`alphax_dio`](packages/alphax_dio) | Future Dio `HttpClientAdapter` compatibility layer | Documentation/skeleton only |
 | [`alphax_test`](packages/alphax_test) | Deterministic fake transports and test helpers | In development |
 
@@ -65,8 +65,8 @@ contracts and dependencies are justified.
 | --- | --- |
 | Transport-independent Dart API | Phase 1A in development |
 | HTTP/1.1, HTTP/2, HTTP/3 | 1.0 requirement; platform transports not implemented yet |
-| Streaming and backpressure | Phase 1A contract in development |
-| Direct file transfer | 1.0 contract; transport implementation deferred |
+| Streaming and backpressure | Phase 1B Dart IO fallback implemented; native bounded delivery deferred |
+| Direct file transfer | Dart IO stream/file fallback implemented; native direct paths deferred |
 | Dio/Retrofit compatibility | Optional/post-1.0 scope; not implemented |
 | Cache and resilience modules | Deferred by 1.0 scope |
 | Observability and OpenTelemetry | Deferred by 1.0 scope |
@@ -74,7 +74,7 @@ contracts and dependencies are justified.
 ## Quick start
 
 There is no released AlphaX package or stable installation command yet. During
-Phase 1A, use the workspace packages directly and treat the API as experimental.
+Phase 1B, use the workspace packages directly and treat the API as experimental.
 Only released APIs will be documented here after the transport decision.
 
 ## Dio and Retrofit
@@ -96,10 +96,10 @@ conditions. Methodology, raw results, and environment metadata will be linked fr
 | Target | 1.0 direction | Current implementation |
 | --- | --- | --- |
 | macOS | URLSession-backed transport | Phase 1D deferred |
-| Linux | Dart IO fallback initially | Phase 1B deferred |
+| Linux | Dart IO fallback initially | Phase 1B implemented |
 | Android | Cronet/HttpEngine-backed transport | Phase 1C deferred |
 | iOS | URLSession-backed transport | Phase 1D deferred |
-| Windows | Dart IO fallback initially | Phase 1B deferred |
+| Windows | Dart IO fallback initially | Phase 1B implemented |
 | Web | Where capabilities permit | Explicitly outside current implementation |
 
 The pure-Dart `alphax` package has no Flutter SDK dependency. Platform support is
