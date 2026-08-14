@@ -1,0 +1,44 @@
+{
+  "fixture": "phase1c-h3-cloudflare-physical-android",
+  "kind": "historical-integration-evidence",
+  "not_benchmark_data": true,
+  "captured_on": "2026-08-14",
+  "device": {
+    "model": "M2003J6A1G",
+    "android": "15",
+    "api": 35,
+    "architecture": "arm64-v8a",
+    "network_type": "wifi",
+    "build_mode": "profile"
+  },
+  "runtime": {
+    "flutter": "3.47.0",
+    "dart": "3.13.0",
+    "provider": "Google-Play-Services-Cronet-Provider",
+    "provider_version": "151.0.7922.29",
+    "tls_verification": "platform defaults; no trust-all override"
+  },
+  "diagnostic_quic_hint": {
+    "host": "cloudflare-quic.com",
+    "port": 443,
+    "alternate_port": 443,
+    "applied": true,
+    "scope": "temporary focused probe only; not an AlphaX API requirement"
+  },
+  "request": {
+    "endpoint": "https://cloudflare-quic.com/",
+    "requested_protocol": "http3",
+    "prewarm_status": 200,
+    "prewarm_protocol": "http3",
+    "status": 200,
+    "body_bytes": 125959,
+    "alt_svc": "h3=\":443\"; ma=86400",
+    "actual_negotiated_protocol": "http3",
+    "alphax_reported_protocol": "http3",
+    "fallback": null
+  },
+  "alternate_network_probe": {
+    "attempted": false,
+    "reason": "One successful H3 negotiation satisfied the focused stop condition."
+  }
+}

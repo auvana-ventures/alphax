@@ -72,3 +72,46 @@ metric is recorded explicitly; it is never silently treated as equivalent.
 
 This gate intentionally does not add network shaping, HTTP/2/HTTP/3 work,
 extra clients, larger transfer matrices, or production features.
+
+## Phase 1C Android correctness harness
+
+`lib/phase1c_main.dart` is separate from the historical Phase 0 gate above.
+It does not collect benchmark samples or compare transports. It runs the
+Android Cronet adapter against the deterministic H1 fixture and performs fixed
+H2/H3 negotiation probes, plus methods, headers, bounded pause/resume,
+redirects, cancellation, client reuse, progress, and native file-transfer
+hash checks.
+
+Build and install a profile APK on a physical Android device:
+
+```sh
+flutter build apk --profile --target lib/phase1c_main.dart \
+  --dart-define=ALPHAX_PHASE1C_H1_BASE_URL=http://127.0.0.1:18080/ \
+  --dart-define=ALPHAX_DEVICE_MODEL=<model> \
+  --dart-define=ALPHAX_DEVICE_ARCH=arm64-v8a \
+  --dart-define=ALPHAX_FLUTTER_VERSION=<version> \
+  --dart-define=ALPHAX_GIT_COMMIT=<commit>
+adb install -r build/app/outputs/flutter-apk/app-profile.apk
+```
+
+For the local fixture, expose the host server through ADB before launching:
+
+```sh
+adb reverse tcp:18080 tcp:18080
+```
+
+The disposable validation app permits cleartext only for this local H1 path;
+the Android transport keeps platform TLS verification enabled. After the app
+finishes, retrieve the complete result without relying on logcat line limits:
+
+```sh
+adb shell run-as com.auvana.ventures.alphax_mobile_gate \
+  cat code_cache/alphax-phase1c-result.json
+```
+
+The H2 and H3 probes default to external TLS endpoints and can be overridden
+with `ALPHAX_PHASE1C_H2_URL` and `ALPHAX_PHASE1C_H3_URL`. The app prints JSON
+between `ALPHAX_PHASE1C_RESULT_BEGIN` and
+`ALPHAX_PHASE1C_RESULT_END`. A request preferring H3 is counted as H3 only when
+Cronet reports `http3` as the negotiated protocol; H1/H2 fallback is retained
+in the output.

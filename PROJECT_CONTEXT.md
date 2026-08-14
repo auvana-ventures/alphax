@@ -16,11 +16,13 @@ official modular capabilities.
 
 ## Current phase
 
-Phase 0 research and transport validation is complete. ADR 0004 is accepted for
-the AlphaX 1.0 platform strategy, and the repository is beginning Phase 1A:
-stabilization of the pure-Dart, transport-independent public contracts. The
-working project name is AlphaX; the repository is `alphax`, but packages must
-not be published to pub.dev until naming clearance is complete.
+Phase 0 research and transport validation is complete. Phase 1A contracts and
+the Dart IO fallback are complete, and Phase 1C Android Cronet validation has
+completed with physical H1/H2/H3 evidence. ADR 0004 is accepted for the AlphaX
+1.0 platform strategy; the next approved implementation phase is Phase 1D for
+Apple URLSession. The working project name is AlphaX; the repository is
+`alphax`, but packages must not be published to pub.dev until naming clearance
+is complete.
 
 ## Package philosophy
 

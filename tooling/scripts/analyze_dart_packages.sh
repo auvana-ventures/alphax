@@ -8,7 +8,12 @@ for package in packages/* benchmarks/client benchmarks/server benchmarks/runner;
   echo "Analyzing ${package}"
   (
     cd "${package}"
-    dart pub get
-    dart analyze
+    if rg -q '^\s+sdk:\s+flutter\s*$' pubspec.yaml; then
+      flutter pub get
+      flutter analyze
+    else
+      dart pub get
+      dart analyze
+    fi
   )
 done

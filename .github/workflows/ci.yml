@@ -14,12 +14,12 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v4
-      - name: Set up Dart
-        uses: dart-lang/setup-dart@v1
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
         with:
-          sdk: stable
+          channel: stable
       - name: Resolve workspace
-        run: dart pub get
+        run: flutter pub get
       - name: Format
         run: dart format --set-exit-if-changed .
       - name: Analyze Dart packages
@@ -58,3 +58,20 @@ jobs:
         run: cargo test --manifest-path prototypes/rust_http/Cargo.toml
       - name: Build Rust FFI library
         run: cargo build --release --manifest-path prototypes/rust_http/Cargo.toml
+
+  android-plugin:
+    name: Android plugin build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - name: Resolve mobile gate
+        working-directory: benchmarks/mobile_gate
+        run: flutter pub get
+      - name: Compile Android Phase 1C harness
+        working-directory: benchmarks/mobile_gate
+        run: flutter build apk --profile --target lib/phase1c_main.dart

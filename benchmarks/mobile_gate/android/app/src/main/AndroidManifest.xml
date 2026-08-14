@@ -3,7 +3,13 @@
     <application
         android:label="alphax_mobile_gate"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true">
+        <!--
+            This is limited to the disposable Phase 1C validation app so the
+            local HTTP/1.1 fixture can be reached through adb reverse. The
+            AlphaX Android transport keeps platform TLS verification defaults.
+        -->
         <activity
             android:name=".MainActivity"
             android:exported="true"

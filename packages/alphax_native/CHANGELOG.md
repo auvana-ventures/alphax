@@ -6,3 +6,7 @@
 - Added the Dart IO fallback transport with HTTP/1.1 request/response
   streaming, file transfers, cancellation, timeouts, redirects, progress,
   normalized errors, and reusable-client lifecycle handling.
+- Added the Android Cronet/HttpEngine adapter behind a reusable engine with
+  actual protocol reporting, bounded response delivery, cancellation,
+  progress, and native-capable file paths. Physical-device validation remains
+  in progress; Apple transports are not included.

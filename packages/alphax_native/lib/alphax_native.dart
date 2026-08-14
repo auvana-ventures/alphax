@@ -4,9 +4,12 @@ library;
 import 'package:alphax/alphax.dart';
 
 export 'src/dart_io_transport.dart';
+export 'src/android_cronet_transport.dart';
 
-/// Placeholder transport used until a platform-native Phase 1 adapter is
-/// implemented. [DartIoTransport] is the available Phase 1B fallback.
+/// Platform transport adapters for AlphaX.
+///
+/// [DartIoTransport] is the pure-Dart fallback. [AndroidCronetTransport] is
+/// available only when the Android Flutter plugin is attached.
 final class ExperimentalAlphaXNativeTransport extends AlphaXTransport {
   /// Creates a placeholder native transport.
   const ExperimentalAlphaXNativeTransport();

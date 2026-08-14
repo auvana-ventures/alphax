@@ -10,6 +10,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  alphax:
+    path: ../../packages/alphax
+  alphax_native:
+    path: ../../packages/alphax_native
   alphax_benchmark_client:
     path: ../client
   alphax_dart_io_prototype:
@@ -26,3 +30,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+dependency_overrides:
+  alphax:
+    path: ../../packages/alphax

@@ -1,6 +1,6 @@
 # Architecture Overview
 
-## Phase 1A boundary
+## Transport architecture boundary
 
 ```text
 Application / Flutter app
@@ -51,6 +51,7 @@ leak implementation types into `alphax`.
 
 ## Phase progression
 
-Phase 0 is complete. Phase 1A stabilizes the public contract; platform transports
-must not begin until the Phase 1A review is complete and its conformance suite is
-usable.
+Phase 0 and Phase 1A are complete. Phase 1B provides the Dart IO fallback and
+Phase 1C provides the validated Android Cronet adapter. Phase 1D is the approved
+next phase for the shared Apple URLSession adapter; Phase 1E remains the later
+cross-transport release-validation gate.
