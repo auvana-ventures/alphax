@@ -16,9 +16,11 @@ official modular capabilities.
 
 ## Current phase
 
-Phase 0 is research and transport validation. The working project name is AlphaX;
-the repository is `alphax`, but packages must not be published to pub.dev until
-naming clearance is complete. No production native transport has been selected.
+Phase 0 research and transport validation is complete. ADR 0004 is accepted for
+the AlphaX 1.0 platform strategy, and the repository is beginning Phase 1A:
+stabilization of the pure-Dart, transport-independent public contracts. The
+working project name is AlphaX; the repository is `alphax`, but packages must
+not be published to pub.dev until naming clearance is complete.
 
 ## Package philosophy
 
@@ -35,10 +37,13 @@ and must not become mandatory dependencies of `alphax`. Do not create
 
 ## Architecture hypothesis
 
-Phase 0 compares a sensible `dart:io` baseline with libcurl through a small C ABI
-and a Rust HTTP stack through its C ABI. The production choice is an experiment
-outcome, not a preference. No C++ engine is part of the Phase 0 design; introducing
-one would require separate evidence and an accepted ADR.
+Phase 0 compared a sensible `dart:io` baseline with libcurl through a small C ABI
+and a Rust HTTP stack through its C ABI. Those results remain historical
+HTTP/1.1 evidence. AlphaX 1.0 uses Android Cronet/HttpEngine and Apple
+URLSession behind the transport-independent contract, with Dart IO as the
+fallback/baseline. No C++ engine or production Rust transport is part of the
+accepted 1.0 architecture; introducing either would require separate evidence
+and an accepted ADR.
 
 The public Dart API owns requests, responses, middleware, policy, decoding, and
 application integration. Native code owns transport mechanisms, connection
@@ -60,10 +65,10 @@ not change architecture based solely on preference.
 
 ## Explicit non-goals
 
-Phase 0 does not implement a full cache, offline queue, circuit breaker, telemetry
+Phase 1A does not implement a cache, offline queue, circuit breaker, telemetry
 exporter, complete DevTools extension, complete Dio adapter, GraphQL integration,
-REST generation, production Cronet/URLSession transports, custom QUIC/TLS, or a
-full authentication framework.
+REST generation, Cronet/URLSession transports, custom QUIC/TLS, or a full
+authentication framework. Those boundaries are classified in the 1.0 scope.
 
 ## Source documents
 

@@ -6,10 +6,10 @@ and resilience.
 
 ## Status
 
-**Phase 0 — research and transport validation.** AlphaX is pre-release, not
-production-ready, and its API may change. Packages are not intended for production
-adoption or pub.dev publication until AlphaX naming clearance and the transport
-architecture review are complete.
+**Phase 1A — public API stabilization.** AlphaX remains experimental and
+pre-release; its API may change. Packages are not intended for production adoption
+or pub.dev publication until AlphaX naming clearance and the 1.0 release gate are
+complete.
 
 ## Why this exists
 
@@ -34,24 +34,24 @@ Dart application
 alphax (pure Dart contracts and client facade)
       │
       ▼
-transport implementation selected by Phase 0 evidence
+transport implementation selected by the accepted 1.0 platform strategy
       │
-      ├── dart:io baseline
-      ├── libcurl through FFI prototype
-      └── Rust HTTP prototype
+      ├── Dart IO fallback/baseline
+      ├── Android Cronet/HttpEngine (Phase 1C)
+      └── iOS/macOS URLSession (Phase 1D)
 ```
 
 The public contract is transport-independent. Large transfers should prefer bounded
-native buffers and direct native-to-file paths where the selected transport supports
-them. The Phase 0 native prototypes use a small C ABI for libcurl and Rust FFI; no
-C++ engine is part of the current design. See [architecture documentation](docs/architecture/overview.md).
+native buffers and direct native-to-file paths where the selected platform transport
+supports them. No C++ engine or production Rust transport is part of the accepted
+1.0 architecture. See [architecture documentation](docs/architecture/overview.md).
 
 ## Package map
 
-| Package | Purpose | Phase 0 status |
+| Package | Purpose | Current status |
 | --- | --- | --- |
 | [`alphax`](packages/alphax) | Pure Dart request/response, transport, cancellation, metrics, and error contracts | In development |
-| [`alphax_native`](packages/alphax_native) | Experimental native transport boundary | Skeleton only |
+| [`alphax_native`](packages/alphax_native) | Platform transport integration boundary | Skeleton; implementation deferred to Phase 1C/1D |
 | [`alphax_dio`](packages/alphax_dio) | Future Dio `HttpClientAdapter` compatibility layer | Documentation/skeleton only |
 | [`alphax_test`](packages/alphax_test) | Deterministic fake transports and test helpers | In development |
 
@@ -63,18 +63,18 @@ contracts and dependencies are justified.
 
 | Capability | Status |
 | --- | --- |
-| Transport-independent Dart API | In development |
-| HTTP/1.1, HTTP/2, HTTP/3 | Experimental/planned; transport validation required |
-| Streaming and backpressure | Contract under review |
-| Direct file transfer | Planned for transport prototype evaluation |
-| Dio/Retrofit compatibility | Planned; not implemented in Phase 0 |
-| Cache and resilience modules | Planned; deferred |
-| Observability and OpenTelemetry | Planned; deferred |
+| Transport-independent Dart API | Phase 1A in development |
+| HTTP/1.1, HTTP/2, HTTP/3 | 1.0 requirement; platform transports not implemented yet |
+| Streaming and backpressure | Phase 1A contract in development |
+| Direct file transfer | 1.0 contract; transport implementation deferred |
+| Dio/Retrofit compatibility | Optional/post-1.0 scope; not implemented |
+| Cache and resilience modules | Deferred by 1.0 scope |
+| Observability and OpenTelemetry | Deferred by 1.0 scope |
 
 ## Quick start
 
 There is no released AlphaX package or stable installation command yet. During
-Phase 0, use the workspace packages directly and treat the API as experimental.
+Phase 1A, use the workspace packages directly and treat the API as experimental.
 Only released APIs will be documented here after the transport decision.
 
 ## Dio and Retrofit
@@ -93,14 +93,14 @@ conditions. Methodology, raw results, and environment metadata will be linked fr
 
 ## Platform and protocol matrix
 
-| Target | Phase 0 | Long-term intent |
+| Target | 1.0 direction | Current implementation |
 | --- | --- | --- |
-| macOS | Native prototypes and CI | Supported |
-| Linux | Native prototypes and CI | Supported |
-| Android | Deferred | Supported after transport selection |
-| iOS | Deferred | Supported after transport selection |
-| Windows | Deferred | Supported after transport selection |
-| Web | Deferred | Where capabilities permit |
+| macOS | URLSession-backed transport | Phase 1D deferred |
+| Linux | Dart IO fallback initially | Phase 1B deferred |
+| Android | Cronet/HttpEngine-backed transport | Phase 1C deferred |
+| iOS | URLSession-backed transport | Phase 1D deferred |
+| Windows | Dart IO fallback initially | Phase 1B deferred |
+| Web | Where capabilities permit | Explicitly outside current implementation |
 
 The pure-Dart `alphax` package has no Flutter SDK dependency. Platform support is
 claimed only after CI builds and tests the relevant implementation.
