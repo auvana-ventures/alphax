@@ -1,5 +1,5 @@
 /// Immutable, case-insensitive HTTP headers with multi-value support.
-class AlphaXHeaders {
+final class AlphaXHeaders {
   /// Creates an empty header collection.
   const AlphaXHeaders.empty() : _values = const <String, List<String>>{};
 
@@ -14,37 +14,29 @@ class AlphaXHeaders {
     final normalized = <String, List<String>>{};
     for (final entry in entries) {
       final name = _normalizeName(entry.key);
-      final value = entry.value;
-      if (value.contains('\r') || value.contains('\n')) {
-        throw ArgumentError.value(entry.value, entry.key, 'Header values cannot contain newlines');
+      if (entry.value.contains('\r') || entry.value.contains('\n')) {
+        throw ArgumentError.value(
+          entry.value,
+          entry.key,
+          'Header values cannot contain newlines',
+        );
       }
-      normalized.putIfAbsent(name, () => <String>[]).add(value);
+      normalized.putIfAbsent(name, () => <String>[]).add(entry.value);
     }
 
-    final frozen = <String, List<String>>{
-      for (final entry in normalized.entries) entry.key: List<String>.unmodifiable(entry.value),
-    };
-    return AlphaXHeaders._(Map<String, List<String>>.unmodifiable(frozen));
+    return AlphaXHeaders._(
+      Map<String, List<String>>.unmodifiable({
+        for (final entry in normalized.entries) entry.key: List<String>.unmodifiable(entry.value),
+      }),
+    );
   }
 
   final Map<String, List<String>> _values;
 
-  /// Header names in their normalized lowercase form.
+  /// Header names in normalized lowercase form.
   Iterable<String> get names => _values.keys;
 
-  /// Returns whether [name] is present, ignoring case.
-  bool contains(String name) => _values.containsKey(_normalizeName(name));
-
-  /// Returns all values for [name], ignoring case.
-  List<String> values(String name) => _values[_normalizeName(name)] ?? const <String>[];
-
-  /// Returns the values joined according to ordinary HTTP header semantics.
-  String? operator [](String name) {
-    final headerValues = values(name);
-    return headerValues.isEmpty ? null : headerValues.join(', ');
-  }
-
-  /// Returns entries with one entry for every header value.
+  /// Header entries with one entry for each value.
   Iterable<MapEntry<String, String>> get entries sync* {
     for (final entry in _values.entries) {
       for (final value in entry.value) {
@@ -53,7 +45,19 @@ class AlphaXHeaders {
     }
   }
 
-  /// Returns a single-value map with repeated values joined by `, `.
+  /// Whether [name] is present, ignoring case.
+  bool contains(String name) => _values.containsKey(_normalizeName(name));
+
+  /// Returns all values for [name], ignoring case.
+  List<String> values(String name) => _values[_normalizeName(name)] ?? const <String>[];
+
+  /// Returns repeated values joined using ordinary HTTP comma semantics.
+  String? operator [](String name) {
+    final headerValues = values(name);
+    return headerValues.isEmpty ? null : headerValues.join(', ');
+  }
+
+  /// Returns a normalized single-value map.
   Map<String, String> toMap() => Map<String, String>.unmodifiable({
     for (final name in names) name: this[name]!,
   });
@@ -66,9 +70,8 @@ class AlphaXHeaders {
   /// Returns a new collection with all values for [name] replaced by [value].
   AlphaXHeaders set(String name, String value) {
     final normalizedName = _normalizeName(name);
-    final retained = entries.where((entry) => entry.key != normalizedName);
     return AlphaXHeaders.fromEntries(<MapEntry<String, String>>[
-      ...retained,
+      ...entries.where((entry) => entry.key != normalizedName),
       MapEntry<String, String>(normalizedName, value),
     ]);
   }

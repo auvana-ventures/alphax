@@ -1,21 +1,32 @@
+import 'dart:async';
+
 import 'package:alphax/alphax.dart';
 
 /// Builds a fake response for a request.
-typedef AlphaXResponseBuilder = AlphaXResponse Function(AlphaXRequest request);
+typedef AlphaXResponseBuilder = FutureOr<AlphaXResponse> Function(AlphaXRequest request);
 
 /// Builds a fake streaming event sequence for a request.
 typedef AlphaXStreamBuilder = Stream<AlphaXEvent> Function(AlphaXRequest request);
 
-/// Deterministic transport for ordinary application and contract tests.
-final class FakeAlphaXTransport implements AlphaXTransport {
-  /// Creates a fake transport with optional response, stream, and error behavior.
+/// Deterministic in-memory transport for ordinary application and contract tests.
+final class FakeAlphaXTransport extends AlphaXTransport {
+  /// Creates a fake transport with optional response, stream, delay, and failure behavior.
   FakeAlphaXTransport({
     AlphaXResponse? response,
     this.responseBuilder,
     this.streamBuilder,
     this.error,
+    this.errorStackTrace,
     this.delay,
-  }) : response = response ?? AlphaXResponse(statusCode: 200, bodyBytes: const <int>[]);
+    AlphaXCapabilities? capabilities,
+  }) : response = response ?? AlphaXResponse(statusCode: 200),
+       _capabilities =
+           capabilities ??
+           const AlphaXCapabilities(
+             http11: AlphaXSupport.supported,
+             streamingUpload: AlphaXSupport.supported,
+             streamingDownload: AlphaXSupport.supported,
+           );
 
   /// Default response returned by [send].
   AlphaXResponse response;
@@ -23,38 +34,44 @@ final class FakeAlphaXTransport implements AlphaXTransport {
   /// Optional response factory overriding [response].
   final AlphaXResponseBuilder? responseBuilder;
 
-  /// Optional stream factory used by [sendStreaming].
+  /// Optional event factory overriding the default response event sequence.
   final AlphaXStreamBuilder? streamBuilder;
 
-  /// Optional error thrown by both operations.
+  /// Optional error thrown by operations.
   final Object? error;
 
-  /// Optional deterministic delay before completing an operation.
+  /// Optional stack trace paired with [error].
+  final StackTrace? errorStackTrace;
+
+  /// Optional deterministic delay before an operation produces output.
   final Duration? delay;
 
-  /// Requests received by this transport in order.
-  final List<AlphaXRequest> requests = <AlphaXRequest>[];
+  final AlphaXCapabilities _capabilities;
+  final List<AlphaXRequest> _requests = <AlphaXRequest>[];
+  bool _closed = false;
+
+  /// Requests received in order.
+  List<AlphaXRequest> get requests => List<AlphaXRequest>.unmodifiable(_requests);
 
   /// Whether [close] has been called.
-  bool isClosed = false;
+  bool get isClosed => _closed;
+
+  @override
+  AlphaXCapabilities get capabilities => _capabilities;
 
   @override
   Future<AlphaXResponse> send(AlphaXRequest request) async {
     _record(request);
-    await _wait();
-    if (error != null) {
-      throw error!;
-    }
-    return responseBuilder?.call(request) ?? response;
+    await _wait(request.cancellationToken);
+    _throwConfiguredError();
+    return await (responseBuilder?.call(request) ?? response);
   }
 
   @override
   Stream<AlphaXEvent> sendStreaming(AlphaXRequest request) async* {
     _record(request);
-    await _wait();
-    if (error != null) {
-      throw error!;
-    }
+    await _wait(request.cancellationToken);
+    _throwConfiguredError();
     final builder = streamBuilder;
     if (builder != null) {
       yield* builder(request);
@@ -65,32 +82,56 @@ final class FakeAlphaXTransport implements AlphaXTransport {
       statusCode: response.statusCode,
       headers: response.headers,
       protocol: response.protocol,
+      requestedProtocol: response.requestedProtocol,
+      protocolFallback: response.protocolFallback,
+      redirects: response.redirects,
     );
-    if (response.bodyBytes.isNotEmpty) {
-      yield AlphaXResponseChunk(response.bodyBytes);
+    final bytes = response.bufferedBodyBytes;
+    if (bytes != null && bytes.isNotEmpty) {
+      yield AlphaXResponseChunk(bytes);
+    } else if (bytes == null) {
+      yield* response.stream.map(AlphaXResponseChunk.new);
     }
     yield AlphaXResponseCompleted(
       metrics: response.metrics,
-      bytesReceived: response.bodyBytes.length,
+      bytesReceived: bytes?.length ?? response.metrics.downloadedBytes ?? 0,
     );
   }
 
   @override
   Future<void> close() async {
-    isClosed = true;
+    _closed = true;
   }
 
   void _record(AlphaXRequest request) {
-    if (isClosed) {
-      throw StateError('FakeAlphaXTransport is closed');
+    if (_closed) {
+      throw const AlphaXClientClosedException('FakeAlphaXTransport is closed');
     }
-    requests.add(request);
+    _requests.add(request);
   }
 
-  Future<void> _wait() async {
+  Future<void> _wait(AlphaXCancellationToken? token) async {
+    token?.throwIfCancelled();
     final wait = delay;
-    if (wait != null) {
+    if (wait == null) {
+      token?.throwIfCancelled();
+      return;
+    }
+    if (token == null) {
       await Future<void>.delayed(wait);
+    } else {
+      await Future.any<void>(<Future<void>>[
+        Future<void>.delayed(wait),
+        token.whenCancelled,
+      ]);
+      token.throwIfCancelled();
+    }
+  }
+
+  void _throwConfiguredError() {
+    final configured = error;
+    if (configured != null) {
+      Error.throwWithStackTrace(configured, errorStackTrace ?? StackTrace.current);
     }
   }
 }

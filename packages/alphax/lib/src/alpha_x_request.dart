@@ -1,9 +1,13 @@
 import 'alpha_x_body.dart';
 import 'alpha_x_cancellation.dart';
 import 'alpha_x_headers.dart';
+import 'alpha_x_method.dart';
+import 'alpha_x_progress.dart';
+import 'alpha_x_protocol.dart';
+import 'alpha_x_redirect.dart';
 import 'alpha_x_timeout.dart';
 
-/// Scheduling priority hint for a request.
+/// Optional scheduling hint retained as a transport-neutral policy value.
 enum AlphaXPriority {
   /// Lowest scheduling priority.
   low,
@@ -15,50 +19,102 @@ enum AlphaXPriority {
   high,
 }
 
-/// Immutable transport-independent HTTP request description.
-class AlphaXRequest {
-  /// Creates a request for an absolute HTTP or HTTPS [uri].
+/// Immutable request description passed to every AlphaX transport.
+final class AlphaXRequest {
+  /// Creates an absolute HTTP or HTTPS request.
   AlphaXRequest({
-    required String method,
+    required this.method,
     required this.uri,
     this.headers = const AlphaXHeaders.empty(),
-    this.body,
-    this.timeout,
+    this.body = const AlphaXEmptyBody(),
+    AlphaXTimeouts? timeout,
+    AlphaXTimeouts? timeouts,
     this.cancellationToken,
+    this.protocolPreference = AlphaXProtocolPreference.auto,
+    this.redirectPolicy = const AlphaXRedirectPolicy(),
     this.priority = AlphaXPriority.normal,
-  }) : method = _normalizeMethod(method) {
+    this.onUploadProgress,
+    this.onDownloadProgress,
+  }) : timeouts = _resolveTimeouts(timeout, timeouts) {
     if ((uri.scheme != 'http' && uri.scheme != 'https') || uri.host.isEmpty) {
       throw ArgumentError.value(uri, 'uri', 'Requests require an absolute HTTP or HTTPS URI');
     }
-    timeout?.validate();
+    this.timeouts.validate();
   }
 
-  /// Uppercase HTTP method token.
-  final String method;
+  /// HTTP method.
+  final HttpMethod method;
 
-  /// Absolute request URI.
+  /// Absolute HTTP or HTTPS URI, including its query parameters.
   final Uri uri;
 
   /// Immutable request headers.
   final AlphaXHeaders headers;
 
-  /// Optional request body.
-  final AlphaXBody? body;
+  /// Request body. Empty requests use [AlphaXEmptyBody].
+  final AlphaXBody body;
 
-  /// Optional timeout configuration.
-  final AlphaXTimeout? timeout;
+  /// Timeout configuration.
+  final AlphaXTimeouts timeouts;
 
-  /// Optional caller cancellation token.
+  /// Compatibility alias for the singular Phase 0 name.
+  AlphaXTimeouts get timeout => timeouts;
+
+  /// Caller-controlled cancellation source.
   final AlphaXCancellationToken? cancellationToken;
+
+  /// Preferred protocol; it is not the negotiated protocol.
+  final AlphaXProtocolPreference protocolPreference;
+
+  /// Redirect policy.
+  final AlphaXRedirectPolicy redirectPolicy;
 
   /// Optional scheduling hint.
   final AlphaXPriority priority;
 
-  static String _normalizeMethod(String method) {
-    final normalized = method.trim().toUpperCase();
-    if (!RegExp(r"^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$").hasMatch(normalized)) {
-      throw ArgumentError.value(method, 'method', 'Method must be a valid HTTP token');
+  /// Upload progress callback, when the transport supports it.
+  final AlphaXProgressCallback? onUploadProgress;
+
+  /// Download progress callback, when the transport supports it.
+  final AlphaXProgressCallback? onDownloadProgress;
+
+  /// Whether this request has a non-empty body.
+  bool get hasBody => body.contentLength != 0 || body is! AlphaXEmptyBody;
+
+  /// Returns a request with selected immutable values replaced.
+  AlphaXRequest copyWith({
+    HttpMethod? method,
+    Uri? uri,
+    AlphaXHeaders? headers,
+    AlphaXBody? body,
+    AlphaXTimeouts? timeouts,
+    AlphaXCancellationToken? cancellationToken,
+    AlphaXProtocolPreference? protocolPreference,
+    AlphaXRedirectPolicy? redirectPolicy,
+    AlphaXPriority? priority,
+    AlphaXProgressCallback? onUploadProgress,
+    AlphaXProgressCallback? onDownloadProgress,
+  }) => AlphaXRequest(
+    method: method ?? this.method,
+    uri: uri ?? this.uri,
+    headers: headers ?? this.headers,
+    body: body ?? this.body,
+    timeouts: timeouts ?? this.timeouts,
+    cancellationToken: cancellationToken ?? this.cancellationToken,
+    protocolPreference: protocolPreference ?? this.protocolPreference,
+    redirectPolicy: redirectPolicy ?? this.redirectPolicy,
+    priority: priority ?? this.priority,
+    onUploadProgress: onUploadProgress ?? this.onUploadProgress,
+    onDownloadProgress: onDownloadProgress ?? this.onDownloadProgress,
+  );
+
+  static AlphaXTimeouts _resolveTimeouts(
+    AlphaXTimeouts? timeout,
+    AlphaXTimeouts? timeouts,
+  ) {
+    if (timeout != null && timeouts != null && timeout != timeouts) {
+      throw ArgumentError('Specify either timeout or timeouts, not both');
     }
-    return normalized;
+    return timeouts ?? timeout ?? const AlphaXTimeouts();
   }
 }

@@ -2,22 +2,25 @@ import 'dart:async';
 
 import 'alpha_x_errors.dart';
 
-/// A caller-controlled cancellation token for a request or stream.
-class AlphaXCancellationToken {
-  /// Creates an active cancellation token.
+/// Idempotent caller-controlled cancellation source.
+final class AlphaXCancellationToken {
+  /// Creates an active token.
   AlphaXCancellationToken();
 
   bool _isCancelled = false;
-  String? _reason;
+  Object? _reason;
   Completer<void>? _completer;
 
   /// Whether cancellation has been requested.
   bool get isCancelled => _isCancelled;
 
-  /// Optional caller-provided cancellation reason.
-  String? get reason => _reason;
+  /// Original cancellation reason, when supplied.
+  Object? get cancellationReason => _reason;
 
-  /// Completes when cancellation is requested.
+  /// String representation retained for Phase 0 source compatibility.
+  String? get reason => _reason?.toString();
+
+  /// Completes once when cancellation is requested.
   Future<void> get whenCancelled {
     if (_isCancelled) {
       return Future<void>.value();
@@ -25,8 +28,8 @@ class AlphaXCancellationToken {
     return (_completer ??= Completer<void>()).future;
   }
 
-  /// Requests cancellation. Repeated calls have no effect.
-  void cancel([String reason = 'The operation was cancelled']) {
+  /// Requests cancellation. Repeated calls are no-ops.
+  void cancel([Object? reason]) {
     if (_isCancelled) {
       return;
     }
@@ -35,10 +38,13 @@ class AlphaXCancellationToken {
     _completer?.complete();
   }
 
-  /// Throws [AlphaXCancelledException] if cancellation has been requested.
+  /// Throws a normalized cancellation exception when already cancelled.
   void throwIfCancelled() {
     if (_isCancelled) {
-      throw AlphaXCancelledException(_reason ?? 'The operation was cancelled');
+      throw AlphaXCancelledException(
+        _reason?.toString() ?? 'The operation was cancelled',
+        reason: _reason,
+      );
     }
   }
 }

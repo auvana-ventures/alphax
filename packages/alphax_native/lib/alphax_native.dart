@@ -3,16 +3,19 @@ library;
 
 import 'package:alphax/alphax.dart';
 
-/// Placeholder transport used until Phase 0 selects a native implementation.
-final class ExperimentalAlphaXNativeTransport implements AlphaXTransport {
+/// Placeholder transport used until a Phase 1 platform adapter is implemented.
+final class ExperimentalAlphaXNativeTransport extends AlphaXTransport {
   /// Creates a placeholder native transport.
   const ExperimentalAlphaXNativeTransport();
+
+  @override
+  AlphaXCapabilities get capabilities => const AlphaXCapabilities.unknown();
 
   @override
   Future<AlphaXResponse> send(AlphaXRequest request) {
     return Future<AlphaXResponse>.error(
       const AlphaXNativeTransportException(
-        'The production native transport is not selected during Phase 0',
+        'The platform-native transport is not implemented yet',
       ),
     );
   }
@@ -20,7 +23,7 @@ final class ExperimentalAlphaXNativeTransport implements AlphaXTransport {
   @override
   Stream<AlphaXEvent> sendStreaming(AlphaXRequest request) => Stream<AlphaXEvent>.error(
     const AlphaXNativeTransportException(
-      'The production native transport is not selected during Phase 0',
+      'The platform-native transport is not implemented yet',
     ),
   );
 

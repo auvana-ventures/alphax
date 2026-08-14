@@ -1,42 +1,161 @@
-# Transport Contract
+# AlphaX Phase 1A Transport Contract
 
-The Phase 0 public contract is intentionally small and transport-independent.
+Status: Phase 1A contract implemented; transport adapters are not implemented
+yet.
+
+`packages/alphax` is pure Dart. The public contract is the seam that Dart IO,
+Android Cronet/HttpEngine, and Apple URLSession adapters must implement. It does
+not expose any native task, socket, file descriptor, FFI, or platform-channel
+type, and it makes no claim that H2/H3 is currently available before those
+adapters are validated.
+
+## Transport surface
 
 ```dart
-abstract interface class AlphaXTransport {
+abstract class AlphaXTransport {
+  AlphaXCapabilities get capabilities;
+
   Future<AlphaXResponse> send(AlphaXRequest request);
 
   Stream<AlphaXEvent> sendStreaming(AlphaXRequest request);
+
+  Future<AlphaXTransferResult> download(
+    AlphaXRequest request,
+    AlphaXFileTarget target,
+  );
+
+  Future<AlphaXTransferResult> upload(
+    AlphaXRequest request,
+    AlphaXFileSource source,
+  );
 
   Future<void> close();
 }
 ```
 
-## Initial request surface
+The base class supplies bounded stream-to-file and file-to-request defaults.
+Platform transports may override those methods for native file-backed transfer.
+Implementations must retain one reusable client/session policy, reject new work
+after close, cancel in-flight work during shutdown, and make repeated `close()`
+calls harmless.
 
-- Absolute HTTP/HTTPS URI.
-- Standard HTTP method token, normalized to uppercase.
-- Case-insensitive, multi-value headers.
-- Byte or text request bodies.
-- Optional total/connect/read timeout configuration.
-- Optional cancellation token and priority.
+## Request and response
 
-## Initial response surface
+`AlphaXRequest` is immutable and contains:
 
-- Status code.
-- Case-insensitive, multi-value headers.
-- Immutable response bytes and UTF-8 text convenience access.
-- Negotiated protocol when known.
-- Nullable request metrics; unsupported metrics remain absent.
+- `HttpMethod`: GET, POST, PUT, PATCH, DELETE, HEAD, or OPTIONS;
+- an absolute HTTP/HTTPS `Uri`, whose query parameters remain part of the URI;
+- immutable case-insensitive, multi-value `AlphaXHeaders`;
+- an `AlphaXBody` request source;
+- `AlphaXTimeouts`, cancellation, redirect policy, and protocol preference;
+- optional upload/download progress callbacks.
 
-## Streaming events
+`AlphaXResponse` contains status, immutable headers, an
+`AlphaXResponseBody`, metrics, redirects, the actual `AlphaXProtocol`, and
+optional requested-protocol/fallback metadata. The actual protocol is never
+derived from capabilities or from the request preference.
 
-Streaming emits response-start metadata, bounded body chunks, and a completion event.
-Transport failures are emitted as stream errors using the public `AlphaXException`
-hierarchy. A future production contract must document pause/resume propagation and
-consumer cancellation before native streaming is stabilized.
+## Body ownership and replay
 
-## Deliberate omissions
+Request factories cover empty, bytes, text, JSON, stream, file, and multipart
+bodies. Byte/text/JSON bodies are replayable and own immutable encoded bytes.
+`AlphaXStreamBody` is single-consumption by default. A file source declares
+whether it is replayable. Multipart bodies stream parts sequentially and are
+replayable only when every part is replayable.
 
-The Phase 0 contract does not stabilize multipart, cookies, redirects, typed model
-decoding, retries, caching, WebSockets, SSE, or the complete Dio adapter.
+Response byte bodies can be read repeatedly. A streamed response body is
+single-consumption: reading `stream`, `readAsBytes`, `readAsString`, or
+`readAsJson` consumes the producer. A transport must propagate producer errors
+and must not silently buffer a complete response merely to satisfy the API.
+
+## Streaming lifecycle
+
+`sendStreaming` emits:
+
+1. `AlphaXResponseStarted` with status, headers, actual protocol, and redirects;
+2. zero or more bounded `AlphaXResponseChunk` values;
+3. one `AlphaXResponseCompleted` value with final metrics and byte count.
+
+The Dart stream subscription owns consumer pause/resume and cancellation. Native
+adapters must connect those signals to their bounded producer queue. The public
+contract does not prescribe a credit-window implementation, but native buffering
+must remain bounded and cancellation must release the body and transport
+resources. A stream error is terminal and must use the normalized exception
+taxonomy when it originates in the transport.
+
+## Protocol terminology
+
+`AlphaXProtocolPreference` is caller intent (`auto`, H1, H2, or H3 preference).
+`AlphaXProtocol` is the actual result (`http10`, `http11`, `http2`, `http3`, or
+`unknown`). `AlphaXProtocolFallback` is present when a preferred protocol was
+not negotiated. A capability such as H3 support is never reported as an actual
+H3 response.
+
+## Capability discovery
+
+`AlphaXCapabilities` returns `supported`, `unsupported`, or `unknown` for H1,
+H2, H3, streaming upload/download, native file paths, progress, proxy
+configuration, certificate pinning, mTLS, connection migration, background
+transfer, and negotiated-protocol reporting. Callers may inspect capabilities
+before requesting an optional behavior. If a capability is unavailable at
+runtime, the transport throws `AlphaXUnsupportedCapabilityException`; it does
+not silently emulate a materially different semantic.
+
+## Cancellation and timeouts
+
+`AlphaXCancellationToken.cancel` is idempotent. Cancellation is defined for
+pre-start, connection/request setup, upload, response wait, response streaming,
+file download, and client shutdown. A cancelled operation completes with
+`AlphaXCancellationException` (the older `AlphaXCancelledException` spelling is
+retained as a compatibility subclass), and resources are released.
+
+The portable timeout categories are:
+
+- `connect`: DNS/socket/TLS establishment;
+- `request`: request dispatch, including upload, until response headers;
+- `read`: inactivity between response body chunks;
+- `overall`: end-to-end operation through response or file completion.
+
+Adapters may leave a category unset when the platform cannot map it reliably.
+They must document provider-specific granularity rather than fabricate a phase.
+
+## Errors
+
+The primary public type is `AlphaXException` and its normalized subclasses:
+DNS, connection, TLS, timeout, cancellation, protocol, redirect, request-body,
+response-body, unsupported-capability, and transport/internal. Native errors
+such as `SocketException`, `NSError`, `CronetException`, or an FFI code may be
+retained as an optional diagnostic `cause`; they are not the application-facing
+category.
+
+## File transfers and progress
+
+Applications use `AlphaXFileSource`, `AlphaXFileTarget`, and `AlphaXFileSink`:
+
+```dart
+await client.download(uri, to: target);
+await client.upload(uri, from: source);
+```
+
+The same calls may be implemented as Dart stream → file, native transport →
+file, or file → native transport. No path, descriptor, URLSession task,
+Cronet object, or native handle is required by the public API. Progress is
+optional and capability-aware; unavailable callbacks must not be simulated with
+invented byte counts.
+
+## Middleware
+
+Middleware is ordered as supplied, enters in list order, and unwinds in reverse
+order for response or error handling. It can asynchronously mutate a request by
+passing `copyWith`, short-circuit, or transform an error in `try`/`catch`.
+Streaming and file operations have corresponding next handlers. Middleware must
+not invoke a single-use body twice, and the chain is per operation so concurrent
+requests do not share mutable request state. Retry, authentication, cache,
+telemetry, and resilience behavior are not implemented by this foundation.
+
+## Metrics
+
+`AlphaXRequestMetrics` records only values a transport can measure reliably:
+DNS/connect/TLS/TTFB/transfer/total durations, uploaded/downloaded bytes,
+negotiated protocol, redirect count, and connection reuse. Missing values stay
+null or unknown. Transport-specific diagnostics belong outside the core model.

@@ -5,22 +5,25 @@ void main() {
   group('AlphaXRequest', () {
     test('normalizes method and validates the URI', () {
       final request = AlphaXRequest(
-        method: ' post ',
+        method: HttpMethod.post,
         uri: Uri.parse('https://example.com/items'),
         body: AlphaXBody.text('hello'),
       );
 
-      expect(request.method, 'POST');
-      expect(request.body?.contentLength, 5);
+      expect(request.method, HttpMethod.post);
+      expect(request.body.contentLength, 5);
     });
 
     test('rejects relative and non-HTTP URIs', () {
       expect(
-        () => AlphaXRequest(method: 'GET', uri: Uri.parse('/items')),
+        () => AlphaXRequest(method: HttpMethod.get, uri: Uri.parse('/items')),
         throwsArgumentError,
       );
       expect(
-        () => AlphaXRequest(method: 'GET', uri: Uri.parse('ftp://example.com/items')),
+        () => AlphaXRequest(
+          method: HttpMethod.get,
+          uri: Uri.parse('ftp://example.com/items'),
+        ),
         throwsArgumentError,
       );
     });
@@ -28,7 +31,7 @@ void main() {
     test('rejects non-positive timeouts', () {
       expect(
         () => AlphaXRequest(
-          method: 'GET',
+          method: HttpMethod.get,
           uri: Uri.parse('https://example.com'),
           timeout: const AlphaXTimeout(total: Duration.zero),
         ),

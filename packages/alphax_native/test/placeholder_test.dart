@@ -7,7 +7,9 @@ void main() {
     const transport = ExperimentalAlphaXNativeTransport();
 
     await expectLater(
-      transport.send(AlphaXRequest(method: 'GET', uri: Uri.parse('https://example.com'))),
+      transport.send(
+        AlphaXRequest(method: HttpMethod.get, uri: Uri.parse('https://example.com')),
+      ),
       throwsA(isA<AlphaXNativeTransportException>()),
     );
   });

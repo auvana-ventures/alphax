@@ -1,7 +1,7 @@
 # alphax_native
 
-Experimental native transport boundary for AlphaX.
+Platform transport integration boundary for AlphaX.
 
-This package is intentionally not a production transport and is not published
-during Phase 0. The native implementation will be selected only after equivalent
-macOS/Linux measurements of `dart:io`, libcurl/FFI, and Rust reqwest/hyper.
+This package remains a skeleton during Phase 1A. It must not leak Cronet,
+URLSession, FFI, C++, libcurl, or Rust types into `alphax`; platform adapter work
+starts only after the reviewed Phase 1A contract.

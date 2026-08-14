@@ -1,9 +1,15 @@
 import 'package:alphax/alphax.dart';
 import 'package:test/test.dart';
 
-final class _RecordingTransport implements AlphaXTransport {
+final class _RecordingTransport extends AlphaXTransport {
   AlphaXRequest? request;
   bool closed = false;
+
+  @override
+  AlphaXCapabilities get capabilities => const AlphaXCapabilities(
+    http11: AlphaXSupport.supported,
+    streamingDownload: AlphaXSupport.supported,
+  );
 
   @override
   Future<AlphaXResponse> send(AlphaXRequest request) async {
@@ -14,7 +20,7 @@ final class _RecordingTransport implements AlphaXTransport {
   @override
   Stream<AlphaXEvent> sendStreaming(AlphaXRequest request) async* {
     this.request = request;
-    yield const AlphaXResponseStarted(statusCode: 200);
+    yield AlphaXResponseStarted(statusCode: 200);
     yield const AlphaXResponseCompleted(bytesReceived: 0);
   }
 
@@ -32,7 +38,7 @@ void main() {
     final response = await client.get(Uri.parse('https://example.com/items'));
 
     expect(response.statusCode, 204);
-    expect(transport.request?.method, 'GET');
+    expect(transport.request?.method, HttpMethod.get);
     expect(transport.request?.uri.path, '/items');
   });
 
@@ -46,6 +52,25 @@ void main() {
       throwsA(isA<AlphaXCancelledException>()),
     );
     expect(transport.request, isNull);
+  });
+
+  test('convenience methods expose the required HTTP surface', () async {
+    final transport = _RecordingTransport();
+    final client = AlphaXClient(transport: transport);
+    final uri = Uri.parse('https://example.com');
+
+    await client.post(uri);
+    expect(transport.request?.method, HttpMethod.post);
+    await client.put(uri);
+    expect(transport.request?.method, HttpMethod.put);
+    await client.patch(uri);
+    expect(transport.request?.method, HttpMethod.patch);
+    await client.delete(uri);
+    expect(transport.request?.method, HttpMethod.delete);
+    await client.head(uri);
+    expect(transport.request?.method, HttpMethod.head);
+    await client.options(uri);
+    expect(transport.request?.method, HttpMethod.options);
   });
 
   test('client closes the transport', () async {

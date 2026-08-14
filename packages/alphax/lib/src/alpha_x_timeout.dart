@@ -1,26 +1,54 @@
-/// Optional request timeout configuration.
-class AlphaXTimeout {
-  /// Creates timeout values for the total request, connection, and read phases.
-  const AlphaXTimeout({this.total, this.connect, this.read});
+/// Timeout phase understood by the AlphaX public contract.
+enum AlphaXTimeoutKind {
+  /// DNS, socket, and TLS connection establishment.
+  connect,
 
-  /// Maximum total request duration, when configured.
-  final Duration? total;
+  /// Request dispatch through response headers, including request upload.
+  request,
 
-  /// Maximum connection establishment duration, when configured.
+  /// Maximum inactivity between response body chunks.
+  read,
+
+  /// End-to-end request lifetime through response completion.
+  overall,
+}
+
+/// Optional timeout configuration shared by all AlphaX transports.
+final class AlphaXTimeouts {
+  /// Creates timeout values for phases that a transport can map reliably.
+  const AlphaXTimeouts({
+    this.connect,
+    this.request,
+    this.read,
+    Duration? overall,
+    Duration? total,
+  }) : overall = overall ?? total;
+
+  /// Maximum connection-establishment duration.
   final Duration? connect;
 
-  /// Maximum read/inactivity duration, when configured.
+  /// Maximum time until response headers after request dispatch.
+  final Duration? request;
+
+  /// Maximum response-body inactivity interval.
   final Duration? read;
 
-  /// Whether no timeout value is configured.
-  bool get isEmpty => total == null && connect == null && read == null;
+  /// Maximum end-to-end request duration.
+  final Duration? overall;
+
+  /// Compatibility alias for the former total-timeout name.
+  Duration? get total => overall;
+
+  /// Whether no timeout is configured.
+  bool get isEmpty => connect == null && request == null && read == null && overall == null;
 
   /// Validates that configured durations are positive.
   void validate() {
     final values = <String, Duration?>{
-      'total': total,
       'connect': connect,
+      'request': request,
       'read': read,
+      'overall': overall,
     };
     for (final entry in values.entries) {
       final value = entry.value;
@@ -29,4 +57,20 @@ class AlphaXTimeout {
       }
     }
   }
+
+  /// Returns a copy with selected values replaced.
+  AlphaXTimeouts copyWith({
+    Duration? connect,
+    Duration? request,
+    Duration? read,
+    Duration? overall,
+  }) => AlphaXTimeouts(
+    connect: connect ?? this.connect,
+    request: request ?? this.request,
+    read: read ?? this.read,
+    overall: overall ?? this.overall,
+  );
 }
+
+/// Compatibility alias for the Phase 0 timeout name.
+typedef AlphaXTimeout = AlphaXTimeouts;
