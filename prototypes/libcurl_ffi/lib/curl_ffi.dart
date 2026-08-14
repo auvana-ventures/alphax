@@ -225,8 +225,31 @@ final class CurlFfiClient implements BenchmarkTransport {
     String path, {
     int streamChunkSize = 64 * 1024,
     int streamWindowChunks = 4,
-  }) : _library = DynamicLibrary.open(path),
-       streamChunkSize = streamChunkSize,
+  }) : this._fromLibrary(
+         DynamicLibrary.open(path),
+         streamChunkSize: streamChunkSize,
+         streamWindowChunks: streamWindowChunks,
+       );
+
+  /// Resolves the bridge symbols exported by the current process.
+  ///
+  /// This is used only by the benchmark mobile runner, where iOS links the
+  /// existing C ABI bridge into the application rather than loading a
+  /// standalone dynamic library.
+  CurlFfiClient.fromProcess({
+    int streamChunkSize = 64 * 1024,
+    int streamWindowChunks = 4,
+  }) : this._fromLibrary(
+         DynamicLibrary.process(),
+         streamChunkSize: streamChunkSize,
+         streamWindowChunks: streamWindowChunks,
+       );
+
+  CurlFfiClient._fromLibrary(
+    this._library, {
+    required int streamChunkSize,
+    required int streamWindowChunks,
+  }) : streamChunkSize = streamChunkSize,
        streamWindowChunks = streamWindowChunks {
     _validateStreamConfig(streamChunkSize, streamWindowChunks);
     _get = _library.lookupFunction<_GetNative, _GetDart>('ax_curl_get');

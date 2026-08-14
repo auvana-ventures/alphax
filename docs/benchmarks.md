@@ -1,4 +1,10 @@
-# Benchmark Plan
+# Historical Phase 0 Benchmark Plan
+
+Phase 0 research and transport validation is complete. The reports below are
+historical evidence; the accepted 1.0 platform strategy is recorded in
+[ADR-0004](decisions/0004-platform-native-mobile-transports.md). No result in
+this document is a claim that the Phase 1A API or platform transports are already
+implemented.
 
 Phase 0 benchmarks answer whether a native transport provides a worthwhile overall
 tradeoff for Dart and Flutter. They are not marketing material.

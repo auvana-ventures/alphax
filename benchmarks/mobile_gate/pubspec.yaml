@@ -1,0 +1,28 @@
+name: alphax_mobile_gate
+description: Benchmark-only physical-device sanity gate for AlphaX Phase 0.
+publish_to: none
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.8.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  alphax_benchmark_client:
+    path: ../client
+  alphax_dart_io_prototype:
+    path: ../../prototypes/dart_io
+  alphax_libcurl_ffi_prototype:
+    path: ../../prototypes/libcurl_ffi
+  alphax_rust_http_ffi_prototype:
+    path: ../../prototypes/rust_http
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

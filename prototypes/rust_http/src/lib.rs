@@ -497,6 +497,19 @@ async fn run_request_inner(
     if cancellation.is_cancelled() {
         return cancelled_result(started);
     }
+    if let Some(mut file) = file {
+        // Tokio documents that dropping a File with in-flight operations can
+        // defer the OS close. The completion callback is also the direct-file
+        // completion boundary, so flush before returning the result.
+        if file.flush().await.is_err() {
+            return error_result_with_status(
+                started,
+                status_code,
+                time_to_first_byte_ms,
+                ERROR_WRITE,
+            );
+        }
+    }
     AxRustResult {
         status_code,
         bytes_received,

@@ -6,6 +6,8 @@ import 'package:test/test.dart';
 
 Uri uriFor(Uri base, String path) => base.replace(path: path);
 
+const _directDownloadBytes = 32 * 1024 * 1024;
+
 void main() {
   final libraryPath = Platform.environment['ALPHAX_RUST_LIBRARY'];
   if (libraryPath == null || libraryPath.isEmpty) {
@@ -54,6 +56,15 @@ void main() {
           });
           request.response.headers.set('x-uploaded', '${body.length}');
           request.response.write('${body.length}');
+        case '/large':
+          request.response.headers.contentLength = _directDownloadBytes;
+          for (var offset = 0; offset < _directDownloadBytes; offset += 64 * 1024) {
+            final length = (_directDownloadBytes - offset).clamp(0, 64 * 1024);
+            request.response.add(
+              List<int>.generate(length, (index) => (offset + index) % 251),
+            );
+            await request.response.flush();
+          }
         case '/post':
           final body = await request.fold<List<int>>(<int>[], (bytes, chunk) {
             bytes.addAll(chunk);
@@ -127,6 +138,20 @@ void main() {
     expect(download.bytesTransferred, 64);
     expect(upload.statusCode, 200);
     expect(upload.bytesTransferred, 4);
+  });
+
+  test('direct download completion observes all native file writes', () async {
+    final downloadPath = '${tempDirectory.path}/large-download.bin';
+    for (var iteration = 0; iteration < 5; iteration++) {
+      final download = await transport.downloadFile(
+        uriFor(baseUri, '/large'),
+        downloadPath,
+      );
+
+      expect(download.statusCode, 200);
+      expect(download.bytesTransferred, _directDownloadBytes);
+      expect(await File(downloadPath).length(), _directDownloadBytes);
+    }
   });
 
   test('bounds native streaming with credit acknowledgments', () async {

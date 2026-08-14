@@ -26,8 +26,12 @@ __pycache__/
 **/Pods/
 **/.symlinks/
 **/Flutter/ephemeral/
+**/Flutter/Generated.xcconfig
+**/Flutter/flutter_export_environment.sh
 DerivedData/
 **/DerivedData/
+**/xcuserdata/
+**/*.xcuserstate
 *.xcarchive
 android/local.properties
 android/key.properties

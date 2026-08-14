@@ -149,8 +149,31 @@ final class RustFfiClient implements BenchmarkTransport {
     String path, {
     int streamChunkSize = 64 * 1024,
     int streamWindowChunks = 4,
-  }) : _library = DynamicLibrary.open(path),
-       streamChunkSize = streamChunkSize,
+  }) : this._fromLibrary(
+         DynamicLibrary.open(path),
+         streamChunkSize: streamChunkSize,
+         streamWindowChunks: streamWindowChunks,
+       );
+
+  /// Resolves the bridge symbols exported by the current process.
+  ///
+  /// This is used only by the benchmark mobile runner, where iOS links the
+  /// existing Rust C ABI bridge into the application rather than loading a
+  /// standalone dynamic library.
+  RustFfiClient.fromProcess({
+    int streamChunkSize = 64 * 1024,
+    int streamWindowChunks = 4,
+  }) : this._fromLibrary(
+         DynamicLibrary.process(),
+         streamChunkSize: streamChunkSize,
+         streamWindowChunks: streamWindowChunks,
+       );
+
+  RustFfiClient._fromLibrary(
+    this._library, {
+    required int streamChunkSize,
+    required int streamWindowChunks,
+  }) : streamChunkSize = streamChunkSize,
        streamWindowChunks = streamWindowChunks {
     _validateStreamConfig(streamChunkSize, streamWindowChunks);
     _get = _library.lookupFunction<_RustGetNative, _RustGetDart>('ax_rust_get');
