@@ -1,7 +1,8 @@
 # AlphaX Phase 1A Transport Contract
 
-Status: Phase 1A contract implemented; Dart IO and Android Cronet adapters
-implement it, and the Apple URLSession adapter is the next approved phase.
+Status: Phase 1A contract implemented; Dart IO, Android Cronet, and Apple
+URLSession adapters implement it. Cross-transport release validation remains
+Phase 1E work.
 
 `packages/alphax` is pure Dart. The public contract is the seam that Dart IO,
 Android Cronet/HttpEngine, and Apple URLSession adapters must implement. It does
@@ -51,9 +52,15 @@ calls harmless.
 - optional upload/download progress callbacks.
 
 `AlphaXResponse` contains status, immutable headers, an
-`AlphaXResponseBody`, metrics, redirects, the actual `AlphaXProtocol`, and
-optional requested-protocol/fallback metadata. The actual protocol is never
-derived from capabilities or from the request preference.
+`AlphaXResponseBody`, a headers-time metrics snapshot, redirects, the
+best-known `AlphaXProtocol`, and optional requested-protocol/fallback metadata.
+The actual protocol is never derived from capabilities or from the request
+preference. `completionMetrics` is a future final metrics snapshot: it may
+remain pending until a streamed body or native operation completes and is the
+authoritative source for negotiated protocol when the platform reports it only
+at completion. `completionProtocolFallback` is the corresponding future for
+final preference-mismatch metadata. `unknown` is a valid observation state, not
+an implicit H1 or fallback result.
 
 ## Body ownership and replay
 
@@ -72,9 +79,11 @@ and must not silently buffer a complete response merely to satisfy the API.
 
 `sendStreaming` emits:
 
-1. `AlphaXResponseStarted` with status, headers, actual protocol, and redirects;
+1. `AlphaXResponseStarted` with status, headers, best-known protocol, and redirects;
 2. zero or more bounded `AlphaXResponseChunk` values;
-3. one `AlphaXResponseCompleted` value with final metrics and byte count.
+3. one `AlphaXResponseCompleted` value with final metrics, byte count, and
+   completion-time fallback metadata. The completion event is authoritative
+   for negotiated protocol when the start event could not prove it.
 
 The Dart stream subscription owns consumer pause/resume and cancellation. Native
 adapters must connect those signals to their bounded producer queue. The public
@@ -87,9 +96,10 @@ taxonomy when it originates in the transport.
 
 `AlphaXProtocolPreference` is caller intent (`auto`, H1, H2, or H3 preference).
 `AlphaXProtocol` is the actual result (`http10`, `http11`, `http2`, `http3`, or
-`unknown`). `AlphaXProtocolFallback` is present when a preferred protocol was
-not negotiated. A capability such as H3 support is never reported as an actual
-H3 response.
+`unknown`). `AlphaXProtocolFallback` is present at completion when a concrete
+preferred protocol was not negotiated and the transport knows the actual
+protocol. An unknown response-start protocol produces no fallback metadata.
+A capability such as H3 support is never reported as an actual H3 response.
 
 ## Capability discovery
 

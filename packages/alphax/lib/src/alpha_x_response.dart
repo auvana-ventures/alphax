@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'alpha_x_body.dart';
@@ -19,11 +20,29 @@ final class AlphaXResponse {
     this.requestedProtocol,
     this.protocolFallback,
     this.metrics = const AlphaXRequestMetrics(),
+    Future<AlphaXRequestMetrics>? completionMetrics,
     Iterable<AlphaXRedirectInfo> redirects = const <AlphaXRedirectInfo>[],
   }) : statusCode = _validateStatus(statusCode),
        body = body ?? AlphaXResponseBody.bytes(bodyBytes ?? const <int>[]),
        negotiatedProtocol = negotiatedProtocol ?? protocol,
-       redirects = List<AlphaXRedirectInfo>.unmodifiable(redirects);
+       completionMetrics = completionMetrics ?? Future<AlphaXRequestMetrics>.value(metrics),
+       redirects = List<AlphaXRedirectInfo>.unmodifiable(redirects) {
+    // A body may fail after the response has been returned. Observe the
+    // completion future internally without consuming the error from callers
+    // that choose to await it.
+    unawaited(
+      this.completionMetrics.then<void>(
+        (_) {},
+        onError: (Object _, StackTrace __) {},
+      ),
+    );
+    unawaited(
+      completionProtocolFallback.then<void>(
+        (_) {},
+        onError: (Object _, StackTrace __) {},
+      ),
+    );
+  }
 
   /// HTTP status code.
   final int statusCode;
@@ -34,7 +53,10 @@ final class AlphaXResponse {
   /// Response body, buffered or single-consumption streamed.
   final AlphaXResponseBody body;
 
-  /// Protocol actually negotiated.
+  /// Best-known protocol at the time the response snapshot was returned.
+  ///
+  /// This remains [AlphaXProtocol.unknown] when negotiation is authoritative
+  /// only at completion; see [completionMetrics].
   final AlphaXProtocol negotiatedProtocol;
 
   /// Compatibility/convenience name for the negotiated protocol.
@@ -46,8 +68,35 @@ final class AlphaXResponse {
   /// Explicit fallback information, when a preference was not negotiated.
   final AlphaXProtocolFallback? protocolFallback;
 
-  /// Transport-neutral request metrics.
+  /// Transport-neutral metrics known when this response was returned.
+  ///
+  /// A transport may leave the negotiated protocol [AlphaXProtocol.unknown]
+  /// here when the platform only makes it authoritative at completion.
   final AlphaXRequestMetrics metrics;
+
+  /// Final transport-neutral metrics for this response operation.
+  ///
+  /// The future may remain pending until a streamed body is consumed or the
+  /// native operation completes. Its negotiated protocol is authoritative when
+  /// the transport can observe one; it is never inferred from a preference or
+  /// capability. A body-transfer failure completes this future with the same
+  /// normalized error as the body operation.
+  final Future<AlphaXRequestMetrics> completionMetrics;
+
+  /// Final fallback metadata derived from the authoritative completion
+  /// protocol, when a concrete protocol preference was supplied.
+  ///
+  /// This remains pending with [completionMetrics] and completes with `null`
+  /// when there was no preference, the preference was [AlphaXProtocolPreference.auto],
+  /// the final protocol is unknown, or the preferred protocol was negotiated.
+  /// An initial [protocolFallback] must not be inferred from an unknown
+  /// headers-time protocol; this future is the completion-time equivalent.
+  late final Future<AlphaXProtocolFallback?> completionProtocolFallback = completionMetrics.then(
+    (finalMetrics) => _protocolFallbackFor(
+      requestedProtocol,
+      finalMetrics.negotiatedProtocol,
+    ),
+  );
 
   /// Redirect hops observed during response resolution.
   final List<AlphaXRedirectInfo> redirects;
@@ -91,4 +140,25 @@ final class AlphaXResponse {
     }
     return statusCode;
   }
+}
+
+AlphaXProtocolFallback? _protocolFallbackFor(
+  AlphaXProtocolPreference? requested,
+  AlphaXProtocol negotiated,
+) {
+  if (requested == null ||
+      requested == AlphaXProtocolPreference.auto ||
+      negotiated == AlphaXProtocol.unknown) {
+    return null;
+  }
+  final preferred = switch (requested) {
+    AlphaXProtocolPreference.auto => AlphaXProtocol.unknown,
+    AlphaXProtocolPreference.http10 => AlphaXProtocol.http10,
+    AlphaXProtocolPreference.http11 => AlphaXProtocol.http11,
+    AlphaXProtocolPreference.http2 => AlphaXProtocol.http2,
+    AlphaXProtocolPreference.http3 => AlphaXProtocol.http3,
+  };
+  return preferred == negotiated
+      ? null
+      : AlphaXProtocolFallback(requested: requested, negotiated: negotiated);
 }

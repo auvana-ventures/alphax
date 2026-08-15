@@ -6,7 +6,7 @@ and resilience.
 
 ## Status
 
-**Phase 1C complete — Android transport validated.**
+**Phase 1D Apple transport implemented — signed iPhone validation pending.**
 AlphaX remains experimental and pre-release; its API may change. Packages are not
 intended for production adoption
 or pub.dev publication until AlphaX naming clearance and the 1.0 release gate are
@@ -52,7 +52,7 @@ supports them. No C++ engine or production Rust transport is part of the accepte
 | Package | Purpose | Current status |
 | --- | --- | --- |
 | [`alphax`](packages/alphax) | Pure Dart request/response, transport, cancellation, metrics, and error contracts | In development |
-| [`alphax_native`](packages/alphax_native) | Platform transport integration boundary, Dart IO fallback, and Android adapter | Dart IO fallback and Android Cronet adapter validated; URLSession is next |
+| [`alphax_native`](packages/alphax_native) | Platform transport integration boundary, Dart IO fallback, Android Cronet, and Apple URLSession adapters | Android and macOS correctness validated; signed iPhone validation pending |
 | [`alphax_dio`](packages/alphax_dio) | Future Dio `HttpClientAdapter` compatibility layer | Documentation/skeleton only |
 | [`alphax_test`](packages/alphax_test) | Deterministic fake transports and test helpers | In development |
 
@@ -65,9 +65,9 @@ contracts and dependencies are justified.
 | Capability | Status |
 | --- | --- |
 | Transport-independent Dart API | Phase 1A complete |
-| HTTP/1.1, HTTP/2, HTTP/3 | 1.0 goal; Android verified; Apple next |
-| Streaming and backpressure | Dart fallback; Android bounded delivery |
-| Direct file transfer | Dart fallback; Android native paths validated |
+| HTTP/1.1, HTTP/2, HTTP/3 | 1.0 goal; Android verified; Apple macOS verified; signed iPhone pending |
+| Streaming and backpressure | Dart fallback; Android and Apple bounded delivery validated on available targets |
+| Direct file transfer | Dart fallback; Android and Apple native paths validated on available targets |
 | Dio/Retrofit compatibility | Optional/post-1.0 scope; not implemented |
 | Cache and resilience modules | Deferred by 1.0 scope |
 | Observability and OpenTelemetry | Deferred by 1.0 scope |
@@ -96,10 +96,10 @@ conditions. Methodology, raw results, and environment metadata will be linked fr
 
 | Target | 1.0 direction | Current implementation |
 | --- | --- | --- |
-| macOS | URLSession-backed transport | Phase 1D next |
+| macOS | URLSession-backed transport | Phase 1D correctness validated |
 | Linux | Dart IO fallback initially | Phase 1B implemented |
 | Android | Cronet/HttpEngine-backed transport | Phase 1C Android 15 verified |
-| iOS | URLSession-backed transport | Phase 1D next |
+| iOS | URLSession-backed transport | Implementation built; signed-device validation pending |
 | Windows | Dart IO fallback initially | Phase 1B implemented |
 | Web | Where capabilities permit | Explicitly outside current implementation |
 

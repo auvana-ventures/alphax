@@ -47,7 +47,9 @@ AlphaXProtocolFallback? androidProtocolFallback(
   AlphaXProtocolPreference? requested,
   AlphaXProtocol negotiated,
 ) {
-  if (requested == null || requested == AlphaXProtocolPreference.auto) {
+  if (requested == null ||
+      requested == AlphaXProtocolPreference.auto ||
+      negotiated == AlphaXProtocol.unknown) {
     return null;
   }
   final desired = switch (requested) {

@@ -1,10 +1,10 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:alphax/alphax.dart';
 import 'package:flutter/services.dart';
 
 import 'android_cronet_protocol.dart';
+import 'alpha_x_local_file.dart';
 
 /// Android transport backed by one provider-selected Cronet/HttpEngine engine.
 ///
@@ -52,6 +52,7 @@ final class AndroidCronetTransport extends AlphaXTransport {
         requestedProtocol: started.requestedProtocol,
         protocolFallback: started.protocolFallback,
         metrics: started.metrics,
+        completionMetrics: operation.completed.then((completed) => completed.metrics),
         redirects: started.redirects,
       );
     } catch (error, stackTrace) {
@@ -80,6 +81,11 @@ final class AndroidCronetTransport extends AlphaXTransport {
       yield AlphaXResponseCompleted(
         metrics: completed.metrics,
         bytesReceived: completed.bytesReceived,
+        requestedProtocol: started.requestedProtocol,
+        protocolFallback: androidProtocolFallback(
+          started.requestedProtocol,
+          completed.metrics.negotiatedProtocol,
+        ),
       );
     } catch (error, stackTrace) {
       operation.dispose();
@@ -836,62 +842,4 @@ final class _UploadCursor {
   }
 
   Future<void> close() => _iterator?.cancel() ?? Future<void>.value();
-}
-
-/// A replayable local file source that can be consumed by Dart IO or native
-/// Android file upload without exposing a file descriptor in the AlphaX API.
-final class AlphaXLocalFileSource implements AlphaXFileSource {
-  /// Creates a local file source from [path].
-  AlphaXLocalFileSource(this.path, {this.isReplayable = true});
-
-  /// Local path retained for native file-backed adapters.
-  final String path;
-
-  @override
-  final bool isReplayable;
-
-  @override
-  String get name => path;
-
-  @override
-  int get length => File(path).lengthSync();
-
-  @override
-  Stream<List<int>> openRead() => File(path).openRead();
-}
-
-/// A local file destination that can be handled directly by native Android.
-final class AlphaXLocalFileTarget implements AlphaXFileTarget {
-  /// Creates a local file target from [path].
-  AlphaXLocalFileTarget(this.path);
-
-  /// Local path retained for native file-backed adapters.
-  final String path;
-
-  @override
-  String get name => path;
-
-  @override
-  Future<AlphaXFileSink> openWrite() async => _LocalFileSink(File(path).openWrite());
-}
-
-final class _LocalFileSink implements AlphaXFileSink {
-  _LocalFileSink(this._sink);
-
-  final IOSink _sink;
-
-  @override
-  void add(List<int> bytes) => _sink.add(bytes);
-
-  @override
-  Future<void> flush() => _sink.flush();
-
-  @override
-  Future<void> close() => _sink.close();
-
-  @override
-  Future<void> abort() async {
-    await _sink.flush();
-    await _sink.close();
-  }
 }

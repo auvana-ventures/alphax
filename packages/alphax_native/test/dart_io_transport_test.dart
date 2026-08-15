@@ -186,6 +186,10 @@ void main() {
     expect(response.requestedProtocol, AlphaXProtocolPreference.auto);
     expect(response.metrics.timeToFirstByte, isNotNull);
     await response.readAsBytes();
+    expect(
+      (await response.completionMetrics).negotiatedProtocol,
+      AlphaXProtocol.unknown,
+    );
   });
 
   test('follows, returns, and rejects redirects according to policy', () async {

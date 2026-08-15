@@ -81,6 +81,8 @@ final class DartIoTransport extends AlphaXTransport {
         yield AlphaXResponseCompleted(
           metrics: operation.completedMetrics(),
           bytesReceived: operation.downloadedBytes,
+          requestedProtocol: response.requestedProtocol,
+          protocolFallback: response.protocolFallback,
         );
       } finally {
         if (!completed) {
@@ -232,6 +234,7 @@ final class DartIoTransport extends AlphaXTransport {
       negotiatedProtocol: AlphaXProtocol.unknown,
       requestedProtocol: request.protocolPreference,
       metrics: operation.headersMetrics(redirects.length),
+      completionMetrics: operation.completionMetrics,
       redirects: redirects,
     );
   }
@@ -414,6 +417,10 @@ final class DartIoTransport extends AlphaXTransport {
         stackTrace ?? StackTrace.current,
         _DartIoFailureStage.response,
       );
+      operation.completeMetricsError(
+        normalized,
+        normalized.stackTrace ?? StackTrace.current,
+      );
       controller.addError(normalized, normalized.stackTrace ?? StackTrace.current);
       unawaited(controller.close());
       finish();
@@ -425,6 +432,7 @@ final class DartIoTransport extends AlphaXTransport {
       }
       terminated = true;
       cancelTimers();
+      operation.completeMetrics(operation.completedMetrics());
       unawaited(controller.close());
       finish();
     }
@@ -535,6 +543,10 @@ final class DartIoTransport extends AlphaXTransport {
         if (!terminated) {
           terminated = true;
           cancelTimers();
+          final cancellation = const AlphaXCancellationException(
+            'The response stream subscription was cancelled',
+          );
+          operation.completeMetricsError(cancellation, StackTrace.current);
           operation.abort();
           finish();
         }
@@ -836,13 +848,24 @@ enum _DartIoFailureStage { request, requestBody, response }
 final class _DartIoOperation {
   _DartIoOperation(this.owner, this.alphaRequest)
     : stopwatch = Stopwatch()..start(),
-      requestStopwatch = Stopwatch()..start();
+      requestStopwatch = Stopwatch()..start() {
+    // A response can be returned before its body is consumed. Observe the
+    // completion future internally so cancellation/body errors do not become
+    // unhandled when callers only use the body stream.
+    unawaited(
+      _completionMetrics.future.then<void>(
+        (_) {},
+        onError: (Object _, StackTrace __) {},
+      ),
+    );
+  }
 
   final DartIoTransport owner;
   final AlphaXRequest alphaRequest;
   final Stopwatch stopwatch;
   final Stopwatch requestStopwatch;
   final Completer<void> _done = Completer<void>();
+  final Completer<AlphaXRequestMetrics> _completionMetrics = Completer<AlphaXRequestMetrics>();
   HttpClientRequest? clientRequest;
   HttpClientResponse? response;
   void Function(Object? reason)? onAbort;
@@ -852,6 +875,8 @@ final class _DartIoOperation {
   var _aborted = false;
 
   Future<void> get done => _done.future;
+
+  Future<AlphaXRequestMetrics> get completionMetrics => _completionMetrics.future;
 
   void abort([Object? reason]) {
     if (!_aborted) {
@@ -868,6 +893,18 @@ final class _DartIoOperation {
     _finished = true;
     owner._remove(this);
     _done.complete();
+  }
+
+  void completeMetrics(AlphaXRequestMetrics metrics) {
+    if (!_completionMetrics.isCompleted) {
+      _completionMetrics.complete(metrics);
+    }
+  }
+
+  void completeMetricsError(Object error, StackTrace stackTrace) {
+    if (!_completionMetrics.isCompleted) {
+      _completionMetrics.completeError(error, stackTrace);
+    }
   }
 
   AlphaXRequestMetrics headersMetrics(int redirects) => AlphaXRequestMetrics(

@@ -4,7 +4,7 @@ import 'package:alphax_test/alphax_test.dart';
 void main() {
   defineAlphaXTransportConformanceTests(
     'FakeAlphaXTransport',
-    () => FakeAlphaXTransport(
+    () async => FakeAlphaXTransport(
       response: AlphaXResponse(
         statusCode: 200,
         bodyBytes: <int>[1, 2, 3],

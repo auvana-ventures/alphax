@@ -10,6 +10,9 @@ sealed class AlphaXEvent {
 }
 
 /// Metadata emitted when response headers are available.
+///
+/// The negotiated protocol may legitimately be [AlphaXProtocol.unknown] at
+/// this point. Read [AlphaXResponseCompleted.metrics] for final metrics.
 final class AlphaXResponseStarted extends AlphaXEvent {
   /// Creates a response-start event.
   AlphaXResponseStarted({
@@ -29,7 +32,10 @@ final class AlphaXResponseStarted extends AlphaXEvent {
   /// Response headers.
   final AlphaXHeaders headers;
 
-  /// Protocol actually negotiated.
+  /// Best-known protocol when response metadata became available.
+  ///
+  /// This may be [AlphaXProtocol.unknown]. The final protocol, when available,
+  /// is carried by [AlphaXResponseCompleted.metrics].
   final AlphaXProtocol negotiatedProtocol;
 
   /// Compatibility/convenience name for the negotiated protocol.
@@ -60,6 +66,8 @@ final class AlphaXResponseCompleted extends AlphaXEvent {
   const AlphaXResponseCompleted({
     this.metrics = const AlphaXRequestMetrics(),
     required this.bytesReceived,
+    this.requestedProtocol,
+    this.protocolFallback,
   });
 
   /// Final request metrics.
@@ -67,4 +75,11 @@ final class AlphaXResponseCompleted extends AlphaXEvent {
 
   /// Number of body bytes delivered through chunks.
   final int bytesReceived;
+
+  /// Protocol preference supplied to the request, when retained.
+  final AlphaXProtocolPreference? requestedProtocol;
+
+  /// Final fallback metadata derived from the authoritative completion
+  /// protocol, when applicable.
+  final AlphaXProtocolFallback? protocolFallback;
 }

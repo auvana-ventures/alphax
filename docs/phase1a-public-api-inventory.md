@@ -1,9 +1,9 @@
 # AlphaX Phase 1A public API inventory
 
 Generated from the exports in `packages/alphax/lib/alphax.dart` and reviewed
-against the Phase 1A contract. This inventory describes contracts only; it does
-not claim that a Dart IO, Cronet/HttpEngine, or URLSession transport is
-implemented.
+against the Phase 1A contract. This inventory describes the transport-neutral
+contracts and does not make platform-wide release claims; adapter evidence is
+recorded in the Phase 1B, Phase 1C, and Phase 1D review reports.
 
 ## Client and transport
 
@@ -20,11 +20,11 @@ implemented.
 | --- | --- |
 | `HttpMethod` | GET, POST, PUT, PATCH, DELETE, HEAD, and OPTIONS wire tokens. |
 | `AlphaXRequest` | Immutable URI, headers, body, timeout, cancellation, protocol preference, redirect policy, priority, and progress callbacks. |
-| `AlphaXResponse` | Status, headers, body, actual protocol, fallback metadata, redirects, and metrics. |
+| `AlphaXResponse` | Status, headers, body, best-known protocol, completion metrics/fallback futures, fallback metadata, redirects, and metrics. |
 | `AlphaXEvent` | Sealed streaming event root. |
-| `AlphaXResponseStarted` | Response status, headers, actual protocol, fallback, and redirects. |
+| `AlphaXResponseStarted` | Response status, headers, best-known protocol, fallback, and redirects. |
 | `AlphaXResponseChunk` | One bounded response byte chunk. |
-| `AlphaXResponseCompleted` | Terminal byte count and metrics. |
+| `AlphaXResponseCompleted` | Terminal byte count, final metrics, requested protocol, and fallback metadata. |
 | `AlphaXHeaders` | Immutable case-insensitive multi-value headers. |
 | `AlphaXPriority` | Transport-neutral scheduling hint. |
 
@@ -56,7 +56,7 @@ implemented.
 | `AlphaXSupport` | Supported, unsupported, or unknown capability state. |
 | `AlphaXCapability` | Protocol, stream, file, progress, proxy, TLS, migration, background, and negotiation capabilities. |
 | `AlphaXCapabilities` | Immutable capability discovery result. |
-| `AlphaXRequestMetrics` | Optional transport-neutral timing, byte, protocol, redirect, and connection-reuse values. |
+| `AlphaXRequestMetrics` | Optional transport-neutral timing, byte, protocol, redirect, and connection-reuse values; `AlphaXResponse.completionMetrics` is the final snapshot when available later. |
 | `AlphaXTransferDirection` | Upload or download progress direction. |
 | `AlphaXProgress` / `AlphaXProgressCallback` | Optional body-progress reporting. |
 
@@ -82,7 +82,8 @@ implemented.
 - No public symbol exposes `SocketException`, `CronetException`, `NSError`,
   `NSURLSessionTask`, libcurl, Rust, FFI, file descriptors, or native handles.
 - H2/H3 names in this inventory are protocol and capability representations;
-  they are not support claims for the unimplemented adapters.
+  they are not global release claims. Current adapter evidence is recorded in
+  the Phase 1C and Phase 1D review reports.
 - `AlphaXTimeout` and `AlphaXConnectException`/`AlphaXCancelledException` are
   compatibility names retained from the Phase 0 scaffold; new code should use
   the Phase 1A names.

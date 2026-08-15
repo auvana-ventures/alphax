@@ -31,3 +31,7 @@ flutter:
       android:
         package: com.auvana.ventures.alphax
         pluginClass: AlphaXNativePlugin
+      ios:
+        pluginClass: AlphaXNativePlugin
+      macos:
+        pluginClass: AlphaXNativePlugin

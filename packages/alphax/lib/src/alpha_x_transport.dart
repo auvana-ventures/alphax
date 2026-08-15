@@ -5,6 +5,7 @@ import 'alpha_x_event.dart';
 import 'alpha_x_file.dart';
 import 'alpha_x_headers.dart';
 import 'alpha_x_progress.dart';
+import 'alpha_x_protocol.dart';
 import 'alpha_x_request.dart';
 import 'alpha_x_response.dart';
 
@@ -17,6 +18,11 @@ abstract class AlphaXTransport {
   AlphaXCapabilities get capabilities;
 
   /// Sends [request] and returns response metadata plus a body abstraction.
+  ///
+  /// The returned response is a headers-time snapshot. When the transport
+  /// cannot know the negotiated protocol until operation completion, callers
+  /// must await [AlphaXResponse.completionMetrics] rather than interpreting
+  /// [AlphaXProtocol.unknown] as HTTP/1.1 or as fallback.
   Future<AlphaXResponse> send(AlphaXRequest request);
 
   /// Sends [request] and emits response metadata, bounded chunks, and completion.
@@ -82,9 +88,11 @@ abstract class AlphaXTransport {
       return AlphaXTransferResult(
         statusCode: responseStarted.statusCode,
         headers: responseStarted.headers,
-        protocol: responseStarted.protocol,
-        requestedProtocol: responseStarted.requestedProtocol,
-        protocolFallback: responseStarted.protocolFallback,
+        protocol: responseCompleted.metrics.negotiatedProtocol == AlphaXProtocol.unknown
+            ? responseStarted.protocol
+            : responseCompleted.metrics.negotiatedProtocol,
+        requestedProtocol: responseCompleted.requestedProtocol ?? responseStarted.requestedProtocol,
+        protocolFallback: responseCompleted.protocolFallback ?? responseStarted.protocolFallback,
         metrics: responseCompleted.metrics,
         redirects: responseStarted.redirects,
         bytesTransferred: bytesTransferred,

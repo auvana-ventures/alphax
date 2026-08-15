@@ -95,6 +95,8 @@ final class FakeAlphaXTransport extends AlphaXTransport {
     yield AlphaXResponseCompleted(
       metrics: response.metrics,
       bytesReceived: bytes?.length ?? response.metrics.downloadedBytes ?? 0,
+      requestedProtocol: response.requestedProtocol,
+      protocolFallback: response.protocolFallback,
     );
   }
 

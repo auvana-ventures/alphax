@@ -73,6 +73,26 @@ metric is recorded explicitly; it is never silently treated as equivalent.
 This gate intentionally does not add network shaping, HTTP/2/HTTP/3 work,
 extra clients, larger transfer matrices, or production features.
 
+## Phase 1D Apple contract runner
+
+The shared `alphax_test` conformance suite for the Apple URLSession adapter is
+in `integration_test/phase1d_apple_conformance_test.dart`. For a physical iOS
+device, use the `flutter drive` path so the test driver owns the VM-service
+lifecycle:
+
+```sh
+flutter drive --no-pub --profile \
+  --driver=test_driver/integration_test.dart \
+  --target=integration_test/phase1d_apple_conformance_test.dart \
+  -d <physical-iphone> \
+  --dart-define=ALPHAX_PHASE1D_CONFORMANCE_URL=http://<host-ip>:18080
+```
+
+Run the deterministic server first. The command must report `All tests
+passed.` and exit successfully. This runner executes the shared transport
+contract only; it is separate from the Phase 0 mobile performance gate and
+does not add a production Flutter package.
+
 ## Phase 1C Android correctness harness
 
 `lib/phase1c_main.dart` is separate from the historical Phase 0 gate above.

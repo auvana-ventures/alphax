@@ -1,10 +1,12 @@
+import 'dart:async';
+
 import 'package:alphax/alphax.dart';
 import 'package:test/test.dart';
 
 import 'file_fixtures.dart';
 
 /// Creates one fresh transport instance for each conformance test.
-typedef AlphaXTransportFactory = AlphaXTransport Function();
+typedef AlphaXTransportFactory = FutureOr<AlphaXTransport> Function();
 
 /// Resolves the fixture URI when a conformance test starts.
 typedef AlphaXTransportUriProvider = Uri Function();
@@ -12,8 +14,8 @@ typedef AlphaXTransportUriProvider = Uri Function();
 /// Defines the shared contract tests for a transport implementation.
 ///
 /// Adapter packages should call this from their own test entry point. The
-/// factory must return an isolated transport because each test owns and closes
-/// its instance.
+/// factory may initialize an isolated transport asynchronously because each
+/// test owns and closes its instance. Synchronous factories remain supported.
 void defineAlphaXTransportConformanceTests(
   String name,
   AlphaXTransportFactory createTransport, {
@@ -27,7 +29,7 @@ void defineAlphaXTransportConformanceTests(
         Uri.parse('https://example.com/resource');
 
     test('sends a typed request and returns a response', () async {
-      final transport = createTransport();
+      final transport = await createTransport();
       addTearDown(transport.close);
 
       final response = await transport.send(
@@ -38,7 +40,7 @@ void defineAlphaXTransportConformanceTests(
     });
 
     test('streaming emits start before chunks and completion last', () async {
-      final transport = createTransport();
+      final transport = await createTransport();
       addTearDown(transport.close);
 
       final events = await transport
@@ -54,7 +56,7 @@ void defineAlphaXTransportConformanceTests(
     });
 
     test('pre-cancelled request fails before transport work', () async {
-      final transport = createTransport();
+      final transport = await createTransport();
       addTearDown(transport.close);
       final token = AlphaXCancellationToken()..cancel('test');
 
@@ -71,14 +73,14 @@ void defineAlphaXTransportConformanceTests(
     });
 
     test('close is safe to call more than once', () async {
-      final transport = createTransport();
+      final transport = await createTransport();
 
       await transport.close();
       await expectLater(transport.close(), completes);
     });
 
     test('default file transfer paths preserve deterministic bytes', () async {
-      final transport = createTransport();
+      final transport = await createTransport();
       addTearDown(transport.close);
       final target = InMemoryAlphaXFileTarget();
 
