@@ -21,6 +21,7 @@ final class AlphaXResponseStarted extends AlphaXEvent {
     AlphaXProtocol protocol = AlphaXProtocol.unknown,
     AlphaXProtocol? negotiatedProtocol,
     this.requestedProtocol,
+    this.requiredProtocol,
     this.protocolFallback,
     Iterable<AlphaXRedirectInfo> redirects = const <AlphaXRedirectInfo>[],
   }) : negotiatedProtocol = negotiatedProtocol ?? protocol,
@@ -43,6 +44,9 @@ final class AlphaXResponseStarted extends AlphaXEvent {
 
   /// Protocol preference supplied to the request, when retained.
   final AlphaXProtocolPreference? requestedProtocol;
+
+  /// Protocol requirement supplied by the caller, when present.
+  final AlphaXProtocolRequirement? requiredProtocol;
 
   /// Explicit fallback information, when applicable.
   final AlphaXProtocolFallback? protocolFallback;
@@ -67,6 +71,7 @@ final class AlphaXResponseCompleted extends AlphaXEvent {
     this.metrics = const AlphaXRequestMetrics(),
     required this.bytesReceived,
     this.requestedProtocol,
+    this.requiredProtocol,
     this.protocolFallback,
   });
 
@@ -78,6 +83,9 @@ final class AlphaXResponseCompleted extends AlphaXEvent {
 
   /// Protocol preference supplied to the request, when retained.
   final AlphaXProtocolPreference? requestedProtocol;
+
+  /// Protocol requirement supplied by the caller, when present.
+  final AlphaXProtocolRequirement? requiredProtocol;
 
   /// Final fallback metadata derived from the authoritative completion
   /// protocol, when applicable.

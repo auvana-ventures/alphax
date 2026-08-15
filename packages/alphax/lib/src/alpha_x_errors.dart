@@ -1,4 +1,5 @@
 import 'alpha_x_capabilities.dart';
+import 'alpha_x_protocol.dart';
 import 'alpha_x_timeout.dart';
 
 /// Normalized categories exposed by AlphaX transports.
@@ -21,8 +22,14 @@ enum AlphaXErrorKind {
   /// The peer or transport violated the HTTP protocol contract.
   protocol,
 
+  /// A concrete protocol requirement was not met.
+  protocolRequirement,
+
   /// Redirect policy or redirect resolution failed.
   redirect,
+
+  /// A proxy connection or proxy authentication operation failed.
+  proxy,
 
   /// The request body could not be opened, encoded, or sent.
   requestBody,
@@ -131,6 +138,31 @@ class AlphaXProtocolException extends AlphaXException {
     : super(kind: AlphaXErrorKind.protocol);
 }
 
+/// The final negotiated protocol did not satisfy the request requirement.
+class AlphaXProtocolRequirementException extends AlphaXException {
+  /// Creates a protocol requirement failure.
+  AlphaXProtocolRequirementException({
+    required AlphaXProtocolRequirement requiredProtocol,
+    required AlphaXProtocol actualProtocol,
+    String? message,
+    super.cause,
+    super.stackTrace,
+  }) : requiredProtocol = requiredProtocol,
+       actualProtocol = actualProtocol,
+       super(
+         message ??
+             'The request required ${requiredProtocol.name}, but the negotiated '
+                 'protocol was ${actualProtocol.name}',
+         kind: AlphaXErrorKind.protocolRequirement,
+       );
+
+  /// Protocol required by the caller.
+  final AlphaXProtocolRequirement requiredProtocol;
+
+  /// Final protocol observed by the transport, or unknown.
+  final AlphaXProtocol actualProtocol;
+}
+
 /// Redirect handling failed or violated the request policy.
 class AlphaXRedirectException extends AlphaXException {
   /// Creates a redirect failure.
@@ -142,7 +174,24 @@ class AlphaXRedirectException extends AlphaXException {
 class AlphaXProxyException extends AlphaXException {
   /// Creates a proxy failure.
   const AlphaXProxyException(super.message, {super.cause, super.stackTrace})
-    : super(kind: AlphaXErrorKind.connection);
+    : super(kind: AlphaXErrorKind.proxy);
+}
+
+/// A proxy requested by policy cannot be configured by the transport.
+class AlphaXUnsupportedProxyPolicyException extends AlphaXUnsupportedCapabilityException {
+  /// Creates an unsupported proxy-policy failure.
+  const AlphaXUnsupportedProxyPolicyException(
+    super.message, {
+    required super.capability,
+    super.cause,
+    super.stackTrace,
+  });
+}
+
+/// Proxy authentication failed or was rejected.
+class AlphaXProxyAuthenticationException extends AlphaXProxyException {
+  /// Creates a proxy-authentication failure.
+  const AlphaXProxyAuthenticationException(super.message, {super.cause, super.stackTrace});
 }
 
 /// Certificate verification or pinning failed.
@@ -150,6 +199,37 @@ class AlphaXCertificateException extends AlphaXException {
   /// Creates a certificate failure.
   const AlphaXCertificateException(super.message, {super.cause, super.stackTrace})
     : super(kind: AlphaXErrorKind.tls);
+}
+
+/// A valid certificate chain did not contain a configured SPKI pin.
+class AlphaXCertificatePinMismatchException extends AlphaXCertificateException {
+  /// Creates a certificate pin mismatch.
+  const AlphaXCertificatePinMismatchException(
+    super.message, {
+    this.host,
+    super.cause,
+    super.stackTrace,
+  });
+
+  /// Host whose pin set rejected the certificate.
+  final String? host;
+}
+
+/// The requested TLS policy cannot be honored by the selected transport.
+class AlphaXUnsupportedTlsPolicyException extends AlphaXUnsupportedCapabilityException {
+  /// Creates an unsupported TLS-policy failure.
+  const AlphaXUnsupportedTlsPolicyException(
+    super.message, {
+    required super.capability,
+    super.cause,
+    super.stackTrace,
+  });
+}
+
+/// A configured client identity could not be used for mutual TLS.
+class AlphaXClientCertificateException extends AlphaXTlsException {
+  /// Creates a client-certificate failure.
+  const AlphaXClientCertificateException(super.message, {super.cause, super.stackTrace});
 }
 
 /// A request body could not be opened, encoded, or sent.

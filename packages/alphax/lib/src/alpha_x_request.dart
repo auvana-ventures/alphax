@@ -31,6 +31,7 @@ final class AlphaXRequest {
     AlphaXTimeouts? timeouts,
     this.cancellationToken,
     this.protocolPreference = AlphaXProtocolPreference.auto,
+    this.protocolRequirement,
     this.redirectPolicy = const AlphaXRedirectPolicy(),
     this.priority = AlphaXPriority.normal,
     this.onUploadProgress,
@@ -38,6 +39,13 @@ final class AlphaXRequest {
   }) : timeouts = _resolveTimeouts(timeout, timeouts) {
     if ((uri.scheme != 'http' && uri.scheme != 'https') || uri.host.isEmpty) {
       throw ArgumentError.value(uri, 'uri', 'Requests require an absolute HTTP or HTTPS URI');
+    }
+    if (protocolRequirement != null &&
+        protocolPreference != AlphaXProtocolPreference.auto &&
+        protocolPreference != protocolRequirement!.preference) {
+      throw ArgumentError(
+        'protocolPreference and protocolRequirement must identify the same protocol',
+      );
     }
     this.timeouts.validate();
   }
@@ -66,6 +74,12 @@ final class AlphaXRequest {
   /// Preferred protocol; it is not the negotiated protocol.
   final AlphaXProtocolPreference protocolPreference;
 
+  /// Protocol that must be negotiated for the request to succeed.
+  ///
+  /// Unlike [protocolPreference], this value forbids fallback. A transport
+  /// must fail if completion-time protocol metadata is unknown or differs.
+  final AlphaXProtocolRequirement? protocolRequirement;
+
   /// Redirect policy.
   final AlphaXRedirectPolicy redirectPolicy;
 
@@ -90,6 +104,7 @@ final class AlphaXRequest {
     AlphaXTimeouts? timeouts,
     AlphaXCancellationToken? cancellationToken,
     AlphaXProtocolPreference? protocolPreference,
+    AlphaXProtocolRequirement? protocolRequirement,
     AlphaXRedirectPolicy? redirectPolicy,
     AlphaXPriority? priority,
     AlphaXProgressCallback? onUploadProgress,
@@ -102,6 +117,7 @@ final class AlphaXRequest {
     timeouts: timeouts ?? this.timeouts,
     cancellationToken: cancellationToken ?? this.cancellationToken,
     protocolPreference: protocolPreference ?? this.protocolPreference,
+    protocolRequirement: protocolRequirement ?? this.protocolRequirement,
     redirectPolicy: redirectPolicy ?? this.redirectPolicy,
     priority: priority ?? this.priority,
     onUploadProgress: onUploadProgress ?? this.onUploadProgress,

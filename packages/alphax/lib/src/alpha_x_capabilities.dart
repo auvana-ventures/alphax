@@ -47,11 +47,35 @@ enum AlphaXCapability {
   /// Caller-configurable proxy behavior.
   proxyConfiguration,
 
+  /// Platform/system trust with certificate verification enabled.
+  tlsDefaultTrust,
+
+  /// Caller-configurable additional or replacement trust anchors.
+  customTrustAnchors,
+
   /// Caller-configurable certificate pinning.
   certificatePinning,
 
   /// Client certificate / mutual TLS configuration.
   mutualTls,
+
+  /// Use the system proxy configuration.
+  systemProxy,
+
+  /// Explicitly bypass system proxy configuration.
+  directConnectionPolicy,
+
+  /// Explicit HTTP proxy configuration.
+  explicitHttpProxy,
+
+  /// Explicit HTTPS proxy configuration.
+  explicitHttpsProxy,
+
+  /// Explicit proxy authentication credentials.
+  proxyAuthentication,
+
+  /// Enforce a concrete negotiated protocol rather than preferring it.
+  protocolRequirement,
 
   /// Connection migration, such as QUIC path migration.
   connectionMigration,
@@ -80,8 +104,16 @@ final class AlphaXCapabilities {
     this.uploadProgress = AlphaXSupport.unknown,
     this.downloadProgress = AlphaXSupport.unknown,
     this.proxyConfiguration = AlphaXSupport.unknown,
+    this.tlsDefaultTrust = AlphaXSupport.unknown,
+    this.customTrustAnchors = AlphaXSupport.unknown,
     this.certificatePinning = AlphaXSupport.unknown,
     this.mutualTls = AlphaXSupport.unknown,
+    this.systemProxy = AlphaXSupport.unknown,
+    this.directConnectionPolicy = AlphaXSupport.unknown,
+    this.explicitHttpProxy = AlphaXSupport.unknown,
+    this.explicitHttpsProxy = AlphaXSupport.unknown,
+    this.proxyAuthentication = AlphaXSupport.unknown,
+    this.protocolRequirement = AlphaXSupport.unknown,
     this.connectionMigration = AlphaXSupport.unknown,
     this.backgroundTransfer = AlphaXSupport.unknown,
     this.negotiatedProtocolReporting = AlphaXSupport.unknown,
@@ -129,11 +161,35 @@ final class AlphaXCapabilities {
   /// Proxy configuration support.
   final AlphaXSupport proxyConfiguration;
 
+  /// Platform-default TLS trust support.
+  final AlphaXSupport tlsDefaultTrust;
+
+  /// Custom trust-anchor support.
+  final AlphaXSupport customTrustAnchors;
+
   /// Certificate-pinning support.
   final AlphaXSupport certificatePinning;
 
   /// Mutual TLS support.
   final AlphaXSupport mutualTls;
+
+  /// System proxy support.
+  final AlphaXSupport systemProxy;
+
+  /// Direct/no-proxy policy support.
+  final AlphaXSupport directConnectionPolicy;
+
+  /// Explicit HTTP proxy support.
+  final AlphaXSupport explicitHttpProxy;
+
+  /// Explicit HTTPS proxy support.
+  final AlphaXSupport explicitHttpsProxy;
+
+  /// Explicit proxy authentication support.
+  final AlphaXSupport proxyAuthentication;
+
+  /// Protocol requirement enforcement support.
+  final AlphaXSupport protocolRequirement;
 
   /// Connection-migration support.
   final AlphaXSupport connectionMigration;
@@ -157,8 +213,16 @@ final class AlphaXCapabilities {
     AlphaXCapability.uploadProgress => uploadProgress,
     AlphaXCapability.downloadProgress => downloadProgress,
     AlphaXCapability.proxyConfiguration => proxyConfiguration,
+    AlphaXCapability.tlsDefaultTrust => tlsDefaultTrust,
+    AlphaXCapability.customTrustAnchors => customTrustAnchors,
     AlphaXCapability.certificatePinning => certificatePinning,
     AlphaXCapability.mutualTls => mutualTls,
+    AlphaXCapability.systemProxy => systemProxy,
+    AlphaXCapability.directConnectionPolicy => directConnectionPolicy,
+    AlphaXCapability.explicitHttpProxy => explicitHttpProxy,
+    AlphaXCapability.explicitHttpsProxy => explicitHttpsProxy,
+    AlphaXCapability.proxyAuthentication => proxyAuthentication,
+    AlphaXCapability.protocolRequirement => protocolRequirement,
     AlphaXCapability.connectionMigration => connectionMigration,
     AlphaXCapability.backgroundTransfer => backgroundTransfer,
     AlphaXCapability.negotiatedProtocolReporting => negotiatedProtocolReporting,

@@ -61,5 +61,34 @@ void main() {
         throwsA(isA<AlphaXConnectionException>()),
       );
     });
+
+    test('keeps protocol preference separate from protocol requirement', () async {
+      final transport = FakeAlphaXTransport(
+        response: AlphaXResponse(
+          statusCode: 200,
+          protocol: AlphaXProtocol.http11,
+        ),
+      );
+
+      final preferred = await transport.send(
+        AlphaXRequest(
+          method: HttpMethod.get,
+          uri: Uri.parse('https://example.com'),
+          protocolPreference: AlphaXProtocolPreference.http3,
+        ),
+      );
+      expect(preferred.protocol, AlphaXProtocol.http11);
+
+      await expectLater(
+        transport.send(
+          AlphaXRequest(
+            method: HttpMethod.get,
+            uri: Uri.parse('https://example.com'),
+            protocolRequirement: AlphaXProtocolRequirement.http3,
+          ),
+        ),
+        throwsA(isA<AlphaXProtocolRequirementException>()),
+      );
+    });
   });
 }

@@ -8,6 +8,7 @@ import 'alpha_x_progress.dart';
 import 'alpha_x_protocol.dart';
 import 'alpha_x_request.dart';
 import 'alpha_x_response.dart';
+import 'alpha_x_security.dart';
 
 /// Transport implementation consumed by [AlphaXClient].
 abstract class AlphaXTransport {
@@ -16,6 +17,12 @@ abstract class AlphaXTransport {
 
   /// Capabilities known for this configured transport instance.
   AlphaXCapabilities get capabilities;
+
+  /// TLS policy configured for this transport instance.
+  AlphaXTlsPolicy get tlsPolicy => const AlphaXTlsPolicy.platformDefault();
+
+  /// Proxy policy configured for this transport instance.
+  AlphaXProxyPolicy get proxyPolicy => const AlphaXProxyPolicy.system();
 
   /// Sends [request] and returns response metadata plus a body abstraction.
   ///
@@ -92,6 +99,7 @@ abstract class AlphaXTransport {
             ? responseStarted.protocol
             : responseCompleted.metrics.negotiatedProtocol,
         requestedProtocol: responseCompleted.requestedProtocol ?? responseStarted.requestedProtocol,
+        requiredProtocol: responseCompleted.requiredProtocol,
         protocolFallback: responseCompleted.protocolFallback ?? responseStarted.protocolFallback,
         metrics: responseCompleted.metrics,
         redirects: responseStarted.redirects,
@@ -124,6 +132,7 @@ abstract class AlphaXTransport {
       headers: response.headers,
       protocol: response.protocol,
       requestedProtocol: response.requestedProtocol,
+      requiredProtocol: response.requiredProtocol,
       protocolFallback: response.protocolFallback,
       metrics: response.metrics,
       redirects: response.redirects,

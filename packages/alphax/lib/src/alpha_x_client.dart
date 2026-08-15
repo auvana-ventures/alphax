@@ -12,6 +12,7 @@ import 'alpha_x_protocol.dart';
 import 'alpha_x_request.dart';
 import 'alpha_x_response.dart';
 import 'alpha_x_redirect.dart';
+import 'alpha_x_security.dart';
 import 'alpha_x_timeout.dart';
 import 'alpha_x_transport.dart';
 
@@ -35,6 +36,12 @@ final class AlphaXClient {
   /// Capabilities of the configured transport.
   AlphaXCapabilities get capabilities => transport.capabilities;
 
+  /// TLS policy configured for the underlying transport instance.
+  AlphaXTlsPolicy get tlsPolicy => transport.tlsPolicy;
+
+  /// Proxy policy configured for the underlying transport instance.
+  AlphaXProxyPolicy get proxyPolicy => transport.proxyPolicy;
+
   /// Whether [close] has been requested.
   bool get isClosed => _closed;
 
@@ -53,6 +60,7 @@ final class AlphaXClient {
     AlphaXTimeouts? timeout,
     AlphaXCancellationToken? cancellationToken,
     AlphaXProtocolPreference protocolPreference = AlphaXProtocolPreference.auto,
+    AlphaXProtocolRequirement? protocolRequirement,
     AlphaXRedirectPolicy redirectPolicy = const AlphaXRedirectPolicy(),
     AlphaXProgressCallback? onDownloadProgress,
   }) => _sendMethod(
@@ -63,6 +71,7 @@ final class AlphaXClient {
     timeout: timeout,
     cancellationToken: cancellationToken,
     protocolPreference: protocolPreference,
+    protocolRequirement: protocolRequirement,
     redirectPolicy: redirectPolicy,
     onDownloadProgress: onDownloadProgress,
   );
@@ -75,6 +84,7 @@ final class AlphaXClient {
     AlphaXTimeouts? timeout,
     AlphaXCancellationToken? cancellationToken,
     AlphaXProtocolPreference protocolPreference = AlphaXProtocolPreference.auto,
+    AlphaXProtocolRequirement? protocolRequirement,
     AlphaXRedirectPolicy redirectPolicy = const AlphaXRedirectPolicy(),
     AlphaXProgressCallback? onUploadProgress,
     AlphaXProgressCallback? onDownloadProgress,
@@ -86,6 +96,7 @@ final class AlphaXClient {
     timeout: timeout,
     cancellationToken: cancellationToken,
     protocolPreference: protocolPreference,
+    protocolRequirement: protocolRequirement,
     redirectPolicy: redirectPolicy,
     onUploadProgress: onUploadProgress,
     onDownloadProgress: onDownloadProgress,
@@ -99,6 +110,7 @@ final class AlphaXClient {
     AlphaXTimeouts? timeout,
     AlphaXCancellationToken? cancellationToken,
     AlphaXProtocolPreference protocolPreference = AlphaXProtocolPreference.auto,
+    AlphaXProtocolRequirement? protocolRequirement,
     AlphaXRedirectPolicy redirectPolicy = const AlphaXRedirectPolicy(),
     AlphaXProgressCallback? onUploadProgress,
     AlphaXProgressCallback? onDownloadProgress,
@@ -110,6 +122,7 @@ final class AlphaXClient {
     timeout: timeout,
     cancellationToken: cancellationToken,
     protocolPreference: protocolPreference,
+    protocolRequirement: protocolRequirement,
     redirectPolicy: redirectPolicy,
     onUploadProgress: onUploadProgress,
     onDownloadProgress: onDownloadProgress,
@@ -123,6 +136,7 @@ final class AlphaXClient {
     AlphaXTimeouts? timeout,
     AlphaXCancellationToken? cancellationToken,
     AlphaXProtocolPreference protocolPreference = AlphaXProtocolPreference.auto,
+    AlphaXProtocolRequirement? protocolRequirement,
     AlphaXRedirectPolicy redirectPolicy = const AlphaXRedirectPolicy(),
     AlphaXProgressCallback? onUploadProgress,
     AlphaXProgressCallback? onDownloadProgress,
@@ -134,6 +148,7 @@ final class AlphaXClient {
     timeout: timeout,
     cancellationToken: cancellationToken,
     protocolPreference: protocolPreference,
+    protocolRequirement: protocolRequirement,
     redirectPolicy: redirectPolicy,
     onUploadProgress: onUploadProgress,
     onDownloadProgress: onDownloadProgress,
@@ -147,6 +162,7 @@ final class AlphaXClient {
     AlphaXTimeouts? timeout,
     AlphaXCancellationToken? cancellationToken,
     AlphaXProtocolPreference protocolPreference = AlphaXProtocolPreference.auto,
+    AlphaXProtocolRequirement? protocolRequirement,
     AlphaXRedirectPolicy redirectPolicy = const AlphaXRedirectPolicy(),
     AlphaXProgressCallback? onUploadProgress,
     AlphaXProgressCallback? onDownloadProgress,
@@ -158,6 +174,7 @@ final class AlphaXClient {
     timeout: timeout,
     cancellationToken: cancellationToken,
     protocolPreference: protocolPreference,
+    protocolRequirement: protocolRequirement,
     redirectPolicy: redirectPolicy,
     onUploadProgress: onUploadProgress,
     onDownloadProgress: onDownloadProgress,
@@ -170,6 +187,7 @@ final class AlphaXClient {
     AlphaXTimeouts? timeout,
     AlphaXCancellationToken? cancellationToken,
     AlphaXProtocolPreference protocolPreference = AlphaXProtocolPreference.auto,
+    AlphaXProtocolRequirement? protocolRequirement,
     AlphaXRedirectPolicy redirectPolicy = const AlphaXRedirectPolicy(),
   }) => _sendMethod(
     HttpMethod.head,
@@ -178,6 +196,7 @@ final class AlphaXClient {
     timeout: timeout,
     cancellationToken: cancellationToken,
     protocolPreference: protocolPreference,
+    protocolRequirement: protocolRequirement,
     redirectPolicy: redirectPolicy,
   );
 
@@ -189,6 +208,7 @@ final class AlphaXClient {
     AlphaXTimeouts? timeout,
     AlphaXCancellationToken? cancellationToken,
     AlphaXProtocolPreference protocolPreference = AlphaXProtocolPreference.auto,
+    AlphaXProtocolRequirement? protocolRequirement,
     AlphaXRedirectPolicy redirectPolicy = const AlphaXRedirectPolicy(),
   }) => _sendMethod(
     HttpMethod.options,
@@ -198,6 +218,7 @@ final class AlphaXClient {
     timeout: timeout,
     cancellationToken: cancellationToken,
     protocolPreference: protocolPreference,
+    protocolRequirement: protocolRequirement,
     redirectPolicy: redirectPolicy,
   );
 
@@ -220,6 +241,7 @@ final class AlphaXClient {
     AlphaXTimeouts? timeout,
     AlphaXCancellationToken? cancellationToken,
     AlphaXProtocolPreference protocolPreference = AlphaXProtocolPreference.auto,
+    AlphaXProtocolRequirement? protocolRequirement,
     AlphaXRedirectPolicy redirectPolicy = const AlphaXRedirectPolicy(),
     AlphaXProgressCallback? onDownloadProgress,
   }) {
@@ -230,6 +252,7 @@ final class AlphaXClient {
       timeout: timeout,
       cancellationToken: cancellationToken,
       protocolPreference: protocolPreference,
+      protocolRequirement: protocolRequirement,
       redirectPolicy: redirectPolicy,
       onDownloadProgress: onDownloadProgress,
     );
@@ -245,6 +268,7 @@ final class AlphaXClient {
     AlphaXTimeouts? timeout,
     AlphaXCancellationToken? cancellationToken,
     AlphaXProtocolPreference protocolPreference = AlphaXProtocolPreference.auto,
+    AlphaXProtocolRequirement? protocolRequirement,
     AlphaXRedirectPolicy redirectPolicy = const AlphaXRedirectPolicy(),
     AlphaXProgressCallback? onUploadProgress,
   }) {
@@ -255,6 +279,7 @@ final class AlphaXClient {
       timeout: timeout,
       cancellationToken: cancellationToken,
       protocolPreference: protocolPreference,
+      protocolRequirement: protocolRequirement,
       redirectPolicy: redirectPolicy,
       onUploadProgress: onUploadProgress,
     );
@@ -279,6 +304,7 @@ final class AlphaXClient {
     AlphaXTimeouts? timeout,
     AlphaXCancellationToken? cancellationToken,
     AlphaXProtocolPreference protocolPreference = AlphaXProtocolPreference.auto,
+    AlphaXProtocolRequirement? protocolRequirement,
     AlphaXRedirectPolicy redirectPolicy = const AlphaXRedirectPolicy(),
     AlphaXProgressCallback? onUploadProgress,
     AlphaXProgressCallback? onDownloadProgress,
@@ -291,6 +317,7 @@ final class AlphaXClient {
       timeout: timeout,
       cancellationToken: cancellationToken,
       protocolPreference: protocolPreference,
+      protocolRequirement: protocolRequirement,
       redirectPolicy: redirectPolicy,
       onUploadProgress: onUploadProgress,
       onDownloadProgress: onDownloadProgress,

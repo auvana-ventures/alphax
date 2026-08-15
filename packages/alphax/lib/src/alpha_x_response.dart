@@ -18,6 +18,7 @@ final class AlphaXResponse {
     AlphaXProtocol protocol = AlphaXProtocol.unknown,
     AlphaXProtocol? negotiatedProtocol,
     this.requestedProtocol,
+    this.requiredProtocol,
     this.protocolFallback,
     this.metrics = const AlphaXRequestMetrics(),
     Future<AlphaXRequestMetrics>? completionMetrics,
@@ -64,6 +65,9 @@ final class AlphaXResponse {
 
   /// Protocol preference originally supplied by the caller, when retained.
   final AlphaXProtocolPreference? requestedProtocol;
+
+  /// Protocol requirement supplied by the caller, when present.
+  final AlphaXProtocolRequirement? requiredProtocol;
 
   /// Explicit fallback information, when a preference was not negotiated.
   final AlphaXProtocolFallback? protocolFallback;

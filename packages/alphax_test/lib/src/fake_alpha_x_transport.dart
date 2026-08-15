@@ -19,6 +19,8 @@ final class FakeAlphaXTransport extends AlphaXTransport {
     this.errorStackTrace,
     this.delay,
     AlphaXCapabilities? capabilities,
+    this.tlsPolicy = const AlphaXTlsPolicy.platformDefault(),
+    this.proxyPolicy = const AlphaXProxyPolicy.system(),
   }) : response = response ?? AlphaXResponse(statusCode: 200),
        _capabilities =
            capabilities ??
@@ -46,6 +48,12 @@ final class FakeAlphaXTransport extends AlphaXTransport {
   /// Optional deterministic delay before an operation produces output.
   final Duration? delay;
 
+  @override
+  final AlphaXTlsPolicy tlsPolicy;
+
+  @override
+  final AlphaXProxyPolicy proxyPolicy;
+
   final AlphaXCapabilities _capabilities;
   final List<AlphaXRequest> _requests = <AlphaXRequest>[];
   bool _closed = false;
@@ -64,7 +72,9 @@ final class FakeAlphaXTransport extends AlphaXTransport {
     _record(request);
     await _wait(request.cancellationToken);
     _throwConfiguredError();
-    return await (responseBuilder?.call(request) ?? response);
+    final result = await (responseBuilder?.call(request) ?? response);
+    _validateRequirement(request, result.protocol);
+    return result;
   }
 
   @override
@@ -78,11 +88,14 @@ final class FakeAlphaXTransport extends AlphaXTransport {
       return;
     }
 
+    _validateRequirement(request, response.protocol);
+
     yield AlphaXResponseStarted(
       statusCode: response.statusCode,
       headers: response.headers,
       protocol: response.protocol,
       requestedProtocol: response.requestedProtocol,
+      requiredProtocol: response.requiredProtocol,
       protocolFallback: response.protocolFallback,
       redirects: response.redirects,
     );
@@ -96,6 +109,7 @@ final class FakeAlphaXTransport extends AlphaXTransport {
       metrics: response.metrics,
       bytesReceived: bytes?.length ?? response.metrics.downloadedBytes ?? 0,
       requestedProtocol: response.requestedProtocol,
+      requiredProtocol: response.requiredProtocol,
       protocolFallback: response.protocolFallback,
     );
   }
@@ -134,6 +148,16 @@ final class FakeAlphaXTransport extends AlphaXTransport {
     final configured = error;
     if (configured != null) {
       Error.throwWithStackTrace(configured, errorStackTrace ?? StackTrace.current);
+    }
+  }
+
+  void _validateRequirement(AlphaXRequest request, AlphaXProtocol actual) {
+    final requirement = request.protocolRequirement;
+    if (requirement != null && !requirement.isSatisfiedBy(actual)) {
+      throw AlphaXProtocolRequirementException(
+        requiredProtocol: requirement,
+        actualProtocol: actual,
+      );
     }
   }
 }

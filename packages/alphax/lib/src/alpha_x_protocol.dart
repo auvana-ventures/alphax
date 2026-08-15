@@ -37,6 +37,46 @@ enum AlphaXProtocolPreference {
   http3,
 }
 
+/// A protocol that a request requires rather than merely prefers.
+///
+/// A transport must fail when the final negotiated protocol is different or
+/// remains unknown. A capability entry alone never satisfies a requirement.
+enum AlphaXProtocolRequirement {
+  /// Require HTTP/1.0.
+  http10,
+
+  /// Require HTTP/1.1.
+  http11,
+
+  /// Require HTTP/2.
+  http2,
+
+  /// Require HTTP/3.
+  http3,
+}
+
+/// Converts a protocol requirement to its actual-protocol representation.
+extension AlphaXProtocolRequirementValues on AlphaXProtocolRequirement {
+  /// Protocol value represented by this requirement.
+  AlphaXProtocol get protocol => switch (this) {
+    AlphaXProtocolRequirement.http10 => AlphaXProtocol.http10,
+    AlphaXProtocolRequirement.http11 => AlphaXProtocol.http11,
+    AlphaXProtocolRequirement.http2 => AlphaXProtocol.http2,
+    AlphaXProtocolRequirement.http3 => AlphaXProtocol.http3,
+  };
+
+  /// Preference value corresponding to this requirement.
+  AlphaXProtocolPreference get preference => switch (this) {
+    AlphaXProtocolRequirement.http10 => AlphaXProtocolPreference.http10,
+    AlphaXProtocolRequirement.http11 => AlphaXProtocolPreference.http11,
+    AlphaXProtocolRequirement.http2 => AlphaXProtocolPreference.http2,
+    AlphaXProtocolRequirement.http3 => AlphaXProtocolPreference.http3,
+  };
+
+  /// Whether [actual] proves this requirement was met.
+  bool isSatisfiedBy(AlphaXProtocol actual) => actual == protocol;
+}
+
 /// Why the negotiated protocol differed from the request preference.
 enum AlphaXProtocolFallbackReason {
   /// The requested protocol is not supported by the selected provider.

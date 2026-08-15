@@ -17,5 +17,6 @@ export 'src/alpha_x_protocol.dart';
 export 'src/alpha_x_redirect.dart';
 export 'src/alpha_x_request.dart';
 export 'src/alpha_x_response.dart';
+export 'src/alpha_x_security.dart';
 export 'src/alpha_x_timeout.dart';
 export 'src/alpha_x_transport.dart';

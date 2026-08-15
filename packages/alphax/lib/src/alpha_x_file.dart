@@ -56,6 +56,7 @@ final class AlphaXTransferResult {
     this.headers = const AlphaXHeaders.empty(),
     this.protocol = AlphaXProtocol.unknown,
     this.requestedProtocol,
+    this.requiredProtocol,
     this.protocolFallback,
     this.metrics = const AlphaXRequestMetrics(),
     Iterable<AlphaXRedirectInfo> redirects = const <AlphaXRedirectInfo>[],
@@ -74,6 +75,9 @@ final class AlphaXTransferResult {
 
   /// Protocol preference supplied by the caller, when retained.
   final AlphaXProtocolPreference? requestedProtocol;
+
+  /// Protocol requirement supplied by the caller, when present.
+  final AlphaXProtocolRequirement? requiredProtocol;
 
   /// Explicit fallback information, when applicable.
   final AlphaXProtocolFallback? protocolFallback;
