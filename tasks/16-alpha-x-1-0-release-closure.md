@@ -80,7 +80,9 @@ capability and before release-candidate approval.
   preserve existing evidence and do not run broad benchmarks. The macOS
   security fixture passed. The signed iPhone run verified H2/H3 and invalid-TLS
   rejection, but its local H1 fixture was unreachable and a later automation
-  retry hit `osascript: -2`. Android is not currently visible to ADB.
+  retry hit `osascript: -2`. Android ADB was briefly visible and APK transfer
+  succeeded, but package-install commit stalled; after reboot the wireless
+  endpoint did not reappear.
 - [x] Create `docs/ALPHAX_1_0_RELEASE_GATE.md`, update API/docs/migrations, and
   reconcile every required scope item with an exact state.
 - [x] Run consolidated validation, security/dependency/configuration audits,
@@ -105,15 +107,19 @@ pass. No package publication or release tag was performed.
 ## Next Action
 
 Recover Android ADB/package-manager access and run the focused Android release
-checks. Re-run the signed iPhone focused checks with a reachable H1 fixture.
+checks. APK push/session write passed, but installation commit stalled and the
+wireless endpoint disappeared after reboot. Re-run the signed iPhone focused
+checks with a reachable H1 fixture.
 Provider-limited proxy/custom-trust behavior and optional mTLS are already
 accepted fail-closed boundaries; they are not pending maintainer decisions.
 
 ## Blockers
 
-Android is not visible to either configured ADB binary after the earlier
-package-manager stall and permitted reboot; its focused release checks cannot
-run. The signed iPhone attached for H2/H3 and invalid-TLS checks, but both host
+Android API 35 was visible over wireless TLS ADB for this attempt. The profile
+APK built, pushed, and was written to an install session, but package-install
+commit stalled without a result; after reboot the wireless endpoint did not
+reappear, so no Android transport result was recorded. The signed iPhone
+attached for H2/H3 and invalid-TLS checks, but both host
 interfaces failed to reach the local H1 fixture and a later `flutter drive`
 retry hit `osascript: -2`; H1/fallback, requirement, pin/custom-trust, and
 redirect checks remain open on that device. These are environment blockers and
@@ -165,6 +171,11 @@ unavailable. The exact states are tracked in
 - 2026-08-15: Committed requirements, ADR validation, and release-gate
   reconciliation in `e92a382` (`docs: reconcile AlphaX 1.0 security release
   gate`).
+- 2026-08-15: Android wireless ADB became visible on the physical API 35
+  device; APK push and install-session write passed, but package-install commit
+  stalled. After the permitted reboot the wireless endpoint did not reappear;
+  no transport probe was counted and the attempt is recorded as environment
+  evidence.
 
 ## Validation Record
 
@@ -211,3 +222,8 @@ unavailable. The exact states are tracked in
   requires this tool.
 - `git diff --check` after the closure commits — passed; the local iOS signing
   project modification remains unstaged and excluded from both commits.
+- Android focused release attempt — ADB/device metadata, profile APK hash,
+  push/session-write success, stalled install commit, and post-reboot endpoint
+  loss are recorded in
+  `benchmarks/mobile_gate/fixtures/phase1f_android_release_attempt.json`;
+  no transport probe was counted.

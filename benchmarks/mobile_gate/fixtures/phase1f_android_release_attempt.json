@@ -1,0 +1,34 @@
+{
+  "schema": "alphax.phase1f.android-release-attempt.v1",
+  "captured_at": "2026-08-15",
+  "device": {
+    "model": "M2003J6A1G",
+    "product": "PHK110",
+    "android_version": "15",
+    "api_level": 35,
+    "architecture": "arm64-v8a",
+    "adb_transport": "wireless TLS"
+  },
+  "build": {
+    "mode": "profile",
+    "target": "lib/phase1c_main.dart",
+    "git_commit": "1af6522",
+    "apk_bytes": 73751472,
+    "apk_sha256": "eadbc8faba35a26820d5fdbf0cb189dfeb322106fdc7700bb43d9453d3a91527"
+  },
+  "adb": {
+    "device_visible": "passed",
+    "push": "passed",
+    "install_session_create": "passed",
+    "install_session_write": "passed",
+    "install_commit": "stalled_without_result",
+    "pm_install": "stalled_without_result",
+    "reboot": "performed",
+    "post_reboot_wireless_endpoint": "not_reappeared"
+  },
+  "transport_probes": {
+    "status": "not_run",
+    "reason": "The profile APK could not be installed; no Android transport result is inferred."
+  },
+  "interpretation": "ADB connectivity and APK transfer are healthy, but the device package-install commit path remains blocked. This is environment evidence, not a transport result."
+}

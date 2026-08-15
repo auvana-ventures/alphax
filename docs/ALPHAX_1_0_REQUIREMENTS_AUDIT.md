@@ -147,7 +147,10 @@ checks remain open and are not scope changes:
 
 1. Android release/profile physical-device validation after the package-manager
    stall and reboot, including H1/H2/H3, protocol requirement, TLS/pinning,
-   redirect security, file, and cancellation checks.
+   redirect security, file, and cancellation checks. ADB visibility, APK push,
+   and install-session write passed, but install commit stalled and the
+   wireless endpoint did not reappear after reboot; no Android probe result is
+   inferred.
 2. iPhone signed release/profile attachment and a reachable release fixture.
    The attached profile run verified H2, H3, and invalid-TLS rejection, but
    local H1 was unreachable and a later automation retry hit `osascript: -2`.

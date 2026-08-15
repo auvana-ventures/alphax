@@ -162,10 +162,15 @@ Historical accepted evidence is preserved:
   `benchmarks/mobile_gate/fixtures/phase1c_h3_cloudflare_verified.json`;
 - H2 fallback reported accurately.
 
-The current release/profile APK built successfully. The connected device
-accepted the APK push but `adb install` and `pm install` stalled; after the
-permitted reboot, wireless ADB did not reappear. Focused release acceptance is
-therefore `IMPLEMENTED_NEEDS_VALIDATION`, not a transport failure.
+The current release/profile APK built successfully. On 2026-08-15 the physical
+Android 15/API 35 device (`M2003J6A1G`, product `PHK110`) was visible over
+wireless TLS ADB. APK push, install-session creation, and install-session write
+all passed, but both `adb install`/`pm install` and explicit
+`cmd package install-commit` stalled without a result. After the permitted
+reboot, the wireless endpoint did not reappear. No Android transport probe is
+claimed from this attempt; focused release acceptance remains
+`IMPLEMENTED_NEEDS_VALIDATION`. Machine-readable evidence is retained in
+`benchmarks/mobile_gate/fixtures/phase1f_android_release_attempt.json`.
 
 ## 11. iPhone physical acceptance
 
