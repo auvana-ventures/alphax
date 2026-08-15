@@ -54,10 +54,12 @@ transport advertises an unsupported control.
 ## Validation
 
 Core policy immutability, digest, duplicate-pin, and replacement-trust rules
-are unit-tested. Dart IO invalid-certificate behavior is covered. Native builds
-compile the Apple trust challenge and Android provider pin configuration;
-focused live pin success/mismatch and custom-CA fixtures remain release-gate
-validation items for the attached devices/providers.
+are unit-tested. Dart IO invalid-certificate behavior is covered. The focused
+macOS fixture validated custom-CA success/failure, primary and backup SPKI pin
+success, pin mismatch, and rejection of an untrusted certificate despite a
+matching pin. Android and iPhone release-path pin/custom-trust checks remain
+device validation items; Cronet custom anchors remain an explicit
+provider-blocked fail-closed capability.
 
 ## Revisit
 

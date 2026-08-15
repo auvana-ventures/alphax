@@ -35,8 +35,12 @@ HTTPS destination may use HTTP CONNECT through that proxy. This is distinct
 from an HTTPS proxy endpoint, which remains rejected as an unsupported policy
 scheme on both iOS and macOS.
 
-Proxy credentials remain in native challenge/configuration paths and are never
-copied into origin `Authorization` headers or ordinary diagnostics.
+For an explicit HTTP proxy with Basic credentials, the Apple adapter sends a
+hop-by-hop `Proxy-Authorization` value scoped to the selected proxy route and
+normalizes a 407 response as `AlphaXProxyAuthenticationException`. The value
+is never copied into origin `Authorization` headers or ordinary diagnostics.
+The adapter strips it together with other sensitive headers on a cross-origin
+redirect.
 
 HTTP/3 is not guaranteed through a proxy. A preferred H3 request may report an
 observed H2/H1 fallback; an H3 requirement fails if the final protocol is not
@@ -56,9 +60,11 @@ H3 or is unknown.
 
 Policy construction and capability mapping are unit-tested; Dart IO explicit
 HTTP proxy configuration and credentials are implemented. Native builds and
-initialization reject unsupported Cronet/Apple HTTPS policy paths. Live proxy
-route/authentication evidence is environment-dependent and remains explicitly
-recorded as release validation rather than inferred from configuration.
+initialization reject unsupported Cronet/Apple HTTPS policy paths. The focused
+macOS fixture recorded system/direct/explicit HTTP routing, trusted HTTPS
+CONNECT, Basic success and wrong-credential failure, and unreachable-proxy
+failure. A local custom-CA tunnel failed closed with a normalized TLS error;
+the trusted CONNECT route is the supported evidence boundary.
 
 ## Revisit
 

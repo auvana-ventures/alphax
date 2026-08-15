@@ -289,27 +289,31 @@ guard remains a targeted security regression for the signed platform run.
 
 ## 10. Proxy behavior and capability output
 
-The focused proxy review found no explicit proxy policy in the AlphaX adapter.
-The native engine constructs `URLSessionConfiguration.default`; it does not
-set an explicit proxy dictionary and does not implement a proxy-authentication
-credential API. On the validation Mac, `scutil --proxy` reported no active
-HTTP or HTTPS proxy, so no runtime proxy route was claimed or synthesized.
+URLSession inherits system proxy behavior by default. For the explicit
+AlphaX HTTP-proxy policy, the native engine supplies the CFNetwork proxy
+dictionary for HTTP destinations and HTTPS destinations through HTTP CONNECT.
+Basic credentials are sent as a hop-by-hop `Proxy-Authorization` value for
+the selected explicit proxy route; they are never copied into origin
+`Authorization` and are not logged. A 407 response is normalized as
+`AlphaXProxyAuthenticationException`.
 
-The resulting contract is:
+The focused macOS security fixture is recorded in
+`benchmarks/mobile_gate/fixtures/phase1f_macos_security_policy.json` and
+produced the following results:
 
-| Behavior | Phase 1D result |
+| Behavior | Result |
 | --- | --- |
-| System proxy settings | inherited by default URLSession configuration |
-| Explicit/per-session proxy | unsupported by AlphaX |
-| Proxy authentication | platform/default URLSession handling only; not AlphaX-configurable or validated |
-| HTTP CONNECT | owned by URLSession; not exposed or directly observable |
-| H3 through a proxy | not guaranteed; QUIC may be unavailable and final metrics must report H2/H1 fallback |
+| System proxy settings | passed; inherited by default URLSession configuration |
+| Direct/no-proxy policy | passed; local route bypassed the fixture proxy |
+| Explicit HTTP proxy for HTTP | passed; local proxy observed the request |
+| Explicit HTTP proxy for trusted HTTPS | passed; local proxy observed and completed CONNECT |
+| Basic proxy authentication | passed; correct credentials accepted and wrong credentials failed closed as normalized proxy-authentication error |
+| Unreachable explicit proxy | passed; failed closed |
+| Local custom CA through CONNECT | failed closed with normalized TLS error; this route-specific combination is not claimed as supported |
+| Explicit HTTPS proxy endpoint | unsupported and rejected by policy validation |
+| H3 through a proxy | not guaranteed; final task metrics remain authoritative and may report H2/H1 fallback |
 
-The AlphaX capability output therefore keeps `proxyConfiguration` as
-`unsupported`. This is an explicit limitation, not an assertion that the
-Apple networking stack cannot use a system proxy.
-
-The validated macOS capability output was:
+The Apple capability output is therefore:
 
 | Capability | Result |
 | --- | --- |
@@ -318,14 +322,20 @@ The validated macOS capability output was:
 | streaming upload/download | supported with bounded delivery |
 | native file upload/download | supported for local file abstractions |
 | upload/download progress | supported |
-| proxy configuration | unsupported by this AlphaX adapter |
-| certificate pinning | unsupported |
-| mTLS | unsupported |
+| system proxy | supported/platform-managed |
+| direct connection policy | supported through CFNetwork configuration |
+| explicit HTTP proxy | supported; HTTPS destinations use CONNECT where available |
+| proxy authentication | supported for explicit HTTP Basic route |
+| explicit HTTPS proxy endpoint | unsupported |
+| certificate pinning | supported; normal trust remains required |
+| custom trust anchors | supported for direct URLSession trust evaluation |
+| mTLS | unsupported/not part of the 1.0 release gate |
 | connection migration | unsupported/not exposed |
 | background transfer | unsupported/not part of 1.0 |
 
-No optional capability is silently emulated or advertised as an actual
-negotiated protocol.
+No unsupported policy silently degrades to direct or system routing, and no
+capability flag is treated as proof of an individual request's negotiated
+protocol.
 
 ## 11. Binary and package impact
 
@@ -353,17 +363,13 @@ record is `docs/decisions/0005-completion-time-protocol-metadata.md`.
 `alphax_test` now accepts synchronous or asynchronous transport factories. The
 mobile gate contains an isolated Flutter `integration_test` runner that calls
 the same shared conformance suite after the platform plugin is attached. The
-physical-device runner uses the isolated `test_driver` entry point and
-`flutter drive`; it connected to the Dart VM service and reported `All tests
-passed.` with exit code 0 on the signed iPhone. The earlier direct
-`flutter test` listener path terminated before VM-service startup, so it is not
-the canonical physical-device command. The Apple plugin can safely
-reinitialize its shared engine after each awaited test teardown. No Flutter
-dependency was added to `alphax`.
+Apple plugin can safely reinitialize its shared engine after each awaited test
+teardown. No Flutter dependency was added to `alphax`.
 
 Other platform differences to carry forward are:
 
-- pinning, mTLS, migration, and background transfer remain unsupported;
+- Dart IO SPKI pinning, Apple/Android mTLS identity resolution, migration, and
+  background transfer remain unsupported or provider-limited;
 - Flutter currently uses CocoaPods for this plugin because Swift Package
   Manager support is not declared;
 - physical iPhone signing/provisioning is environment-owned, not a package
@@ -385,7 +391,24 @@ run-loop scheduling hooks; the rerun passed the streamed upload and all other
 macOS checks. This was an implementation correction, not a change to the
 Phase 1A contract.
 
-## 13. Phase 1E blockers
+## 13. Focused release-closure addendum
+
+The 2026-08-15 macOS fixture run passed all recorded checks for default trust
+rejection, custom CA success/failure, primary and backup SPKI pins, pin
+mismatch, invalid-certificate rejection despite a matching pin, direct and
+explicit proxy routing, trusted HTTPS CONNECT, Basic proxy authentication,
+wrong-credential rejection, unreachable-proxy failure, and system policy.
+
+The signed iPhone runner attached successfully for one direct profile run and
+verified actual H2 on `https://www.apple.com/`, actual H3 on
+`https://cloudflare-quic.com/`, and invalid-certificate rejection. The local
+plain-HTTP fixture was unreachable from the phone on both tested host
+interfaces, so local H1/fallback, file, stream, and lifecycle checks were not
+counted as new device evidence. A later `flutter drive` retry hit the existing
+`osascript: -2` automation attachment failure. Historical signed Phase 1D/1E
+evidence remains preserved and is not rewritten.
+
+## 14. Phase 1E blockers
 
 Before AlphaX 1.0 can claim the accepted platform strategy across Apple and
 Android, Phase 1E must:

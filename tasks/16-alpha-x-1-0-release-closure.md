@@ -77,9 +77,10 @@ capability and before release-candidate approval.
 - [x] Resolve ADR 0005 and add focused ADRs for protocol requirement, TLS, and
   proxy semantics where the decisions are architectural.
 - [-] Run focused macOS, Android, and iPhone checks when environments permit;
-  preserve existing evidence and do not run broad benchmarks. macOS code/build
-  checks pass; Android and iPhone release-path/device checks are blocked by
-  package-manager/runner attachment failures.
+  preserve existing evidence and do not run broad benchmarks. The macOS
+  security fixture passed. The signed iPhone run verified H2/H3 and invalid-TLS
+  rejection, but its local H1 fixture was unreachable and a later automation
+  retry hit `osascript: -2`. Android is not currently visible to ADB.
 - [x] Create `docs/ALPHAX_1_0_RELEASE_GATE.md`, update API/docs/migrations, and
   reconcile every required scope item with an exact state.
 - [x] Run consolidated validation, security/dependency/configuration audits,
@@ -103,28 +104,31 @@ pass. No package publication or release tag was performed.
 
 ## Next Action
 
-Maintainer review must resolve the concrete device/tooling blockers and confirm
-the provider-dependent policy boundary before AlphaX can be reported ready for
-an RC. No approved requirement was silently downgraded.
+Recover Android ADB/package-manager access and run the focused Android release
+checks. Re-run the signed iPhone focused checks with a reachable H1 fixture.
+Provider-limited proxy/custom-trust behavior and optional mTLS are already
+accepted fail-closed boundaries; they are not pending maintainer decisions.
 
 ## Blockers
 
-Android wireless ADB/package-manager access stalled during release APK
-installation and did not recover after the permitted reboot. The iPhone signed
-runner built but Flutter/Xcode attachment ended with `osascript: -2`. These are
-environment blockers and must not be solved by weakening production security or
-signing behavior. Live macOS custom-CA/pinning/proxy fixtures were not recorded;
-the implementation is present but that evidence remains open. The selected
-Cronet provider cannot guarantee direct or explicit proxy routes, and no
-selected adapter supports an HTTPS proxy endpoint or mTLS; the fail-closed
-behavior requires maintainer acceptance as a capability-dependent boundary.
+Android is not visible to either configured ADB binary after the earlier
+package-manager stall and permitted reboot; its focused release checks cannot
+run. The signed iPhone attached for H2/H3 and invalid-TLS checks, but both host
+interfaces failed to reach the local H1 fixture and a later `flutter drive`
+retry hit `osascript: -2`; H1/fallback, requirement, pin/custom-trust, and
+redirect checks remain open on that device. These are environment blockers and
+must not be solved by weakening production security or signing behavior. The
+macOS focused custom-CA, pin, proxy, CONNECT, and authentication fixture is
+complete. Provider-limited Cronet direct/explicit proxy/custom trust,
+unsupported Dart IO pinning, optional mTLS, and explicit HTTPS proxy endpoint
+parity are accepted fail-closed boundaries, not blockers.
 
 ## Outcome
 
 `BLOCKED FOR 1.0 RC`: the transport-neutral foundations and adapter mappings
-are implemented, but physical release-path validation and focused live security
-policy evidence remain unavailable in this environment. The exact states are
-tracked in `docs/ALPHAX_1_0_REQUIREMENTS_AUDIT.md` and
+are implemented, but focused Android/iPhone release-path evidence remains
+unavailable. The exact states are tracked in
+`docs/ALPHAX_1_0_REQUIREMENTS_AUDIT.md` and
 `docs/ALPHAX_1_0_RELEASE_GATE.md`.
 
 ## References
@@ -151,6 +155,11 @@ tracked in `docs/ALPHAX_1_0_REQUIREMENTS_AUDIT.md` and
 - 2026-08-15: Consolidated repository validation passed; Android package
   manager/wireless ADB and signed iPhone attachment remained unavailable, so
   the task is blocked for RC approval rather than marked complete.
+- 2026-08-15: Focused macOS security fixture passed custom trust, SPKI pin,
+  proxy routing/CONNECT, Basic authentication, and fail-closed error checks.
+  Signed iPhone H2/H3/invalid-TLS probes passed; local H1 reachability and
+  subsequent automation remained environment-blocked. Maintainer proxy/mTLS
+  decisions are recorded as accepted boundaries, not blockers.
 
 ## Validation Record
 
@@ -174,3 +183,24 @@ tracked in `docs/ALPHAX_1_0_REQUIREMENTS_AUDIT.md` and
 - Secret/signing/native-dependency audit — passed for intended production
   changes; local iOS development-team configuration remains untracked from the
   commit set.
+- `flutter run --profile --no-pub -d macos --target
+  lib/phase1f_macos_security_main.dart` with generated temporary fixture
+  material — passed all recorded macOS TLS/pinning/proxy checks; evidence is in
+  `benchmarks/mobile_gate/fixtures/phase1f_macos_security_policy.json`.
+- Signed iPhone profile run — actual H2, actual H3, and invalid-TLS rejection
+  passed; local H1 endpoint was unreachable from the device. A later focused
+  `flutter drive` retry ended with `osascript: -2`.
+- `tooling/scripts/analyze_dart_packages.sh` — passed.
+- `tooling/scripts/analyze_prototypes.sh` — passed.
+- `tooling/scripts/test_benchmark_contract.sh` — passed.
+- `tooling/scripts/test_benchmark_harness.sh` — passed.
+- `tooling/scripts/validate_packages.sh` — passed with zero package warnings
+  after the implementation commit; no publication was performed.
+- `flutter build macos --profile --no-pub` — passed.
+- `flutter build ios --profile --no-codesign --no-pub` — Xcode build passed.
+- Fresh-output `dart doc --validate-links` for all four production packages —
+  passed with zero warnings and zero errors. Existing ignored doc output can
+  produce stale-tree warnings and was not used as release evidence.
+- `markdownlint` — baseline and changed historical/table-heavy reports retain
+  pre-existing line-length and second-H1 findings; no repository CI rule
+  requires this tool.

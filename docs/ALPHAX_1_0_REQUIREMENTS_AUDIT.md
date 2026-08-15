@@ -88,14 +88,14 @@ explicitly.
 | Capability | Scope class | Exact state | Evidence / limitation |
 | --- | --- | --- | --- |
 | TLS verification by default | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Platform trust remains enabled; invalid-certificate fixtures reject; no trust-all callback exists. |
-| Custom trust anchors / certificate configuration | REQUIRED FOR 1.0 | `IMPLEMENTED_NEEDS_VALIDATION` | Immutable DER-anchor policy is implemented for Dart IO and Apple; Android Cronet explicitly fails with `UNSUPPORTED_BY_ANDROID_PROVIDER`; live success/rejection fixtures remain to be run. |
-| SPKI SHA-256 certificate pinning | OPTIONAL FOR 1.0 | `IMPLEMENTED_NEEDS_VALIDATION` | The approved scope makes pinning optional, while this closure deliberately evaluates it as a foundational control. Immutable primary/backup pin model and Android/Apple enforcement exist after normal trust validation; Dart IO reports unsupported because stable `HttpClient` lacks a safe SPKI callback/parser; live pin success/mismatch validation remains open. |
+| Custom trust anchors / certificate configuration | REQUIRED FOR 1.0 | `IMPLEMENTED_NEEDS_VALIDATION` | Immutable DER-anchor policy is implemented for Dart IO and Apple; macOS passed default-rejection, configured-success, and incorrect-anchor failure; Android Cronet explicitly fails with `UNSUPPORTED_BY_ANDROID_PROVIDER`; iPhone focused runtime validation remains open. |
+| SPKI SHA-256 certificate pinning | REQUIRED FOR 1.0 WHERE THE TRANSPORT ADVERTISES SUPPORT | `IMPLEMENTED_NEEDS_VALIDATION` | Immutable primary/backup pin model and Android/Apple enforcement exist after normal trust validation. The focused macOS fixture passed primary/backup/mismatch and invalid-certificate checks; Android and iPhone release-path checks remain open. Dart IO reports unsupported because stable `HttpClient` lacks a safe SPKI callback/parser and fails closed. |
 | Client certificates / mTLS | OPTIONAL FOR 1.0 | `OPTIONAL_NOT_IMPLEMENTED` | Opaque platform identity model exists, but Dart IO, selected Cronet, and URLSession adapters reject identity use; no raw private-key API is exposed. |
-| System proxy behavior | REQUIRED FOR 1.0 | `IMPLEMENTED_NEEDS_VALIDATION` | System policy is preserved for Dart IO, Cronet, and URLSession; active proxy-route validation was unavailable. |
+| System proxy behavior | REQUIRED FOR 1.0 | `IMPLEMENTED_NEEDS_VALIDATION` | System policy is preserved for Dart IO, Cronet, and URLSession; the focused macOS system-policy fixture passed, while Android/iPhone release-path policy snapshots remain open. |
 | Direct/no-proxy policy | REQUIRED FOR 1.0 | `IMPLEMENTED_NEEDS_VALIDATION` | Dart IO and Apple implement direct routing; selected Cronet provider cannot guarantee direct routing and reports unsupported instead of degrading. |
-| Explicit HTTP proxy | REQUIRED FOR 1.0 | `IMPLEMENTED_NEEDS_VALIDATION` | Dart IO and Apple HTTP proxy mappings exist, including CONNECT to HTTPS destinations where CFNetwork permits it; selected Cronet provider cannot guarantee explicit routing. |
-| Explicit HTTPS proxy endpoint | REQUIRED FOR 1.0 | `BLOCKED_BY_PLATFORM` | The selected stable Dart IO/Cronet/Apple mapping cannot guarantee TLS to the proxy endpoint uniformly; requests fail with normalized unsupported-policy errors rather than silently routing direct/system. |
-| Proxy authentication | REQUIRED FOR 1.0 | `IMPLEMENTED_NEEDS_VALIDATION` | Dart IO and Apple Basic challenge mappings exist; Cronet provider does not expose a portable explicit-auth mapping; active proxy-auth validation remains open. |
+| Explicit HTTP proxy | REQUIRED FOR 1.0 | `IMPLEMENTED_NEEDS_VALIDATION` | Dart IO and Apple HTTP proxy mappings exist, including a focused macOS trusted HTTPS CONNECT path; selected Cronet provider cannot guarantee explicit routing and Android/iPhone release-path checks remain open. |
+| Explicit HTTPS proxy endpoint | OPTIONAL FOR 1.0 | `INTENTIONALLY_UNSUPPORTED_IN_1_0` | Explicit HTTPS-proxy endpoint parity is outside the approved 1.0 boundary. The shared model retains the scheme so unsupported requests fail with normalized policy errors rather than silently routing direct/system. HTTP proxy CONNECT to HTTPS remains supported where the transport validates it. |
+| Proxy authentication | REQUIRED FOR 1.0 WHERE THE TRANSPORT ADVERTISES SUPPORT | `IMPLEMENTED_NEEDS_VALIDATION` | Dart IO and Apple Basic mappings exist; the focused macOS fixture passed success, wrong-credential failure, and unreachable-proxy failure. Cronet provider does not expose a portable explicit-auth mapping and Android/iPhone release-path checks remain open. |
 | Capability discovery for TLS/proxy/protocol controls | REQUIRED FOR 1.0 | `IMPLEMENTED_NEEDS_VALIDATION` | Separate fields exist for default trust, custom anchors, pinning, mTLS, system/direct/explicit proxy, proxy auth, protocol support, and requirement enforcement; provider snapshots need release-path checks. |
 
 ## Architecture, metrics, testing, and developer experience
@@ -148,20 +148,22 @@ checks remain open and are not scope changes:
 1. Android release/profile physical-device validation after the package-manager
    stall and reboot, including H1/H2/H3, protocol requirement, TLS/pinning,
    redirect security, file, and cancellation checks.
-2. iPhone signed release/profile attachment and the same focused checks. The
-   app built and signed, but Flutter/Xcode launch failed with `osascript: -2`.
-3. Live macOS/native policy fixtures for custom trust-anchor success, pin
-   success/mismatch, and proxy routing/authentication. The implementation and
-   fail-closed behavior are present; those runtime assertions are not yet
-   recorded.
-4. Maintainer confirmation that provider-blocked explicit HTTPS proxy and
-   mTLS behavior are acceptable as capability-dependent 1.0 behavior. No
-   implementation silently degrades these policies.
+2. iPhone signed release/profile attachment and a reachable release fixture.
+   The attached profile run verified H2, H3, and invalid-TLS rejection, but
+   local H1 was unreachable and a later automation retry hit `osascript: -2`.
+3. Focused iPhone release-path validation for H1/fallback, protocol
+   requirement success/failure, pin success/mismatch, custom-trust success/
+   failure, and cross-origin redirect security. H2, H3, and invalid-TLS
+   rejection already passed on the attached phone; local H1 was unreachable
+   and a later automation retry hit `osascript: -2`.
+4. Provider-limited Cronet direct/explicit proxy and custom trust, unsupported
+   Dart IO pinning, optional mTLS, and explicit HTTPS proxy endpoint parity are
+   accepted boundaries, not RC blockers.
 
 ## Conclusion
 
 `alphax` and the three transport boundaries are substantially implemented,
 but the approved AlphaX 1.0 contract is **not ready for an RC**. The exact
-remaining blockers are release-path device attachment and focused security
-policy validation, plus explicit maintainer review of provider-blocked policy
-surfaces. No scope item was downgraded to hide those blockers.
+remaining blockers are focused Android/iPhone release-path evidence.
+Provider-limited policies are documented as fail-closed capability boundaries,
+not as unresolved decisions.

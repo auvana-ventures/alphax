@@ -68,9 +68,9 @@ evaluation, and preserve hostname and certificate validity checks.
 
 | Transport | Pin implementation | Unsupported behavior | Validation |
 | --- | --- | --- | --- |
-| Dart IO | UNSUPPORTED_BY_PLATFORM_API; no safe stable `HttpClient` SPKI callback/parser | `AlphaXUnsupportedTlsPolicyException` | Constructor/policy tests pass; live pin fixture not applicable |
-| Android Cronet | SUPPORTED through provider public-key pin configuration; local-trust bypass disabled | Invalid/expired pins fail initialization | Native mapping/build pass; physical pin success/mismatch probe not recorded |
-| Apple URLSession | SUPPORTED through server-trust challenge and SPKI extraction | Invalid/expired pins fail initialization; mismatch cancels challenge | Native mapping/build pass; live macOS/device pin probe not recorded |
+| Dart IO | UNSUPPORTED_BY_PLATFORM_API; no safe stable `HttpClient` SPKI callback/parser | `AlphaXUnsupportedTlsPolicyException` | Constructor/policy tests pass; unsupported behavior is explicit |
+| Android Cronet | SUPPORTED through provider public-key pin configuration; local-trust bypass disabled | Invalid/expired pins fail initialization | Native mapping/build pass; physical pin success/mismatch probe remains open |
+| Apple URLSession | SUPPORTED through server-trust challenge and SPKI extraction | Invalid/expired pins fail initialization; mismatch cancels challenge | Focused macOS custom-CA, primary/backup/mismatch, and invalid-certificate fixture passed; iPhone probe remains open |
 
 No configured pin silently falls back to ordinary trust.
 
@@ -80,7 +80,7 @@ No configured pin silently falls back to ordinary trust.
 | --- | --- | --- |
 | Dart IO | SUPPORTED through `SecurityContext` | Invalid DER is normalized as unsupported policy; no pinning through this path |
 | Android Cronet | BLOCKED_BY_PLATFORM for the selected provider | Cronet provider does not expose a safe custom-anchor mapping in the selected API; configured anchors fail closed |
-| Apple URLSession | SUPPORTED through `SecTrust` anchors | Trust evaluation remains enabled; invalid DER and failed chain validation fail closed |
+| Apple URLSession | SUPPORTED through `SecTrust` anchors | Trust evaluation remains enabled; invalid DER and failed chain validation fail closed; focused macOS fixture passed |
 
 ## 6. Proxy matrix
 
@@ -90,14 +90,17 @@ No configured pin silently falls back to ordinary trust.
 | `direct` | SUPPORTED through `DIRECT` | BLOCKED_BY_PLATFORM; provider cannot guarantee direct-only routing | SUPPORTED through CFNetwork configuration |
 | explicit HTTP proxy | SUPPORTED with optional Basic challenge | BLOCKED_BY_PLATFORM in selected provider API | SUPPORTED with optional Basic challenge, including HTTPS destinations through CONNECT where CFNetwork permits |
 | explicit HTTPS proxy endpoint | BLOCKED_BY_PLATFORM in the shared mapping | BLOCKED_BY_PLATFORM | BLOCKED_BY_PLATFORM; rejected by the shared mapping |
-| proxy authentication | SUPPORTED for Dart IO/Apple Basic flows | BLOCKED_BY_PLATFORM for explicit provider route | SUPPORTED for Basic challenge flows |
+| proxy authentication | SUPPORTED for Dart IO/Apple Basic flows | BLOCKED_BY_PLATFORM for explicit provider route | SUPPORTED for explicit HTTP Basic route; focused macOS success/failure fixture passed |
 | H3 through proxy | Actual protocol remains authoritative | Actual protocol remains authoritative | Actual protocol remains authoritative |
 
 An unsupported explicit policy returns a normalized unsupported-policy error;
 it does not silently use direct or system routing. `http(...)` is an HTTP proxy
 endpoint policy and may service HTTPS destinations through CONNECT; it is not an
-HTTPS proxy endpoint. No active proxy route was available for runtime
-validation in this environment.
+HTTPS proxy endpoint. The focused macOS fixture observed HTTP routing, trusted
+HTTPS CONNECT, Basic authentication, wrong-credential rejection, unreachable
+proxy failure, and system/direct behavior. A local custom-CA tunnel failed
+closed with a normalized TLS error and is not claimed as a supported combined
+policy path.
 
 ## 7. mTLS decision and matrix
 
@@ -166,14 +169,15 @@ therefore `IMPLEMENTED_NEEDS_VALIDATION`, not a transport failure.
 
 ## 11. iPhone physical acceptance
 
-The signed iPhone runner built and installed during the attempted check, but
-Flutter/Xcode could not attach after launch and ended with `osascript: -2`.
-The first retry also showed the local fixture address was unreachable from the
-phone. No signing, TLS, or transport workaround was applied.
-
-Retained Phase 1D/1E evidence still records physical H1/H2/H3, fallback,
-streaming, file, cancellation, TLS, and lifecycle behavior. The current
-release-path security/protocol rerun is `IMPLEMENTED_NEEDS_VALIDATION`.
+The signed iPhone runner attached successfully for one direct profile run and
+verified actual HTTP/2 on `https://www.apple.com/`, actual HTTP/3 on
+`https://cloudflare-quic.com/`, and invalid-certificate rejection. The local
+plain-HTTP fixture was unreachable from the phone on both tested host
+interfaces, so local H1/fallback, file, stream, and lifecycle checks were not
+counted as new device evidence. A later `flutter drive` retry hit
+`osascript: -2`. Retained Phase 1D/1E signed evidence remains preserved; the
+current release-path security/protocol rerun is still
+`IMPLEMENTED_NEEDS_VALIDATION`.
 
 ## 12. macOS acceptance
 
@@ -182,9 +186,12 @@ completion-time protocol reporting, H3 preference fallback, streaming and
 bounded delivery, file upload/download, progress, cancellation, timeouts,
 TLS rejection, lifecycle/reuse, and deterministic redirect security.
 
-Native custom-trust and pin success/mismatch runtime fixtures were not recorded
-in this closure pass; their implementation is covered by build/unit review and
-remains `IMPLEMENTED_NEEDS_VALIDATION`.
+The focused macOS security fixture passed default trust rejection, custom-CA
+success/failure, primary/backup pin success, pin mismatch, invalid-certificate
+rejection despite a matching pin, direct/system/explicit HTTP proxy behavior,
+trusted HTTPS CONNECT, Basic authentication, wrong-credential rejection, and
+unreachable-proxy failure. The machine-readable evidence is retained in
+`benchmarks/mobile_gate/fixtures/phase1f_macos_security_policy.json`.
 
 ## 13. Dart IO fallback status
 
@@ -227,11 +234,11 @@ claims.
 | --- | --- |
 | Secure trust defaults | IMPLEMENTED_AND_VALIDATED |
 | Trust-all prohibition | IMPLEMENTED_AND_VALIDATED |
-| SPKI pins and backup pins | IMPLEMENTED_NEEDS_VALIDATION |
-| Custom trust anchors | IMPLEMENTED_NEEDS_VALIDATION; Android provider limitation is explicit |
+| SPKI pins and backup pins | IMPLEMENTED_NEEDS_VALIDATION; macOS passed, Android/iPhone focused checks remain |
+| Custom trust anchors | IMPLEMENTED_NEEDS_VALIDATION; macOS passed, Android provider limitation is explicit, iPhone focused checks remain |
 | Private-key handling | IMPLEMENTED_AND_VALIDATED; only opaque identity references are public |
 | Cross-origin sensitive-header protection | IMPLEMENTED_NEEDS_VALIDATION for physical Android/iPhone; macOS/Dart IO pass |
-| Proxy credential redaction/logging | IMPLEMENTED_AND_VALIDATED by API/documentation review; active proxy route not tested |
+| Proxy credential redaction/logging | IMPLEMENTED_AND_VALIDATED; macOS route/auth fixture passed and no credentials were logged |
 | Native error sanitization | IMPLEMENTED_NEEDS_VALIDATION for focused device policy errors |
 | File/temp cleanup | IMPLEMENTED_AND_VALIDATED in existing transfer suites |
 | Diagnostic QUIC hint absent from production | IMPLEMENTED_AND_VALIDATED |
@@ -262,31 +269,26 @@ required item is silently reclassified. The exact non-complete states are:
 | Required area | Exact state | Blocking evidence |
 | --- | --- | --- |
 | Android H3/release security acceptance | `IMPLEMENTED_NEEDS_VALIDATION` | Wireless ADB/package manager did not recover after reboot |
-| iPhone H3/release security acceptance | `IMPLEMENTED_NEEDS_VALIDATION` | Flutter/Xcode attach failed with `osascript: -2` |
-| Protocol requirement release probes | `IMPLEMENTED_NEEDS_VALIDATION` | Same physical-device blockers |
-| Custom trust/pinning runtime fixtures | `IMPLEMENTED_NEEDS_VALIDATION` | Focused live policy fixtures were not recorded |
-| Proxy route/authentication runtime validation | `IMPLEMENTED_NEEDS_VALIDATION` | No active proxy route was available |
-| Selected Cronet direct/explicit proxy support | `BLOCKED_BY_PLATFORM` | Provider API cannot guarantee these policies |
-| Explicit HTTPS proxy parity | `BLOCKED_BY_PLATFORM` | No safe uniform mapping in selected transports |
+| iPhone H1/fallback, requirement, pin/trust, redirect release checks | `IMPLEMENTED_NEEDS_VALIDATION` | H2, H3, and invalid-TLS checks passed; local H1 was unreachable and a later automation retry hit `osascript: -2` |
+| Android protocol requirement, pin/trust, redirect, file, and cancellation checks | `IMPLEMENTED_NEEDS_VALIDATION` | Device/package-manager access is unavailable |
+| Final repository/package/security validation | `IMPLEMENTED_AND_VALIDATED` | Consolidated repository, package, security, dependency, build, and documentation checks passed |
 
 ## 18. Remaining blockers and alternatives
 
-1. Recover Android wireless ADB/package-manager access, install the existing
-   profile runner, and run only H1, H2, H3, requirement, TLS/pin, redirect,
+1. Recover Android ADB/package-manager access, install the existing profile
+   runner, and run only H1, H2, H3, protocol requirement, TLS/pin, redirect,
    file, and cancellation checks.
-2. Recover Flutter/Xcode iPhone attach/signing execution, then run the same
-   focused release checks.
-3. Run local macOS TLS fixtures for custom CA and pin success/mismatch, plus a
-   controlled proxy fixture where available.
-4. Maintainer must review whether provider-blocked direct/explicit HTTPS proxy
-   and optional mTLS behavior satisfy the accepted 1.0 policy boundary. The
-   current implementation fails closed and reports capabilities honestly.
+2. Re-run the focused signed iPhone checks with a reachable H1 fixture (or a
+   known H1-only endpoint): H1/fallback, protocol requirement, pin/custom
+   trust, redirect security, and minimal file/cancellation sanity. H2/H3 and
+   invalid-TLS evidence from the attached phone is already retained.
 
 ## 19. Final conclusion
 
 # BLOCKED FOR 1.0 RC
 
 The code and public contract are not eligible for an AlphaX 1.0 release
-candidate until the focused release-path device and security-policy evidence
-above is completed or the maintainer explicitly changes the approved
-requirement. No package has been published and no 1.0 tag has been created.
+candidate until the focused Android/iPhone release-path evidence above is
+complete. Provider-limited policies are accepted fail-closed boundaries and
+are not RC blockers. No package has been published and no 1.0 tag has been
+created.
