@@ -18,10 +18,10 @@ official modular capabilities.
 
 Phase 0 research and transport validation is complete. Phase 1A contracts, the
 Dart IO fallback, the Phase 1C Android Cronet transport, and the Phase 1D Apple
-URLSession implementation are complete for maintainer review. macOS H1/H2/H3
-correctness is validated; signed physical-iPhone validation remains pending.
-ADR 0004 is accepted for the AlphaX 1.0 platform strategy, and Phase 1E has
-not started. The working project name is AlphaX; the repository is
+URLSession implementation are complete. Android, macOS, and signed physical-
+iPhone H1/H2/H3 correctness evidence is retained; Phase 1E cross-transport
+release validation is in progress. ADR 0004 is accepted for the AlphaX 1.0
+platform strategy. The working project name is AlphaX; the repository is
 `alphax`, but packages must not be published to pub.dev until naming clearance
 is complete.
 
@@ -72,7 +72,8 @@ Phase 1A did not implement a cache, offline queue, circuit breaker, telemetry
 exporter, complete DevTools extension, complete Dio adapter, GraphQL integration,
 REST generation, custom QUIC/TLS, or a full authentication framework. The
 Cronet and URLSession adapters are now implemented in their approved phases;
-cross-transport release validation and deferred features remain out of scope.
+cross-transport release validation is the current scope, and deferred features
+remain out of scope.
 
 ## Source documents
 

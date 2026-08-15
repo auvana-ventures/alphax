@@ -6,9 +6,9 @@ and resilience.
 
 ## Status
 
-**Phase 1D Apple transport implemented — signed iPhone validation pending.**
-AlphaX remains experimental and pre-release; its API may change. Packages are not
-intended for production adoption
+**Phase 1E cross-transport validation in progress.** Phase 1D Apple transport
+and signed iPhone correctness validation are complete. AlphaX remains
+experimental and pre-release; its API may change. Packages are not intended for production adoption
 or pub.dev publication until AlphaX naming clearance and the 1.0 release gate are
 complete.
 
@@ -52,7 +52,7 @@ supports them. No C++ engine or production Rust transport is part of the accepte
 | Package | Purpose | Current status |
 | --- | --- | --- |
 | [`alphax`](packages/alphax) | Pure Dart request/response, transport, cancellation, metrics, and error contracts | In development |
-| [`alphax_native`](packages/alphax_native) | Platform transport integration boundary, Dart IO fallback, Android Cronet, and Apple URLSession adapters | Android and macOS correctness validated; signed iPhone validation pending |
+| [`alphax_native`](packages/alphax_native) | Platform transport integration boundary, Dart IO fallback, Android Cronet, and Apple URLSession adapters | Android, iOS, and macOS correctness validated; Phase 1E release parity in progress |
 | [`alphax_dio`](packages/alphax_dio) | Future Dio `HttpClientAdapter` compatibility layer | Documentation/skeleton only |
 | [`alphax_test`](packages/alphax_test) | Deterministic fake transports and test helpers | In development |
 
@@ -65,7 +65,7 @@ contracts and dependencies are justified.
 | Capability | Status |
 | --- | --- |
 | Transport-independent Dart API | Phase 1A complete |
-| HTTP/1.1, HTTP/2, HTTP/3 | 1.0 goal; Android verified; Apple macOS verified; signed iPhone pending |
+| HTTP/1.1, HTTP/2, HTTP/3 | 1.0 platform goal; Android Cronet and Apple URLSession evidence retained; final cross-transport release validation in progress |
 | Streaming and backpressure | Dart fallback; Android and Apple bounded delivery validated on available targets |
 | Direct file transfer | Dart fallback; Android and Apple native paths validated on available targets |
 | Dio/Retrofit compatibility | Optional/post-1.0 scope; not implemented |
@@ -99,7 +99,7 @@ conditions. Methodology, raw results, and environment metadata will be linked fr
 | macOS | URLSession-backed transport | Phase 1D correctness validated |
 | Linux | Dart IO fallback initially | Phase 1B implemented |
 | Android | Cronet/HttpEngine-backed transport | Phase 1C Android 15 verified |
-| iOS | URLSession-backed transport | Implementation built; signed-device validation pending |
+| iOS | URLSession-backed transport | H1/H2/H3 and signed-device correctness validated |
 | Windows | Dart IO fallback initially | Phase 1B implemented |
 | Web | Where capabilities permit | Explicitly outside current implementation |
 
@@ -108,9 +108,10 @@ claimed only after CI builds and tests the relevant implementation.
 
 ## Security
 
-TLS verification is secure by default in the intended transports. Certificate
-pinning, mTLS, proxy support, redaction, dependency updates, and reporting guidance
-are tracked in [SECURITY.md](SECURITY.md).
+TLS verification is secure by default in the intended transports. Explicit proxy
+configuration, certificate pinning, and mTLS remain unsupported in the current
+adapters; redaction, dependency updates, and reporting guidance are tracked in
+[SECURITY.md](SECURITY.md).
 
 ## Roadmap
 
