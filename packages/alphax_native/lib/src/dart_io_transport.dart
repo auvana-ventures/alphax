@@ -11,13 +11,22 @@ import 'package:alphax/alphax.dart';
 /// capability; it does not claim HTTP/2 or HTTP/3 support.
 final class DartIoTransport extends AlphaXTransport {
   /// Creates a Dart IO fallback transport with secure platform defaults.
-  DartIoTransport() : _client = HttpClient() {
+  DartIoTransport({
+    AlphaXTlsPolicy tlsPolicy = const AlphaXTlsPolicy.platformDefault(),
+    AlphaXProxyPolicy proxyPolicy = const AlphaXProxyPolicy.system(),
+  }) : tlsPolicy = tlsPolicy,
+       proxyPolicy = proxyPolicy,
+       _client = _createClient(tlsPolicy, proxyPolicy) {
     // Preserve wire bytes. Automatic decompression would make content-length,
     // progress, and file-transfer accounting describe a different payload.
     _client.autoUncompress = false;
   }
 
   final HttpClient _client;
+  @override
+  final AlphaXTlsPolicy tlsPolicy;
+  @override
+  final AlphaXProxyPolicy proxyPolicy;
   final Set<_DartIoOperation> _operations = <_DartIoOperation>{};
   bool _closed = false;
   Future<void>? _closeFuture;
@@ -35,9 +44,17 @@ final class DartIoTransport extends AlphaXTransport {
     nativeFileDownload: AlphaXSupport.unsupported,
     uploadProgress: AlphaXSupport.supported,
     downloadProgress: AlphaXSupport.supported,
-    proxyConfiguration: AlphaXSupport.unsupported,
+    proxyConfiguration: AlphaXSupport.supported,
+    tlsDefaultTrust: AlphaXSupport.supported,
+    customTrustAnchors: AlphaXSupport.supported,
     certificatePinning: AlphaXSupport.unsupported,
     mutualTls: AlphaXSupport.unsupported,
+    systemProxy: AlphaXSupport.supported,
+    directConnectionPolicy: AlphaXSupport.supported,
+    explicitHttpProxy: AlphaXSupport.supported,
+    explicitHttpsProxy: AlphaXSupport.unsupported,
+    proxyAuthentication: AlphaXSupport.supported,
+    protocolRequirement: AlphaXSupport.unsupported,
     connectionMigration: AlphaXSupport.unsupported,
     backgroundTransfer: AlphaXSupport.unsupported,
     negotiatedProtocolReporting: AlphaXSupport.unsupported,
@@ -71,6 +88,7 @@ final class DartIoTransport extends AlphaXTransport {
           headers: response.headers,
           protocol: response.protocol,
           requestedProtocol: response.requestedProtocol,
+          requiredProtocol: response.requiredProtocol,
           protocolFallback: response.protocolFallback,
           redirects: response.redirects,
         );
@@ -82,6 +100,7 @@ final class DartIoTransport extends AlphaXTransport {
           metrics: operation.completedMetrics(),
           bytesReceived: operation.downloadedBytes,
           requestedProtocol: response.requestedProtocol,
+          requiredProtocol: response.requiredProtocol,
           protocolFallback: response.protocolFallback,
         );
       } finally {
@@ -145,6 +164,7 @@ final class DartIoTransport extends AlphaXTransport {
         headers: responseStarted.headers,
         protocol: responseStarted.protocol,
         requestedProtocol: responseStarted.requestedProtocol,
+        requiredProtocol: responseStarted.requiredProtocol,
         protocolFallback: responseStarted.protocolFallback,
         metrics: responseCompleted.metrics,
         redirects: responseStarted.redirects,
@@ -181,6 +201,7 @@ final class DartIoTransport extends AlphaXTransport {
         headers: response.headers,
         protocol: response.protocol,
         requestedProtocol: response.requestedProtocol,
+        requiredProtocol: response.requiredProtocol,
         protocolFallback: response.protocolFallback,
         metrics: response.metrics.copyWith(uploadedBytes: uploadedBytes),
         redirects: response.redirects,
@@ -233,6 +254,7 @@ final class DartIoTransport extends AlphaXTransport {
       ),
       negotiatedProtocol: AlphaXProtocol.unknown,
       requestedProtocol: request.protocolPreference,
+      requiredProtocol: request.protocolRequirement,
       metrics: operation.headersMetrics(redirects.length),
       completionMetrics: operation.completionMetrics,
       redirects: redirects,
@@ -259,8 +281,11 @@ final class DartIoTransport extends AlphaXTransport {
 
   void _configureRequest(HttpClientRequest clientRequest, AlphaXRequest request) {
     final body = request.body;
+    final hasSensitiveHeaders = _hasSensitiveHeaders(request.headers);
     clientRequest.followRedirects =
-        request.redirectPolicy.mode == AlphaXRedirectMode.follow && body.isReplayable;
+        request.redirectPolicy.mode == AlphaXRedirectMode.follow &&
+        body.isReplayable &&
+        !hasSensitiveHeaders;
     clientRequest.maxRedirects = request.redirectPolicy.maxRedirects;
 
     var explicitContentLength = false;
@@ -592,14 +617,22 @@ final class DartIoTransport extends AlphaXTransport {
       );
     }
     if (request.redirectPolicy.mode == AlphaXRedirectMode.follow &&
-        !request.body.isReplayable &&
+        (request.headers.names.any(_isSensitiveHeader) || !request.body.isReplayable) &&
         _isRedirectStatus(response.statusCode)) {
       unawaited(response.drain<void>());
       throw const AlphaXRedirectException(
-        'A redirect cannot be followed because the request body is single-use',
+        'A redirect cannot be followed safely because the request has a single-use body '
+        'or sensitive credentials',
       );
     }
   }
+
+  static bool _hasSensitiveHeaders(AlphaXHeaders headers) => headers.names.any(_isSensitiveHeader);
+
+  static bool _isSensitiveHeader(String name) => switch (name.toLowerCase()) {
+    'authorization' || 'proxy-authorization' || 'cookie' => true,
+    _ => false,
+  };
 
   static bool _isRedirectStatus(int statusCode) => statusCode >= 300 && statusCode < 400;
 
@@ -725,19 +758,87 @@ final class DartIoTransport extends AlphaXTransport {
       throw const AlphaXClientClosedException('Dart IO transport is closed');
     }
     request.cancellationToken?.throwIfCancelled();
-    final preference = request.protocolPreference;
-    final capability = switch (preference) {
-      AlphaXProtocolPreference.auto || AlphaXProtocolPreference.http11 => null,
-      AlphaXProtocolPreference.http10 => AlphaXCapability.http10,
-      AlphaXProtocolPreference.http2 => AlphaXCapability.http2,
-      AlphaXProtocolPreference.http3 => AlphaXCapability.http3,
-    };
-    if (capability != null) {
-      throw AlphaXUnsupportedCapabilityException(
-        'Dart IO does not support an explicit ${preference.name} request',
-        capability: capability,
+    if (request.protocolRequirement != null) {
+      final requirement = request.protocolRequirement!;
+      if (!capabilities.supportsProtocol(requirement.protocol)) {
+        throw AlphaXProtocolRequirementException(
+          requiredProtocol: requirement,
+          actualProtocol: AlphaXProtocol.unknown,
+          message: 'Dart IO cannot satisfy a ${requirement.name} protocol requirement',
+        );
+      }
+      // HttpClient does not expose authoritative negotiated-protocol metadata.
+      // Unknown is never allowed to satisfy a concrete requirement.
+      throw AlphaXProtocolRequirementException(
+        requiredProtocol: requirement,
+        actualProtocol: AlphaXProtocol.unknown,
+        message:
+            'Dart IO cannot prove the negotiated protocol for a ${requirement.name} requirement',
       );
     }
+    // A preference permits fallback. Dart IO cannot prove H2/H3, so the
+    // request proceeds with its normal HTTP/1.1 path and leaves the actual
+    // protocol unknown rather than claiming that the preference was met.
+    if (tlsPolicy.pins.isNotEmpty) {
+      throw AlphaXUnsupportedTlsPolicyException(
+        'Dart IO cannot verify SPKI pins without a provider certificate callback',
+        capability: AlphaXCapability.certificatePinning,
+      );
+    }
+    if (tlsPolicy.clientIdentity != null) {
+      throw AlphaXUnsupportedTlsPolicyException(
+        'Dart IO requires a platform client identity for mutual TLS',
+        capability: AlphaXCapability.mutualTls,
+      );
+    }
+    if (proxyPolicy.mode == AlphaXProxyMode.explicit &&
+        proxyPolicy.scheme == AlphaXProxyScheme.https) {
+      throw AlphaXUnsupportedProxyPolicyException(
+        'Dart IO cannot configure an HTTPS proxy through HttpClient.findProxy',
+        capability: AlphaXCapability.explicitHttpsProxy,
+      );
+    }
+  }
+
+  static HttpClient _createClient(AlphaXTlsPolicy tlsPolicy, AlphaXProxyPolicy proxyPolicy) {
+    SecurityContext? context;
+    if (tlsPolicy.trustAnchors.isNotEmpty || !tlsPolicy.includePlatformTrust) {
+      try {
+        context = SecurityContext(withTrustedRoots: tlsPolicy.includePlatformTrust);
+        for (final anchor in tlsPolicy.trustAnchors) {
+          context.setTrustedCertificatesBytes(anchor.derBytes);
+        }
+      } catch (error, stackTrace) {
+        throw AlphaXUnsupportedTlsPolicyException(
+          'Dart IO could not load the configured trust anchors',
+          capability: AlphaXCapability.customTrustAnchors,
+          cause: error,
+          stackTrace: stackTrace,
+        );
+      }
+    }
+    final client = HttpClient(context: context);
+    switch (proxyPolicy.mode) {
+      case AlphaXProxyMode.system:
+        break;
+      case AlphaXProxyMode.direct:
+        client.findProxy = (_) => 'DIRECT';
+      case AlphaXProxyMode.explicit:
+        client.findProxy = (_) => 'PROXY ${proxyPolicy.host}:${proxyPolicy.port}';
+        final credentials = proxyPolicy.credentials;
+        if (credentials != null) {
+          client.authenticateProxy = (host, port, scheme, realm) async {
+            client.addProxyCredentials(
+              host,
+              port,
+              realm ?? '',
+              HttpClientBasicCredentials(credentials.username, credentials.password),
+            );
+            return true;
+          };
+        }
+    }
+    return client;
   }
 
   void _remove(_DartIoOperation operation) {

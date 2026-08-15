@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import 'android_cronet_protocol.dart';
 import 'alpha_x_local_file.dart';
+import 'alpha_x_policy_arguments.dart';
 
 /// Android transport backed by one provider-selected Cronet/HttpEngine engine.
 ///
@@ -13,13 +14,23 @@ import 'alpha_x_local_file.dart';
 /// public API exposes only AlphaX contracts; Cronet and platform-channel types
 /// remain implementation details of this package.
 final class AndroidCronetTransport extends AlphaXTransport {
-  AndroidCronetTransport._(this._methodChannel, this._eventChannel);
+  AndroidCronetTransport._(
+    this._methodChannel,
+    this._eventChannel,
+    this.tlsPolicy,
+    this.proxyPolicy,
+  );
 
   /// Creates and initializes the Android transport.
-  static Future<AndroidCronetTransport> create() async {
+  static Future<AndroidCronetTransport> create({
+    AlphaXTlsPolicy tlsPolicy = const AlphaXTlsPolicy.platformDefault(),
+    AlphaXProxyPolicy proxyPolicy = const AlphaXProxyPolicy.system(),
+  }) async {
     final transport = AndroidCronetTransport._(
       const MethodChannel('alphax_native/transport'),
       const EventChannel('alphax_native/events'),
+      tlsPolicy,
+      proxyPolicy,
     );
     await transport._initialize();
     return transport;
@@ -27,6 +38,10 @@ final class AndroidCronetTransport extends AlphaXTransport {
 
   final MethodChannel _methodChannel;
   final EventChannel _eventChannel;
+  @override
+  final AlphaXTlsPolicy tlsPolicy;
+  @override
+  final AlphaXProxyPolicy proxyPolicy;
   final Map<String, _AndroidOperation> _operations = <String, _AndroidOperation>{};
   AlphaXCapabilities _capabilities = const AlphaXCapabilities.unknown();
   StreamSubscription<Object?>? _eventSubscription;
@@ -50,6 +65,7 @@ final class AndroidCronetTransport extends AlphaXTransport {
         ),
         negotiatedProtocol: started.protocol,
         requestedProtocol: started.requestedProtocol,
+        requiredProtocol: started.requiredProtocol,
         protocolFallback: started.protocolFallback,
         metrics: started.metrics,
         completionMetrics: operation.completed.then((completed) => completed.metrics),
@@ -71,6 +87,7 @@ final class AndroidCronetTransport extends AlphaXTransport {
         headers: started.headers,
         negotiatedProtocol: started.protocol,
         requestedProtocol: started.requestedProtocol,
+        requiredProtocol: started.requiredProtocol,
         protocolFallback: started.protocolFallback,
         redirects: started.redirects,
       );
@@ -82,6 +99,7 @@ final class AndroidCronetTransport extends AlphaXTransport {
         metrics: completed.metrics,
         bytesReceived: completed.bytesReceived,
         requestedProtocol: started.requestedProtocol,
+        requiredProtocol: completed.requiredProtocol ?? started.requiredProtocol,
         protocolFallback: androidProtocolFallback(
           started.requestedProtocol,
           completed.metrics.negotiatedProtocol,
@@ -110,6 +128,7 @@ final class AndroidCronetTransport extends AlphaXTransport {
         headers: started.headers,
         protocol: completed.metrics.negotiatedProtocol,
         requestedProtocol: started.requestedProtocol,
+        requiredProtocol: completed.requiredProtocol ?? started.requiredProtocol,
         protocolFallback: started.protocolFallback,
         metrics: completed.metrics,
         redirects: started.redirects,
@@ -139,6 +158,7 @@ final class AndroidCronetTransport extends AlphaXTransport {
         headers: started.headers,
         protocol: completed.metrics.negotiatedProtocol,
         requestedProtocol: started.requestedProtocol,
+        requiredProtocol: completed.requiredProtocol ?? started.requiredProtocol,
         protocolFallback: started.protocolFallback,
         metrics: completed.metrics,
         redirects: started.redirects,
@@ -186,7 +206,10 @@ final class AndroidCronetTransport extends AlphaXTransport {
       },
     );
     try {
-      final result = await _methodChannel.invokeMethod<Object?>('initialize');
+      final result = await _methodChannel.invokeMethod<Object?>('initialize', <String, Object?>{
+        'tlsPolicy': alphaXTlsPolicyArguments(tlsPolicy),
+        'proxyPolicy': alphaXProxyPolicyArguments(proxyPolicy),
+      });
       _capabilities = androidCapabilitiesFromNative(result);
     } catch (error, stackTrace) {
       await _eventSubscription?.cancel();
@@ -286,6 +309,7 @@ final class AndroidCronetTransport extends AlphaXTransport {
       'maxRedirects': request.redirectPolicy.maxRedirects,
     },
     'protocol': request.protocolPreference.name,
+    'protocolRequirement': request.protocolRequirement?.name,
     'priority': request.priority.name,
     'directDownloadPath': directDownloadPath,
   };
@@ -362,17 +386,19 @@ final class AndroidCronetTransport extends AlphaXTransport {
       throw const AlphaXClientClosedException('Android transport is closed');
     }
     request.cancellationToken?.throwIfCancelled();
-    final capability = switch (request.protocolPreference) {
-      AlphaXProtocolPreference.auto => null,
-      AlphaXProtocolPreference.http10 => AlphaXCapability.http10,
-      AlphaXProtocolPreference.http11 => AlphaXCapability.http11,
-      AlphaXProtocolPreference.http2 => AlphaXCapability.http2,
-      AlphaXProtocolPreference.http3 => AlphaXCapability.http3,
-    };
-    if (capability != null && !_capabilities.supports(capability)) {
+    // A preference is not a capability requirement. Cronet may negotiate a
+    // lower protocol, and the final response metadata records that result.
+    final requirement = request.protocolRequirement;
+    if (requirement != null && !_capabilities.supportsProtocol(requirement.protocol)) {
       throw AlphaXUnsupportedCapabilityException(
-        'Android Cronet provider does not support ${request.protocolPreference.name}',
-        capability: capability,
+        'Android Cronet provider does not support required ${requirement.name}',
+        capability: switch (requirement.protocol) {
+          AlphaXProtocol.http10 => AlphaXCapability.http10,
+          AlphaXProtocol.http11 => AlphaXCapability.http11,
+          AlphaXProtocol.http2 => AlphaXCapability.http2,
+          AlphaXProtocol.http3 => AlphaXCapability.http3,
+          AlphaXProtocol.unknown => AlphaXCapability.protocolRequirement,
+        },
       );
     }
   }
@@ -389,6 +415,11 @@ final class AndroidCronetTransport extends AlphaXTransport {
         ),
         'cancellation' => AlphaXCancellationException(
           error.message ?? 'The Android request was cancelled',
+          cause: error,
+          stackTrace: stackTrace,
+        ),
+        'proxy' => AlphaXProxyException(
+          error.message ?? 'The Android proxy connection failed',
           cause: error,
           stackTrace: stackTrace,
         ),
@@ -410,6 +441,41 @@ final class AndroidCronetTransport extends AlphaXTransport {
         ),
         'redirect' => AlphaXRedirectException(
           error.message ?? 'The Android redirect policy failed',
+          cause: error,
+          stackTrace: stackTrace,
+        ),
+        'protocol_requirement' => AlphaXProtocolRequirementException(
+          requiredProtocol: _requirement(error.details),
+          actualProtocol: _protocol(_detail(error.details, 'actualProtocol')),
+          message: error.message,
+          cause: error,
+          stackTrace: stackTrace,
+        ),
+        'unsupported_tls_policy' => AlphaXUnsupportedTlsPolicyException(
+          error.message ?? 'The Android TLS policy is unsupported',
+          capability: _capability(error.details, AlphaXCapability.customTrustAnchors),
+          cause: error,
+          stackTrace: stackTrace,
+        ),
+        'certificate_pin_mismatch' => AlphaXCertificatePinMismatchException(
+          error.message ?? 'The Android certificate pin did not match',
+          host: _detail(error.details, 'host')?.toString(),
+          cause: error,
+          stackTrace: stackTrace,
+        ),
+        'client_certificate' => AlphaXClientCertificateException(
+          error.message ?? 'The Android client certificate could not be used',
+          cause: error,
+          stackTrace: stackTrace,
+        ),
+        'unsupported_proxy_policy' => AlphaXUnsupportedProxyPolicyException(
+          error.message ?? 'The Android proxy policy is unsupported',
+          capability: _capability(error.details, AlphaXCapability.explicitHttpProxy),
+          cause: error,
+          stackTrace: stackTrace,
+        ),
+        'proxy_authentication' => AlphaXProxyAuthenticationException(
+          error.message ?? 'Android proxy authentication failed',
           cause: error,
           stackTrace: stackTrace,
         ),
@@ -441,6 +507,45 @@ final class AndroidCronetTransport extends AlphaXTransport {
       for (final entry in value.entries) entry.key.toString(): entry.value,
     };
   }
+
+  static Object? _detail(Object? details, String key) =>
+      details is Map ? details[key] ?? details[key.toString()] : null;
+
+  static AlphaXProtocolRequirement _requirement(Object? details) {
+    return _optionalRequirement(_detail(details, 'requiredProtocol')) ??
+        AlphaXProtocolRequirement.http3;
+  }
+
+  static AlphaXProtocolRequirement? _optionalRequirement(Object? value) {
+    return switch (value?.toString()) {
+      'http10' => AlphaXProtocolRequirement.http10,
+      'http11' => AlphaXProtocolRequirement.http11,
+      'http2' => AlphaXProtocolRequirement.http2,
+      'http3' => AlphaXProtocolRequirement.http3,
+      _ => null,
+    };
+  }
+
+  static AlphaXProtocol _protocol(Object? value) => switch (value?.toString()) {
+    'http10' => AlphaXProtocol.http10,
+    'http11' => AlphaXProtocol.http11,
+    'http2' => AlphaXProtocol.http2,
+    'http3' => AlphaXProtocol.http3,
+    _ => AlphaXProtocol.unknown,
+  };
+
+  static AlphaXCapability _capability(Object? details, AlphaXCapability fallback) =>
+      switch (_detail(details, 'capability')?.toString()) {
+        'certificatePinning' => AlphaXCapability.certificatePinning,
+        'customTrustAnchors' => AlphaXCapability.customTrustAnchors,
+        'mutualTls' => AlphaXCapability.mutualTls,
+        'systemProxy' => AlphaXCapability.systemProxy,
+        'directConnectionPolicy' => AlphaXCapability.directConnectionPolicy,
+        'explicitHttpProxy' => AlphaXCapability.explicitHttpProxy,
+        'explicitHttpsProxy' => AlphaXCapability.explicitHttpsProxy,
+        'proxyAuthentication' => AlphaXCapability.proxyAuthentication,
+        _ => fallback,
+      };
 }
 
 final class _AndroidOperation {
@@ -664,11 +769,13 @@ final class _AndroidOperation {
   _AndroidStarted _startedFrom(Map<String, Object?> event) {
     final protocol = _protocol(event['protocol']);
     final requested = _preference(event['requestedProtocol']);
+    final required = _optionalRequirement(event['requiredProtocol']);
     return _AndroidStarted(
       statusCode: (event['statusCode'] as num?)?.toInt() ?? 0,
       headers: _headers(event['headers']),
       protocol: protocol,
       requestedProtocol: requested,
+      requiredProtocol: required,
       protocolFallback: androidProtocolFallback(requested, protocol),
       redirects: _redirects(event['redirects']),
       contentLength: (event['contentLength'] as num?)?.toInt(),
@@ -684,11 +791,13 @@ final class _AndroidOperation {
     return _AndroidCompleted(
       metrics: metrics,
       bytesReceived: (event['bytesReceived'] as num?)?.toInt() ?? metrics.downloadedBytes ?? 0,
+      requiredProtocol: _optionalRequirement(event['requiredProtocol']),
     );
   }
 
   AlphaXException _errorFrom(Map<String, Object?> event) {
     final message = event['message']?.toString() ?? 'The Android request failed';
+    final details = event['details'];
     return switch (event['kind']?.toString()) {
       'dns' => AlphaXDnsException(message),
       'connection' => AlphaXConnectionException(message),
@@ -703,10 +812,34 @@ final class _AndroidOperation {
         },
       ),
       'cancellation' => AlphaXCancellationException(message),
+      'proxy' => AlphaXProxyException(message),
+      'proxy_authentication' => AlphaXProxyAuthenticationException(message),
       'protocol' => AlphaXProtocolException(message),
       'redirect' => AlphaXRedirectException(message),
       'request_body' => AlphaXRequestBodyException(message),
       'response_body' => AlphaXResponseBodyException(message),
+      'protocol_requirement' => AlphaXProtocolRequirementException(
+        requiredProtocol:
+            _optionalRequirement(
+              details is Map ? details['requiredProtocol'] : null,
+            ) ??
+            AlphaXProtocolRequirement.http3,
+        actualProtocol: _protocol(details is Map ? details['actualProtocol'] : null),
+        message: message,
+      ),
+      'certificate_pin_mismatch' => AlphaXCertificatePinMismatchException(
+        message,
+        host: details is Map ? details['host']?.toString() : null,
+      ),
+      'unsupported_tls_policy' => AlphaXUnsupportedTlsPolicyException(
+        message,
+        capability: _capability(details, AlphaXCapability.customTrustAnchors),
+      ),
+      'client_certificate' => AlphaXClientCertificateException(message),
+      'unsupported_proxy_policy' => AlphaXUnsupportedProxyPolicyException(
+        message,
+        capability: _capability(details, AlphaXCapability.explicitHttpProxy),
+      ),
       _ => AlphaXTransportException(message),
     };
   }
@@ -774,6 +907,28 @@ final class _AndroidOperation {
     _ => null,
   };
 
+  static AlphaXProtocolRequirement? _optionalRequirement(Object? value) =>
+      switch (value?.toString()) {
+        'http10' => AlphaXProtocolRequirement.http10,
+        'http11' => AlphaXProtocolRequirement.http11,
+        'http2' => AlphaXProtocolRequirement.http2,
+        'http3' => AlphaXProtocolRequirement.http3,
+        _ => null,
+      };
+
+  static AlphaXCapability _capability(Object? details, AlphaXCapability fallback) =>
+      switch (details is Map ? details['capability']?.toString() : null) {
+        'certificatePinning' => AlphaXCapability.certificatePinning,
+        'customTrustAnchors' => AlphaXCapability.customTrustAnchors,
+        'mutualTls' => AlphaXCapability.mutualTls,
+        'systemProxy' => AlphaXCapability.systemProxy,
+        'directConnectionPolicy' => AlphaXCapability.directConnectionPolicy,
+        'explicitHttpProxy' => AlphaXCapability.explicitHttpProxy,
+        'explicitHttpsProxy' => AlphaXCapability.explicitHttpsProxy,
+        'proxyAuthentication' => AlphaXCapability.proxyAuthentication,
+        _ => fallback,
+      };
+
   static Uint8List _bytes(Object? value) {
     if (value is Uint8List) return value;
     if (value is List<int>) return Uint8List.fromList(value);
@@ -787,6 +942,7 @@ final class _AndroidStarted {
     required this.headers,
     required this.protocol,
     required this.requestedProtocol,
+    required this.requiredProtocol,
     required this.protocolFallback,
     required this.redirects,
     required this.contentLength,
@@ -797,6 +953,7 @@ final class _AndroidStarted {
   final AlphaXHeaders headers;
   final AlphaXProtocol protocol;
   final AlphaXProtocolPreference? requestedProtocol;
+  final AlphaXProtocolRequirement? requiredProtocol;
   final AlphaXProtocolFallback? protocolFallback;
   final List<AlphaXRedirectInfo> redirects;
   final int? contentLength;
@@ -804,10 +961,15 @@ final class _AndroidStarted {
 }
 
 final class _AndroidCompleted {
-  const _AndroidCompleted({required this.metrics, required this.bytesReceived});
+  const _AndroidCompleted({
+    required this.metrics,
+    required this.bytesReceived,
+    this.requiredProtocol,
+  });
 
   final AlphaXRequestMetrics metrics;
   final int bytesReceived;
+  final AlphaXProtocolRequirement? requiredProtocol;
 }
 
 final class _UploadCursor {

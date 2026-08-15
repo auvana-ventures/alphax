@@ -4,6 +4,9 @@ import FlutterMacOS
 import Flutter
 #endif
 import Foundation
+import CFNetwork
+import CryptoKit
+import Security
 
 /// Flutter entry point shared by the iOS and macOS URLSession adapters.
 public final class AlphaXNativePlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
@@ -71,6 +74,8 @@ private final class AlphaXURLSessionEngine: NSObject, URLSessionDataDelegate, UR
     private var closeCompletion: FlutterResult?
     private var sessionCreated = false
     private var session: URLSession?
+    private var tlsPolicy: [String: Any] = [:]
+    private var proxyPolicy: [String: Any] = [:]
 
     private let delegateQueue: OperationQueue = {
         let queue = OperationQueue()
@@ -89,6 +94,13 @@ private final class AlphaXURLSessionEngine: NSObject, URLSessionDataDelegate, UR
     func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         switch call.method {
         case "initialize":
+            let arguments = dictionary(call.arguments) ?? [:]
+            let requestedTLS = dictionary(arguments["tlsPolicy"]) ?? [:]
+            let requestedProxy = dictionary(arguments["proxyPolicy"]) ?? [:]
+            if let policyError = policyError(tls: requestedTLS, proxy: requestedProxy) {
+                result(policyError)
+                return
+            }
             stateLock.lock()
             // A Flutter engine may create another logical AlphaX transport
             // after a previous facade has awaited close. Reopen only after
@@ -99,6 +111,8 @@ private final class AlphaXURLSessionEngine: NSObject, URLSessionDataDelegate, UR
                 session = nil
                 sessionCreated = false
             }
+            tlsPolicy = requestedTLS
+            proxyPolicy = requestedProxy
             stateLock.unlock()
             result(capabilities())
         case "start":
@@ -221,6 +235,7 @@ private final class AlphaXURLSessionEngine: NSObject, URLSessionDataDelegate, UR
             return session
         }
         let configuration = URLSessionConfiguration.default
+        applyProxyPolicy(proxyPolicy, to: configuration)
         // The platform configuration owns protocol negotiation. In
         // particular, do not force HTTP/1.1 or add an H3-only fallback here.
         let created = URLSession(
@@ -283,9 +298,17 @@ private final class AlphaXURLSessionEngine: NSObject, URLSessionDataDelegate, UR
             "nativeFileDownload": "supported",
             "uploadProgress": "supported",
             "downloadProgress": "supported",
-            "proxyConfiguration": "unsupported",
-            "certificatePinning": "unsupported",
+            "proxyConfiguration": "supported",
+            "tlsDefaultTrust": "supported",
+            "customTrustAnchors": "supported",
+            "certificatePinning": "supported",
             "mutualTls": "unsupported",
+            "systemProxy": "supported",
+            "directConnectionPolicy": "supported",
+            "explicitHttpProxy": "supported",
+            "explicitHttpsProxy": "unsupported",
+            "proxyAuthentication": "supported",
+            "protocolRequirement": "supported",
             "connectionMigration": "unsupported",
             "backgroundTransfer": "unsupported",
             "negotiatedProtocolReporting": "supported",
@@ -320,6 +343,24 @@ private final class AlphaXURLSessionEngine: NSObject, URLSessionDataDelegate, UR
             return
         }
         completionHandler(operation.newBodyStream())
+    }
+
+    func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        didReceive challenge: URLAuthenticationChallenge,
+        completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+    ) {
+        guard let operation = operation(forTask: task) else {
+            completionHandler(.cancelAuthenticationChallenge, nil)
+            return
+        }
+        operation.handle(
+            challenge: challenge,
+            tlsPolicy: tlsPolicy,
+            proxyPolicy: proxyPolicy,
+            completionHandler: completionHandler
+        )
     }
 
     func urlSession(
@@ -403,6 +444,116 @@ private final class AlphaXURLSessionEngine: NSObject, URLSessionDataDelegate, UR
         if let value = value as? Int { return value }
         if let value = value as? NSNumber { return value.intValue }
         return nil
+    }
+
+    private func policyError(tls: [String: Any], proxy: [String: Any]) -> FlutterError? {
+        let clientIdentity = tls["clientIdentityReference"] as? String
+        if let clientIdentity, !clientIdentity.isEmpty {
+            return FlutterError(
+                code: "unsupported_tls_policy",
+                message: "URLSession client-identity lookup is not implemented",
+                details: ["capability": "mutualTls"]
+            )
+        }
+        let anchors = tls["trustAnchors"] as? [Any] ?? []
+        let includePlatformTrust = tls["includePlatformTrust"] as? Bool ?? true
+        if !anchors.isEmpty && anchors.contains(where: {
+            let anchorData = data($0)
+            return anchorData.isEmpty || SecCertificateCreateWithData(nil, anchorData as CFData) == nil
+        }) {
+            return FlutterError(
+                code: "unsupported_tls_policy",
+                message: "A URLSession trust anchor is not valid DER data",
+                details: ["capability": "customTrustAnchors"]
+            )
+        }
+        if !includePlatformTrust && anchors.isEmpty {
+            return FlutterError(
+                code: "unsupported_tls_policy",
+                message: "URLSession replacement trust requires at least one trust anchor",
+                details: ["capability": "customTrustAnchors"]
+            )
+        }
+        if let pins = tls["pins"] as? [Any] {
+            for rawPin in pins {
+                guard let pin = dictionary(rawPin),
+                      let digest = pin["sha256SpkiBase64"] as? String,
+                      let digestData = Data(base64Encoded: digest),
+                      digestData.count == 32,
+                      let expiresAt = integer64(pin["expiresAtMs"]),
+                      expiresAt > Int64(Date().timeIntervalSince1970 * 1000) else {
+                    return FlutterError(
+                        code: "unsupported_tls_policy",
+                        message: "A URLSession SPKI pin is invalid or expired",
+                        details: ["capability": "certificatePinning"]
+                    )
+                }
+            }
+        }
+        let mode = proxy["mode"] as? String ?? "system"
+        if mode == "explicit", (proxy["scheme"] as? String ?? "http") != "http" {
+            return FlutterError(
+                code: "unsupported_proxy_policy",
+                message: "URLSession explicit HTTPS-proxy configuration is not portable",
+                details: ["capability": "explicitHttpsProxy"]
+            )
+        }
+        if mode == "explicit", ((proxy["host"] as? String)?.isEmpty != false || integer(proxy["port"]) == nil) {
+            return FlutterError(
+                code: "unsupported_proxy_policy",
+                message: "URLSession explicit proxy configuration is invalid",
+                details: ["capability": "explicitHttpProxy"]
+            )
+        }
+        return nil
+    }
+
+    private func applyProxyPolicy(_ policy: [String: Any], to configuration: URLSessionConfiguration) {
+        let mode = policy["mode"] as? String ?? "system"
+        switch mode {
+        case "direct":
+            let proxy: [String: Any] = [
+                kCFNetworkProxiesHTTPEnable as String: 0,
+                // The CFNetwork key names are stable across the iOS and macOS
+                // deployment boundary even when an SDK overlay does not expose
+                // the HTTPS constants. Direct mode disables both destination
+                // proxy paths.
+                "HTTPSEnable": 0,
+            ]
+            configuration.connectionProxyDictionary = proxy
+        case "explicit":
+            guard let host = policy["host"] as? String, let port = integer(policy["port"]) else { return }
+            let proxy: [String: Any] = [
+                kCFNetworkProxiesHTTPEnable as String: 1,
+                kCFNetworkProxiesHTTPProxy as String: host,
+                kCFNetworkProxiesHTTPPort as String: port,
+                // An explicit AlphaX HTTP proxy can service HTTPS destinations
+                // through CONNECT. This is distinct from an HTTPS proxy
+                // endpoint, which remains an unsupported policy scheme.
+                "HTTPSEnable": 1,
+                "HTTPSProxy": host,
+                "HTTPSPort": port,
+            ]
+            configuration.connectionProxyDictionary = proxy
+        default:
+            // URLSessionConfiguration.default inherits system proxy behavior.
+            break
+        }
+    }
+
+    private func integer64(_ value: Any?) -> Int64? {
+        if let value = value as? Int64 { return value }
+        if let value = value as? Int { return Int64(value) }
+        if let value = value as? NSNumber { return value.int64Value }
+        return nil
+    }
+
+    private func data(_ value: Any?) -> Data {
+        if let value = value as? FlutterStandardTypedData { return value.data }
+        if let value = value as? Data { return value }
+        if let value = value as? [UInt8] { return Data(value) }
+        if let value = value as? [NSNumber] { return Data(value.map(\.uint8Value)) }
+        return Data()
     }
 }
 
@@ -614,6 +765,38 @@ private final class AlphaXURLSessionOperation {
             return nil
         }
         return AlphaXBodyInputStream(bridge: uploadBridge)
+    }
+
+    func handle(
+        challenge: URLAuthenticationChallenge,
+        tlsPolicy: [String: Any],
+        proxyPolicy: [String: Any],
+        completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+    ) {
+        let protectionSpace = challenge.protectionSpace
+        if protectionSpace.isProxy(),
+           protectionSpace.authenticationMethod == NSURLAuthenticationMethodHTTPBasic,
+           let username = proxyPolicy["username"] as? String,
+           let password = proxyPolicy["password"] as? String {
+            completionHandler(
+                .useCredential,
+                URLCredential(user: username, password: password, persistence: .none)
+            )
+            return
+        }
+        guard protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
+              let trust = protectionSpace.serverTrust else {
+            completionHandler(.performDefaultHandling, nil)
+            return
+        }
+        let host = protectionSpace.host
+        switch validateServerTrust(trust, host: host, policy: tlsPolicy) {
+        case .success(let credential):
+            completionHandler(credential == nil ? .performDefaultHandling : .useCredential, credential)
+        case .failure(let kind, let message, let details):
+            completionHandler(.cancelAuthenticationChallenge, nil)
+            finishError(kind: kind, message: message, details: details)
+        }
     }
 
     func handleRedirect(
@@ -841,6 +1024,17 @@ private final class AlphaXURLSessionOperation {
         }
         var request = URLRequest(url: url)
         request.httpMethod = arguments["method"] as? String ?? "GET"
+        if (arguments["protocol"] as? String) == "http3" {
+#if os(iOS)
+            if #available(iOS 15.0, *) {
+                request.assumesHTTP3Capable = true
+            }
+#else
+            if #available(macOS 12.0, *) {
+                request.assumesHTTP3Capable = true
+            }
+#endif
+        }
         if let headers = dictionary(arguments["headers"]) {
             for (name, rawValues) in headers {
                 let values: [Any]
@@ -876,6 +1070,7 @@ private final class AlphaXURLSessionOperation {
         }
         started = true
         let requested = arguments["protocol"] as? String ?? "auto"
+        let required = arguments["protocolRequirement"] as? String
         let headers = headerMap(response)
         let length = contentLength ?? response.expectedContentLength
         let redirects = self.redirects
@@ -889,6 +1084,7 @@ private final class AlphaXURLSessionOperation {
             // the response completes. Never infer it from configuration/Alt-Svc.
             "protocol": "unknown",
             "requestedProtocol": requested,
+            "requiredProtocol": required ?? NSNull(),
             "redirects": redirects,
             "contentLength": length >= 0 ? length : NSNull(),
         ])
@@ -974,12 +1170,26 @@ private final class AlphaXURLSessionOperation {
             return
         }
         completionPending = false
-        terminal = true
         let hasResponse = response != nil
         let started = self.started
         let finalMetrics = self.metrics
         let received = bytesDownloaded
         let redirects = self.redirects
+        let requiredProtocol = arguments["protocolRequirement"] as? String
+        let actualProtocol = normalizedProtocol(finalMetrics["protocol"] as? String)
+        if let requiredProtocol, requiredProtocol != actualProtocol {
+            stateLock.unlock()
+            finishError(
+                kind: "protocol_requirement",
+                message: "The negotiated protocol \(actualProtocol) did not satisfy \(requiredProtocol)",
+                details: [
+                    "requiredProtocol": requiredProtocol,
+                    "actualProtocol": actualProtocol,
+                ]
+            )
+            return
+        }
+        terminal = true
         stateLock.unlock()
         cancelTimeouts()
         if !started, hasResponse { emitStartedIfNeeded() }
@@ -989,11 +1199,17 @@ private final class AlphaXURLSessionOperation {
             "metrics": finalMetrics.isEmpty ? fallbackMetrics() : finalMetrics,
             "bytesReceived": received,
             "redirects": redirects,
+            "requiredProtocol": requiredProtocol ?? NSNull(),
         ])
         engine?.remove(self)
     }
 
-    private func finishError(kind: String, message: String, timeoutKind: String? = nil) {
+    private func finishError(
+        kind: String,
+        message: String,
+        timeoutKind: String? = nil,
+        details: [String: Any] = [:]
+    ) {
         stateLock.lock()
         if terminal {
             stateLock.unlock()
@@ -1010,6 +1226,7 @@ private final class AlphaXURLSessionOperation {
             "kind": kind,
             "message": message,
             "timeoutKind": kind == "timeout" ? (timeoutKind ?? self.timeoutKind()) : NSNull(),
+            "details": details,
         ])
         engine?.remove(self)
     }
@@ -1318,6 +1535,145 @@ private final class AlphaXBodyInputStream: InputStream {
             return -1
         }
     }
+}
+
+private enum AlphaXServerTrustValidation {
+    case success(URLCredential?)
+    case failure(kind: String, message: String, details: [String: Any])
+}
+
+private func validateServerTrust(
+    _ trust: SecTrust,
+    host: String,
+    policy: [String: Any]
+) -> AlphaXServerTrustValidation {
+    let anchors = (policy["trustAnchors"] as? [Any] ?? []).map(alphaXData).compactMap {
+        SecCertificateCreateWithData(nil, $0 as CFData)
+    }
+    let includePlatformTrust = policy["includePlatformTrust"] as? Bool ?? true
+    let pins = policy["pins"] as? [Any] ?? []
+    let hasCustomTrust = !anchors.isEmpty || !includePlatformTrust
+    guard hasCustomTrust || !pins.isEmpty else {
+        return .success(nil)
+    }
+    if !anchors.isEmpty {
+        SecTrustSetAnchorCertificates(trust, anchors as CFArray)
+        SecTrustSetAnchorCertificatesOnly(trust, !includePlatformTrust)
+    }
+    var trustError: CFError?
+    guard SecTrustEvaluateWithError(trust, &trustError) else {
+        return .failure(
+            kind: "tls",
+            message: "The server certificate did not satisfy the configured trust policy",
+            details: ["host": host]
+        )
+    }
+    if !pins.isEmpty && !alphaXTrustMatchesPins(trust, host: host, pins: pins) {
+        return .failure(
+            kind: "certificate_pin_mismatch",
+            message: "The server certificate chain did not contain a configured SPKI pin",
+            details: ["host": host]
+        )
+    }
+    return .success(URLCredential(trust: trust))
+}
+
+private func alphaXTrustMatchesPins(_ trust: SecTrust, host: String, pins: [Any]) -> Bool {
+    let applicablePins = pins.compactMap { rawPin -> (String, Bool, Data)? in
+        guard let pin = alphaXDictionary(rawPin),
+              let pinHost = pin["host"] as? String,
+              let digest = pin["sha256SpkiBase64"] as? String,
+              let digestData = Data(base64Encoded: digest) else { return nil }
+        let includeSubdomains = pin["includeSubdomains"] as? Bool ?? false
+        let normalizedHost = host.lowercased()
+        let normalizedPinHost = pinHost.lowercased()
+        let applies = normalizedHost == normalizedPinHost ||
+            (includeSubdomains && normalizedHost.hasSuffix(".\(normalizedPinHost)"))
+        return applies ? (normalizedPinHost, includeSubdomains, digestData) : nil
+    }
+    guard !applicablePins.isEmpty else { return false }
+    let certificates = (SecTrustCopyCertificateChain(trust) as? [SecCertificate]) ?? []
+    for certificate in certificates {
+        guard let spki = alphaXSubjectPublicKeyInfo(certificate) else { continue }
+        let digest = Data(SHA256.hash(data: spki))
+        if applicablePins.contains(where: { $0.2 == digest }) { return true }
+    }
+    return false
+}
+
+private struct AlphaXDERNode {
+    let tag: UInt8
+    let full: Data
+    let value: Data
+}
+
+private func alphaXSubjectPublicKeyInfo(_ certificate: SecCertificate) -> Data? {
+    let certificateData = SecCertificateCopyData(certificate) as Data
+    var offset = 0
+    guard let certificateNode = alphaXReadDERNode(certificateData, offset: &offset) else { return nil }
+    var tbsOffset = 0
+    guard let tbsNode = alphaXReadDERNode(certificateNode.value, offset: &tbsOffset) else { return nil }
+    let fields = alphaXDERChildren(tbsNode.value)
+    let spkiIndex = fields.first?.tag == 0xa0 ? 6 : 5
+    guard fields.indices.contains(spkiIndex) else { return nil }
+    return fields[spkiIndex].full
+}
+
+private func alphaXDERChildren(_ data: Data) -> [AlphaXDERNode] {
+    var result: [AlphaXDERNode] = []
+    var offset = 0
+    while offset < data.count {
+        guard let node = alphaXReadDERNode(data, offset: &offset) else { return [] }
+        result.append(node)
+    }
+    return result
+}
+
+private func alphaXReadDERNode(_ data: Data, offset: inout Int) -> AlphaXDERNode? {
+    let start = offset
+    guard data.indices.contains(offset) else { return nil }
+    let tag = data[offset]
+    offset += 1
+    guard data.indices.contains(offset) else { return nil }
+    let firstLength = data[offset]
+    offset += 1
+    let length: Int
+    if firstLength & 0x80 == 0 {
+        length = Int(firstLength)
+    } else {
+        let count = Int(firstLength & 0x7f)
+        guard count > 0, count <= 4, offset + count <= data.count else { return nil }
+        var value = 0
+        for _ in 0..<count {
+            value = (value << 8) | Int(data[offset])
+            offset += 1
+        }
+        length = value
+    }
+    guard length >= 0, offset + length <= data.count else { return nil }
+    let valueStart = offset
+    let end = offset + length
+    offset = end
+    return AlphaXDERNode(
+        tag: tag,
+        full: data.subdata(in: start..<end),
+        value: data.subdata(in: valueStart..<end)
+    )
+}
+
+private func alphaXDictionary(_ value: Any?) -> [String: Any]? {
+    guard let value = value as? [AnyHashable: Any] else { return value as? [String: Any] }
+    return value.reduce(into: [String: Any]()) { result, entry in
+        if let key = entry.key as? String { result[key] = entry.value }
+    }
+}
+
+private func alphaXData(_ value: Any) -> Data {
+    if let value = value as? FlutterStandardTypedData { return value.data }
+    if let value = value as? Data { return value }
+    if let value = value as? [UInt8] { return Data(value) }
+    if let value = value as? [NSNumber] { return Data(value.map(\.uint8Value)) }
+    return Data()
 }
 
 private enum AlphaXNativeError: LocalizedError {

@@ -11,6 +11,7 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
+import java.net.URI
 import java.nio.ByteBuffer
 import java.util.Locale
 import java.util.concurrent.ExecutorService
@@ -36,6 +37,7 @@ internal class CronetRequestOperation(
     private val originalUri = arguments["uri"]?.toString() ?: error("uri is required")
     private val directDownloadPath = arguments["directDownloadPath"]?.toString()
     private val protocolPreference = arguments["protocol"]?.toString() ?: "auto"
+    private val protocolRequirement = arguments["protocolRequirement"]?.toString()
 
     @Volatile
     private var request: UrlRequest? = null
@@ -123,6 +125,15 @@ internal class CronetRequestOperation(
             "method" to (arguments["method"]?.toString() ?: "GET"),
         )
         redirects.add(redirectInfo)
+        if (hasSensitiveHeaders() && !sameOrigin(originalUri, newLocationUrl)) {
+            request.cancel()
+            finishWithError(
+                "redirect",
+                "Cross-origin redirects carrying sensitive credentials are rejected by AlphaX",
+                details = mapOf("security" to "sensitive_headers"),
+            )
+            return
+        }
         when (redirect["mode"]?.toString() ?: "follow") {
             "reject" -> {
                 request.cancel()
@@ -254,6 +265,7 @@ internal class CronetRequestOperation(
                 "headers" to info.allHeaders,
                 "protocol" to normalizedProtocol(info.negotiatedProtocol),
                 "requestedProtocol" to protocolPreference,
+                "requiredProtocol" to protocolRequirement,
                 "redirects" to redirects,
                 "contentLength" to contentLength(info),
             ),
@@ -265,6 +277,18 @@ internal class CronetRequestOperation(
     @Synchronized
     private fun finishSuccessfully(info: UrlResponseInfo) {
         if (terminal) return
+        val actualProtocol = normalizedProtocol(info.negotiatedProtocol)
+        if (protocolRequirement != null && protocolRequirement != actualProtocol) {
+            finishWithError(
+                "protocol_requirement",
+                "The negotiated protocol $actualProtocol did not satisfy $protocolRequirement",
+                details = mapOf(
+                    "requiredProtocol" to protocolRequirement,
+                    "actualProtocol" to actualProtocol,
+                ),
+            )
+            return
+        }
         terminal = true
         responseInfo = info
         cancelTimeouts()
@@ -287,13 +311,19 @@ internal class CronetRequestOperation(
                 "requestId" to requestId,
                 "metrics" to metrics(info),
                 "bytesReceived" to bytesDownloaded,
+                "requiredProtocol" to protocolRequirement,
             ),
         )
         onFinished(requestId)
     }
 
     @Synchronized
-    private fun finishWithError(kind: String, message: String, cause: Throwable? = null) {
+    private fun finishWithError(
+        kind: String,
+        message: String,
+        cause: Throwable? = null,
+        details: Map<String, Any?> = emptyMap(),
+    ) {
         if (terminal) return
         terminal = true
         cancelTimeouts()
@@ -313,6 +343,7 @@ internal class CronetRequestOperation(
                 "message" to message,
                 "timeoutKind" to timeoutKind,
                 "nativeCause" to cause?.javaClass?.name,
+                "details" to details,
             ),
         )
         onFinished(requestId)
@@ -449,6 +480,9 @@ internal class CronetRequestOperation(
         val message = (error.message ?: "").lowercase(Locale.US)
         val name = error.javaClass.name.lowercase(Locale.US)
         return when {
+            "proxy" in message && ("auth" in message || "407" in message) -> "proxy_authentication"
+            "proxy" in message -> "proxy"
+            "pin" in message -> "certificate_pin_mismatch"
             "certificate" in message || "ssl" in message || "tls" in message -> "tls"
             "dns" in message || "name_not_resolved" in message || "host" in message -> "dns"
             "protocol" in message || "http" in name && "network" !in name -> "protocol"
@@ -482,6 +516,30 @@ internal class CronetRequestOperation(
                 else -> builder.addHeader(name, values.toString())
             }
         }
+    }
+
+    private fun hasSensitiveHeaders(): Boolean =
+        map(arguments["headers"]).keys.any { name ->
+            name.equals("authorization", ignoreCase = true) ||
+                name.equals("proxy-authorization", ignoreCase = true) ||
+                name.equals("cookie", ignoreCase = true)
+        }
+
+    private fun sameOrigin(leftValue: String, rightValue: String): Boolean = try {
+        val left = URI(leftValue)
+        val right = URI(rightValue)
+        left.scheme.equals(right.scheme, ignoreCase = true) &&
+            left.host.equals(right.host, ignoreCase = true) &&
+            effectivePort(left) == effectivePort(right)
+    } catch (_: Throwable) {
+        false
+    }
+
+    private fun effectivePort(uri: URI): Int = when {
+        uri.port >= 0 -> uri.port
+        uri.scheme.equals("http", ignoreCase = true) -> 80
+        uri.scheme.equals("https", ignoreCase = true) -> 443
+        else -> -1
     }
 
     companion object {

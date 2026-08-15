@@ -12,6 +12,8 @@ void main() {
         'http11': 'supported',
         'http2': 'supported',
         'http3': 'supported',
+        'protocolRequirement': 'supported',
+        'explicitHttpsProxy': 'unsupported',
         'negotiatedProtocolReporting': 'supported',
       });
 
@@ -21,6 +23,8 @@ void main() {
       );
       expect(capabilities.transportVersion, '151.0.7922.29');
       expect(capabilities.supports(AlphaXCapability.http3), isTrue);
+      expect(capabilities.supports(AlphaXCapability.protocolRequirement), isTrue);
+      expect(capabilities.supports(AlphaXCapability.explicitHttpsProxy), isFalse);
       expect(
         capabilities.supports(AlphaXCapability.negotiatedProtocolReporting),
         isTrue,

@@ -42,6 +42,19 @@ void main() {
     expect(transport.capabilities.nativeFileDownload, AlphaXSupport.unsupported);
   });
 
+  test('normalizes invalid custom trust anchors', () {
+    expect(
+      () => DartIoTransport(
+        tlsPolicy: AlphaXTlsPolicy(
+          trustAnchors: <AlphaXTrustAnchor>[
+            AlphaXTrustAnchor.der(<int>[1, 2, 3]),
+          ],
+        ),
+      ),
+      throwsA(isA<AlphaXUnsupportedTlsPolicyException>()),
+    );
+  });
+
   test('supports every required HTTP method without changing the body', () async {
     final cases = <HttpMethod, List<int>>{
       HttpMethod.get: const <int>[],
@@ -248,6 +261,34 @@ void main() {
     );
   });
 
+  test('rejects cross-origin redirects carrying sensitive credentials', () async {
+    var targetWasReached = false;
+    final target = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    addTearDown(() => target.close(force: true));
+    target.listen((request) {
+      targetWasReached = true;
+      _writeText(request.response, 'unexpected target request');
+    });
+
+    for (final header in const <String>[
+      'Authorization',
+      'Proxy-Authorization',
+      'Cookie',
+    ]) {
+      await expectLater(
+        transport.send(
+          AlphaXRequest(
+            method: HttpMethod.get,
+            uri: baseUri.resolve('/redirect-to-port/${target.port}'),
+            headers: AlphaXHeaders(<String, String>{header: 'sensitive-test-value'}),
+          ),
+        ),
+        throwsA(isA<AlphaXRedirectException>()),
+      );
+    }
+    expect(targetWasReached, isFalse);
+  });
+
   test('normalizes request, read, and overall timeouts', () async {
     await expectLater(
       transport.send(
@@ -418,20 +459,37 @@ void main() {
     );
   });
 
-  test('explicit unsupported protocol preferences fail before network work', () async {
+  test('protocol preference permits an honest Dart IO fallback', () async {
+    final response = await transport.send(
+      AlphaXRequest(
+        method: HttpMethod.get,
+        uri: baseUri.resolve('/resource'),
+        protocolPreference: AlphaXProtocolPreference.http3,
+      ),
+    );
+
+    expect(response.requestedProtocol, AlphaXProtocolPreference.http3);
+    expect(response.protocol, AlphaXProtocol.unknown);
+    await response.readAsBytes();
+    // Completion metadata is deliberately allowed to remain pending until a
+    // streamed body reaches a terminal state.
+    expect(await response.completionProtocolFallback, isNull);
+  });
+
+  test('protocol requirement fails closed when Dart IO cannot report H1', () async {
     await expectLater(
       transport.send(
         AlphaXRequest(
           method: HttpMethod.get,
           uri: baseUri.resolve('/resource'),
-          protocolPreference: AlphaXProtocolPreference.http3,
+          protocolRequirement: AlphaXProtocolRequirement.http11,
         ),
       ),
       throwsA(
-        isA<AlphaXUnsupportedCapabilityException>().having(
-          (error) => error.capability,
-          'capability',
-          AlphaXCapability.http3,
+        isA<AlphaXProtocolRequirementException>().having(
+          (error) => error.actualProtocol,
+          'actualProtocol',
+          AlphaXProtocol.unknown,
         ),
       ),
     );
@@ -579,6 +637,20 @@ Future<void> _handle(HttpRequest request) async {
           ..statusCode = HttpStatus.found
           ..headers.set(HttpHeaders.locationHeader, '/redirect/${count - 1}');
       }
+    } else if (segments.firstOrNull == 'redirect-to-port') {
+      response
+        ..statusCode = HttpStatus.found
+        ..headers.set(
+          HttpHeaders.locationHeader,
+          Uri(
+            scheme: 'http',
+            host: '127.0.0.1',
+            port: int.parse(segments[1]),
+            path: '/capture',
+          ).toString(),
+        );
+    } else if (segments.firstOrNull == 'capture') {
+      _writeText(response, 'capture');
     } else if (segments.firstOrNull == 'connection') {
       final port = request.connectionInfo?.remotePort;
       response

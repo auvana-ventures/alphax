@@ -2,6 +2,7 @@ package com.auvana.ventures.alphax
 
 import android.content.Context
 import android.os.Handler
+import android.util.Base64
 import com.google.android.gms.net.CronetProviderInstaller
 import io.flutter.plugin.common.MethodChannel
 import org.chromium.net.CronetEngine
@@ -13,6 +14,7 @@ import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.ThreadFactory
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.Date
 
 /** Owns one Cronet engine and all request operations for a Flutter engine. */
 internal class CronetTransportEngine(
@@ -38,7 +40,7 @@ internal class CronetTransportEngine(
     private var initialized = false
     private var closed = false
 
-    fun initialize(result: MethodChannel.Result) {
+    fun initialize(arguments: Map<String, Any?>, result: MethodChannel.Result) {
         synchronized(lock) {
             if (closed) {
                 result.error("closed", "AlphaX Android transport is closed", null)
@@ -62,6 +64,8 @@ internal class CronetTransportEngine(
                 val builder = selected.createBuilder()
                 builder.enableHttp2(true)
                 builder.enableQuic(true)
+                configureTls(builder, map(arguments["tlsPolicy"]))
+                configureProxy(builder, map(arguments["proxyPolicy"]))
                 engine = builder.build()
                 providerName = selected.name
                 providerVersion = selected.version
@@ -71,9 +75,9 @@ internal class CronetTransportEngine(
             } catch (error: Throwable) {
                 mainHandler.post {
                     result.error(
-                        "provider_unavailable",
+                        (error as? AlphaXPolicyException)?.code ?: "provider_unavailable",
                         error.message ?: "No usable Cronet provider is available",
-                        error.javaClass.name,
+                        (error as? AlphaXPolicyException)?.details ?: error.javaClass.name,
                     )
                 }
             }
@@ -209,8 +213,16 @@ internal class CronetTransportEngine(
             "uploadProgress" to "supported",
             "downloadProgress" to "supported",
             "proxyConfiguration" to "unsupported",
-            "certificatePinning" to "unsupported",
+            "tlsDefaultTrust" to "supported",
+            "customTrustAnchors" to "unsupported",
+            "certificatePinning" to "supported",
             "mutualTls" to "unsupported",
+            "systemProxy" to "supported",
+            "directConnectionPolicy" to "unsupported",
+            "explicitHttpProxy" to "unsupported",
+            "explicitHttpsProxy" to "unsupported",
+            "proxyAuthentication" to "unsupported",
+            "protocolRequirement" to if (nativeProvider) "supported" else "unsupported",
             // The provider exposes experimental migration controls, but this adapter does
             // not configure or guarantee them as a 1.0 behavior.
             "connectionMigration" to "unknown",
@@ -239,6 +251,117 @@ internal class CronetTransportEngine(
     private fun isFallback(provider: CronetProvider): Boolean =
         provider.name == CronetProvider.PROVIDER_NAME_FALLBACK ||
             provider.name.contains("fallback", ignoreCase = true)
+
+    private fun configureTls(builder: CronetEngine.Builder, policy: Map<String, Any?>) {
+        val includePlatformTrust = policy["includePlatformTrust"] as? Boolean ?: true
+        val anchors = policy["trustAnchors"] as? List<*> ?: emptyList<Any?>()
+        val clientIdentity = policy["clientIdentityReference"]?.toString()
+        if (!includePlatformTrust || anchors.isNotEmpty()) {
+            throw AlphaXPolicyException(
+                code = "unsupported_tls_policy",
+                message = "Cronet does not expose a safe custom trust-anchor mapping in this provider",
+                details = mapOf("capability" to "customTrustAnchors"),
+            )
+        }
+        if (!clientIdentity.isNullOrBlank()) {
+            throw AlphaXPolicyException(
+                code = "unsupported_tls_policy",
+                message = "Cronet client-identity mapping is not implemented",
+                details = mapOf("capability" to "mutualTls"),
+            )
+        }
+
+        val pinEntries = policy["pins"] as? List<*> ?: emptyList<Any?>()
+        if (pinEntries.isEmpty()) return
+        val grouped = linkedMapOf<String, MutableList<Pair<Map<String, Any?>, ByteArray>>>()
+        for (entry in pinEntries) {
+            val pin = map(entry)
+            val host = pin["host"]?.toString()?.trim().orEmpty()
+            val digest = pin["sha256SpkiBase64"]?.toString().orEmpty()
+            val expiresAtMs = (pin["expiresAtMs"] as? Number)?.toLong() ?: 0L
+            if (host.isEmpty() || digest.isEmpty() || expiresAtMs <= System.currentTimeMillis()) {
+                throw AlphaXPolicyException(
+                    code = "unsupported_tls_policy",
+                    message = "Cronet pin configuration is invalid or expired",
+                    details = mapOf("capability" to "certificatePinning"),
+                )
+            }
+            val bytes = try {
+                Base64.decode(digest, Base64.DEFAULT)
+            } catch (error: IllegalArgumentException) {
+                throw AlphaXPolicyException(
+                    code = "unsupported_tls_policy",
+                    message = "Cronet pin configuration is not valid base64",
+                    details = mapOf("capability" to "certificatePinning"),
+                    underlyingCause = error,
+                )
+            }
+            if (bytes.size != 32) {
+                throw AlphaXPolicyException(
+                    code = "unsupported_tls_policy",
+                    message = "Cronet pins must be SHA-256 SPKI digests",
+                    details = mapOf("capability" to "certificatePinning"),
+                )
+            }
+            grouped.getOrPut(host.lowercase()) { mutableListOf() }.add(pin to bytes)
+        }
+        for ((host, values) in grouped) {
+            val subdomainValues = values.map { it.first["includeSubdomains"] as? Boolean ?: false }.distinct()
+            if (subdomainValues.size > 1) {
+                throw AlphaXPolicyException(
+                    code = "unsupported_tls_policy",
+                    message = "Cronet requires one includeSubdomains value per pin host",
+                    details = mapOf("capability" to "certificatePinning"),
+                )
+            }
+            builder.addPublicKeyPins(
+                host,
+                values.map { it.second }.toSet(),
+                subdomainValues.singleOrNull() ?: false,
+                Date(values.minOf { (it.first["expiresAtMs"] as Number).toLong() }),
+            )
+        }
+        // Do not let local trust anchors bypass an explicitly configured pin.
+        builder.enablePublicKeyPinningBypassForLocalTrustAnchors(false)
+    }
+
+    private fun configureProxy(builder: CronetEngine.Builder, policy: Map<String, Any?>) {
+        when (policy["mode"]?.toString() ?: "system") {
+            "system" -> Unit
+            "direct" -> throw AlphaXPolicyException(
+                code = "unsupported_proxy_policy",
+                message = "The selected Cronet API cannot enforce a direct-only policy",
+                details = mapOf("capability" to "directConnectionPolicy"),
+            )
+            "explicit" -> throw AlphaXPolicyException(
+                code = "unsupported_proxy_policy",
+                message = "Explicit Cronet proxy configuration requires a newer provider API",
+                details = mapOf(
+                    "capability" to if (policy["scheme"]?.toString() == "https") {
+                        "explicitHttpsProxy"
+                    } else {
+                        "explicitHttpProxy"
+                    },
+                ),
+            )
+            else -> throw AlphaXPolicyException(
+                code = "unsupported_proxy_policy",
+                message = "The Cronet proxy policy is invalid",
+                details = mapOf("capability" to "proxyConfiguration"),
+            )
+        }
+    }
+
+    private data class AlphaXPolicyException(
+        val code: String,
+        override val message: String,
+        val details: Any?,
+        val underlyingCause: Throwable? = null,
+    ) : IllegalArgumentException(message, underlyingCause)
+
+    @Suppress("UNCHECKED_CAST")
+    private fun map(value: Any?): Map<String, Any?> =
+        (value as? Map<*, *>)?.entries?.associate { (key, item) -> key.toString() to item } ?: emptyMap()
 
     private fun namedThreadFactory(prefix: String): ThreadFactory {
         val counter = AtomicInteger()

@@ -13,6 +13,10 @@ void main() {
         'http3': 'supported',
         'streamingUpload': 'supported',
         'nativeFileDownload': 'supported',
+        'proxyConfiguration': 'supported',
+        'explicitHttpProxy': 'supported',
+        'explicitHttpsProxy': 'unsupported',
+        'certificatePinning': 'supported',
         'negotiatedProtocolReporting': 'supported',
       });
 
@@ -26,7 +30,10 @@ void main() {
         capabilities.supports(AlphaXCapability.negotiatedProtocolReporting),
         isTrue,
       );
-      expect(capabilities.supports(AlphaXCapability.proxyConfiguration), isFalse);
+      expect(capabilities.supports(AlphaXCapability.proxyConfiguration), isTrue);
+      expect(capabilities.supports(AlphaXCapability.explicitHttpProxy), isTrue);
+      expect(capabilities.supports(AlphaXCapability.explicitHttpsProxy), isFalse);
+      expect(capabilities.supports(AlphaXCapability.certificatePinning), isTrue);
     });
 
     test('does not report fallback before the final protocol is known', () {

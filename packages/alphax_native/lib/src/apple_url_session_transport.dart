@@ -3,6 +3,7 @@ import 'package:alphax/alphax.dart';
 import 'package:flutter/services.dart';
 
 import 'alpha_x_local_file.dart';
+import 'alpha_x_policy_arguments.dart';
 import 'apple_url_session_protocol.dart';
 
 /// Apple URLSession transport for iOS and macOS.
@@ -14,13 +15,23 @@ import 'apple_url_session_protocol.dart';
 /// `unknown` protocol metadata and receives the authoritative protocol in its
 /// completion metrics.
 final class AppleUrlSessionTransport extends AlphaXTransport {
-  AppleUrlSessionTransport._(this._methodChannel, this._eventChannel);
+  AppleUrlSessionTransport._(
+    this._methodChannel,
+    this._eventChannel,
+    this.tlsPolicy,
+    this.proxyPolicy,
+  );
 
   /// Creates and initializes the Apple transport.
-  static Future<AppleUrlSessionTransport> create() async {
+  static Future<AppleUrlSessionTransport> create({
+    AlphaXTlsPolicy tlsPolicy = const AlphaXTlsPolicy.platformDefault(),
+    AlphaXProxyPolicy proxyPolicy = const AlphaXProxyPolicy.system(),
+  }) async {
     final transport = AppleUrlSessionTransport._(
       const MethodChannel('alphax_native/transport'),
       const EventChannel('alphax_native/events'),
+      tlsPolicy,
+      proxyPolicy,
     );
     await transport._initialize();
     return transport;
@@ -28,6 +39,10 @@ final class AppleUrlSessionTransport extends AlphaXTransport {
 
   final MethodChannel _methodChannel;
   final EventChannel _eventChannel;
+  @override
+  final AlphaXTlsPolicy tlsPolicy;
+  @override
+  final AlphaXProxyPolicy proxyPolicy;
   final Map<String, _AppleOperation> _operations = <String, _AppleOperation>{};
   AlphaXCapabilities _capabilities = const AlphaXCapabilities.unknown();
   StreamSubscription<Object?>? _eventSubscription;
@@ -52,6 +67,7 @@ final class AppleUrlSessionTransport extends AlphaXTransport {
         ),
         negotiatedProtocol: started.protocol,
         requestedProtocol: started.requestedProtocol,
+        requiredProtocol: started.requiredProtocol,
         protocolFallback: started.protocolFallback,
         metrics: started.metrics,
         completionMetrics: operation.completed.then((completed) => completed.metrics),
@@ -73,6 +89,7 @@ final class AppleUrlSessionTransport extends AlphaXTransport {
         headers: started.headers,
         negotiatedProtocol: started.protocol,
         requestedProtocol: started.requestedProtocol,
+        requiredProtocol: started.requiredProtocol,
         protocolFallback: started.protocolFallback,
         redirects: started.redirects,
       );
@@ -84,6 +101,7 @@ final class AppleUrlSessionTransport extends AlphaXTransport {
         metrics: completed.metrics,
         bytesReceived: completed.bytesReceived,
         requestedProtocol: started.requestedProtocol,
+        requiredProtocol: started.requiredProtocol,
         protocolFallback: appleProtocolFallback(
           started.requestedProtocol,
           completed.metrics.negotiatedProtocol,
@@ -110,6 +128,7 @@ final class AppleUrlSessionTransport extends AlphaXTransport {
         headers: started.headers,
         protocol: completed.metrics.negotiatedProtocol,
         requestedProtocol: started.requestedProtocol,
+        requiredProtocol: started.requiredProtocol,
         protocolFallback: appleProtocolFallback(
           started.requestedProtocol,
           completed.metrics.negotiatedProtocol,
@@ -195,7 +214,10 @@ final class AppleUrlSessionTransport extends AlphaXTransport {
       },
     );
     try {
-      final result = await _methodChannel.invokeMethod<Object?>('initialize');
+      final result = await _methodChannel.invokeMethod<Object?>('initialize', <String, Object?>{
+        'tlsPolicy': alphaXTlsPolicyArguments(tlsPolicy),
+        'proxyPolicy': alphaXProxyPolicyArguments(proxyPolicy),
+      });
       _capabilities = appleCapabilitiesFromNative(result);
     } catch (error, stackTrace) {
       await _eventSubscription?.cancel();
@@ -296,6 +318,7 @@ final class AppleUrlSessionTransport extends AlphaXTransport {
       'maxRedirects': request.redirectPolicy.maxRedirects,
     },
     'protocol': request.protocolPreference.name,
+    'protocolRequirement': request.protocolRequirement?.name,
     'priority': request.priority.name,
     'directDownloadPath': directDownloadPath,
   };
@@ -359,17 +382,19 @@ final class AppleUrlSessionTransport extends AlphaXTransport {
   void _ensureUsable(AlphaXRequest request) {
     if (_closed) throw const AlphaXClientClosedException('Apple transport is closed');
     request.cancellationToken?.throwIfCancelled();
-    final capability = switch (request.protocolPreference) {
-      AlphaXProtocolPreference.auto => null,
-      AlphaXProtocolPreference.http10 => AlphaXCapability.http10,
-      AlphaXProtocolPreference.http11 => AlphaXCapability.http11,
-      AlphaXProtocolPreference.http2 => AlphaXCapability.http2,
-      AlphaXProtocolPreference.http3 => AlphaXCapability.http3,
-    };
-    if (capability != null && !_capabilities.supports(capability)) {
+    // A preference permits fallback. URLSession remains authoritative about
+    // the negotiated protocol in completion metrics.
+    final requirement = request.protocolRequirement;
+    if (requirement != null && !_capabilities.supportsProtocol(requirement.protocol)) {
       throw AlphaXUnsupportedCapabilityException(
-        'Apple URLSession does not support ${request.protocolPreference.name}',
-        capability: capability,
+        'Apple URLSession does not support required ${requirement.name}',
+        capability: switch (requirement.protocol) {
+          AlphaXProtocol.http10 => AlphaXCapability.http10,
+          AlphaXProtocol.http11 => AlphaXCapability.http11,
+          AlphaXProtocol.http2 => AlphaXCapability.http2,
+          AlphaXProtocol.http3 => AlphaXCapability.http3,
+          AlphaXProtocol.unknown => AlphaXCapability.protocolRequirement,
+        },
       );
     }
   }
@@ -387,6 +412,7 @@ final class AppleUrlSessionTransport extends AlphaXTransport {
           cause: error,
           stackTrace: stackTrace,
         ),
+        'proxy' => AlphaXProxyException(message, cause: error, stackTrace: stackTrace),
         'timeout' => AlphaXTimeoutException(
           message,
           timeoutKind: switch (error.details?.toString()) {
@@ -413,6 +439,41 @@ final class AppleUrlSessionTransport extends AlphaXTransport {
           stackTrace: stackTrace,
         ),
         'client_closed' => AlphaXClientClosedException(message),
+        'protocol_requirement' => AlphaXProtocolRequirementException(
+          requiredProtocol: _requirement(error.details),
+          actualProtocol: _protocol(_detail(error.details, 'actualProtocol')),
+          message: message,
+          cause: error,
+          stackTrace: stackTrace,
+        ),
+        'unsupported_tls_policy' => AlphaXUnsupportedTlsPolicyException(
+          message,
+          capability: _capability(error.details, AlphaXCapability.customTrustAnchors),
+          cause: error,
+          stackTrace: stackTrace,
+        ),
+        'certificate_pin_mismatch' => AlphaXCertificatePinMismatchException(
+          message,
+          host: _detail(error.details, 'host')?.toString(),
+          cause: error,
+          stackTrace: stackTrace,
+        ),
+        'client_certificate' => AlphaXClientCertificateException(
+          message,
+          cause: error,
+          stackTrace: stackTrace,
+        ),
+        'unsupported_proxy_policy' => AlphaXUnsupportedProxyPolicyException(
+          message,
+          capability: _capability(error.details, AlphaXCapability.explicitHttpProxy),
+          cause: error,
+          stackTrace: stackTrace,
+        ),
+        'proxy_authentication' => AlphaXProxyAuthenticationException(
+          message,
+          cause: error,
+          stackTrace: stackTrace,
+        ),
         _ => AlphaXTransportException(message, cause: error, stackTrace: stackTrace),
       };
     }
@@ -437,6 +498,42 @@ final class AppleUrlSessionTransport extends AlphaXTransport {
       for (final entry in value.entries) entry.key.toString(): entry.value,
     };
   }
+
+  static Object? _detail(Object? details, String key) =>
+      details is Map ? details[key] ?? details[key.toString()] : null;
+
+  static AlphaXProtocolRequirement _requirement(Object? details) =>
+      _optionalRequirement(_detail(details, 'requiredProtocol')) ?? AlphaXProtocolRequirement.http3;
+
+  static AlphaXProtocolRequirement? _optionalRequirement(Object? value) =>
+      switch (value?.toString()) {
+        'http10' => AlphaXProtocolRequirement.http10,
+        'http11' => AlphaXProtocolRequirement.http11,
+        'http2' => AlphaXProtocolRequirement.http2,
+        'http3' => AlphaXProtocolRequirement.http3,
+        _ => null,
+      };
+
+  static AlphaXCapability _capability(Object? details, AlphaXCapability fallback) =>
+      switch (details is Map ? details['capability']?.toString() : null) {
+        'certificatePinning' => AlphaXCapability.certificatePinning,
+        'customTrustAnchors' => AlphaXCapability.customTrustAnchors,
+        'mutualTls' => AlphaXCapability.mutualTls,
+        'systemProxy' => AlphaXCapability.systemProxy,
+        'directConnectionPolicy' => AlphaXCapability.directConnectionPolicy,
+        'explicitHttpProxy' => AlphaXCapability.explicitHttpProxy,
+        'explicitHttpsProxy' => AlphaXCapability.explicitHttpsProxy,
+        'proxyAuthentication' => AlphaXCapability.proxyAuthentication,
+        _ => fallback,
+      };
+
+  static AlphaXProtocol _protocol(Object? value) => switch (value?.toString()) {
+    'http10' => AlphaXProtocol.http10,
+    'http11' => AlphaXProtocol.http11,
+    'http2' => AlphaXProtocol.http2,
+    'http3' => AlphaXProtocol.http3,
+    _ => AlphaXProtocol.unknown,
+  };
 }
 
 final class _AppleOperation {
@@ -634,12 +731,14 @@ final class _AppleOperation {
   _AppleStarted _startedFrom(Map<String, Object?> event) {
     final protocol = _protocol(event['protocol']);
     final requested = _preference(event['requestedProtocol']);
+    final required = _optionalRequirement(event['requiredProtocol']);
     final redirects = _redirects(event['redirects']);
     return _AppleStarted(
       statusCode: (event['statusCode'] as num?)?.toInt() ?? 0,
       headers: _headers(event['headers']),
       protocol: protocol,
       requestedProtocol: requested,
+      requiredProtocol: required,
       protocolFallback: appleProtocolFallback(requested, protocol),
       redirects: redirects,
       contentLength: (event['contentLength'] as num?)?.toInt(),
@@ -662,6 +761,7 @@ final class _AppleOperation {
 
   AlphaXException _errorFrom(Map<String, Object?> event) {
     final message = event['message']?.toString() ?? 'The Apple request failed';
+    final details = event['details'];
     return switch (event['kind']?.toString()) {
       'dns' => AlphaXDnsException(message),
       'connection' => AlphaXConnectionException(message),
@@ -676,10 +776,34 @@ final class _AppleOperation {
         },
       ),
       'cancellation' => AlphaXCancellationException(message),
+      'proxy' => AlphaXProxyException(message),
+      'proxy_authentication' => AlphaXProxyAuthenticationException(message),
       'protocol' => AlphaXProtocolException(message),
       'redirect' => AlphaXRedirectException(message),
       'request_body' => AlphaXRequestBodyException(message),
       'response_body' => AlphaXResponseBodyException(message),
+      'protocol_requirement' => AlphaXProtocolRequirementException(
+        requiredProtocol:
+            _optionalRequirement(
+              details is Map ? details['requiredProtocol'] : null,
+            ) ??
+            AlphaXProtocolRequirement.http3,
+        actualProtocol: _protocol(details is Map ? details['actualProtocol'] : null),
+        message: message,
+      ),
+      'certificate_pin_mismatch' => AlphaXCertificatePinMismatchException(
+        message,
+        host: details is Map ? details['host']?.toString() : null,
+      ),
+      'unsupported_tls_policy' => AlphaXUnsupportedTlsPolicyException(
+        message,
+        capability: _capability(details, AlphaXCapability.customTrustAnchors),
+      ),
+      'client_certificate' => AlphaXClientCertificateException(message),
+      'unsupported_proxy_policy' => AlphaXUnsupportedProxyPolicyException(
+        message,
+        capability: _capability(details, AlphaXCapability.explicitHttpProxy),
+      ),
       _ => AlphaXTransportException(message),
     };
   }
@@ -753,6 +877,28 @@ final class _AppleOperation {
     _ => null,
   };
 
+  static AlphaXProtocolRequirement? _optionalRequirement(Object? value) =>
+      switch (value?.toString()) {
+        'http10' => AlphaXProtocolRequirement.http10,
+        'http11' => AlphaXProtocolRequirement.http11,
+        'http2' => AlphaXProtocolRequirement.http2,
+        'http3' => AlphaXProtocolRequirement.http3,
+        _ => null,
+      };
+
+  static AlphaXCapability _capability(Object? details, AlphaXCapability fallback) =>
+      switch (details is Map ? details['capability']?.toString() : null) {
+        'certificatePinning' => AlphaXCapability.certificatePinning,
+        'customTrustAnchors' => AlphaXCapability.customTrustAnchors,
+        'mutualTls' => AlphaXCapability.mutualTls,
+        'systemProxy' => AlphaXCapability.systemProxy,
+        'directConnectionPolicy' => AlphaXCapability.directConnectionPolicy,
+        'explicitHttpProxy' => AlphaXCapability.explicitHttpProxy,
+        'explicitHttpsProxy' => AlphaXCapability.explicitHttpsProxy,
+        'proxyAuthentication' => AlphaXCapability.proxyAuthentication,
+        _ => fallback,
+      };
+
   static Uint8List _bytes(Object? value) {
     if (value is Uint8List) return value;
     if (value is List<int>) return Uint8List.fromList(value);
@@ -766,6 +912,7 @@ final class _AppleStarted {
     required this.headers,
     required this.protocol,
     required this.requestedProtocol,
+    required this.requiredProtocol,
     required this.protocolFallback,
     required this.redirects,
     required this.contentLength,
@@ -776,6 +923,7 @@ final class _AppleStarted {
   final AlphaXHeaders headers;
   final AlphaXProtocol protocol;
   final AlphaXProtocolPreference? requestedProtocol;
+  final AlphaXProtocolRequirement? requiredProtocol;
   final AlphaXProtocolFallback? protocolFallback;
   final List<AlphaXRedirectInfo> redirects;
   final int? contentLength;

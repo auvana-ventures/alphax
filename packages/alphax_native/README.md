@@ -9,10 +9,12 @@ transport-neutral AlphaX contract for the HTTP/1.1 fallback path. It provides
 progressive Dart-streamed request/response and file transfers, cancellation,
 timeouts, redirects, normalized errors, and secure platform TLS defaults.
 
-The Dart IO adapter does not claim HTTP/2, HTTP/3, configurable proxy behavior,
-certificate pinning, mTLS, background transfer, or native file-backed transfer.
-Its actual negotiated protocol is unavailable from the Dart IO API and is
-reported as `unknown`; no H2/H3 support is inferred from capability metadata.
+The Dart IO adapter does not claim HTTP/2, HTTP/3, or native file-backed
+transfer. Its actual negotiated protocol is unavailable from the Dart IO API
+and is reported as `unknown`; no H2/H3 support is inferred from capability
+metadata. It supports platform-default/additional trust through `SecurityContext`
+and system/direct/explicit HTTP proxy routing, but SPKI pinning, mTLS, and
+explicit HTTPS-proxy routing fail with a normalized unsupported-policy error.
 
 `AndroidCronetTransport.create()` selects one reusable provider-backed engine.
 Google Play Services Cronet is preferred when available; the Android platform
@@ -25,9 +27,11 @@ may be lower than the requested preference.
 The Android adapter keeps response delivery behind a four-credit, 64 KiB native
 read window and supports native file-backed upload/download for
 `AlphaXLocalFileSource` and `AlphaXLocalFileTarget`. TLS verification uses
-platform defaults; proxy configuration, certificate pinning, mTLS, background
-transfer, and connection-migration controls are not advertised by this
-adapter.
+platform defaults and Cronet SPKI pinning is configured at engine creation;
+custom trust anchors and client identities are rejected by the selected
+provider. System proxy behavior is provider-managed; the selected Cronet API
+does not expose a safe explicit/direct proxy mapping and reports those modes as
+unsupported.
 
 The Android plugin declares API 24 as its minimum Android API and prefers the
 Google Play Services Cronet provider when available. The Apple plugin targets
@@ -49,17 +53,18 @@ treating an initial `unknown` protocol as H1 or fallback. `sendStreaming()`
 exposes the same final metrics and fallback metadata in
 `AlphaXResponseCompleted`.
 
-Apple uses `URLSessionConfiguration.default`, so system-managed proxy settings
-are inherited. AlphaX does not expose explicit per-session proxy configuration
-or proxy credentials, and the adapter reports explicit proxy configuration as
-unsupported. URLSession owns HTTP CONNECT and any platform proxy-auth flow;
-the adapter cannot force or inspect those steps. A proxy may prevent QUIC, in
-which case the final task metrics must report the negotiated H2/H1 fallback.
+Apple uses `URLSessionConfiguration.default` for system routing and configures
+direct/explicit HTTP proxy policies through the CFNetwork proxy dictionary on
+both iOS and macOS. An explicit HTTP proxy can service an HTTPS destination
+through CONNECT; an explicit HTTPS-proxy endpoint remains unsupported and is
+reported separately. URLSession owns HTTP CONNECT and proxy authentication;
+AlphaX answers supported HTTP Basic proxy challenges without placing
+credentials in origin headers. A proxy may prevent QUIC, in which case final
+task metrics report the negotiated H2/H1 fallback.
 
 Apple URLSession removes `Authorization`, `Proxy-Authorization`, and `Cookie`
-before a cross-origin redirect is followed. Cronet receives the same redirect
-through its provider-managed `followRedirect()` path; the public Cronet API
-does not let AlphaX replace the pending redirect headers, so the selected
-provider must be verified by the Phase 1F fixture before this behavior is a
-release claim. Same-origin redirects retain request headers subject to
-platform behavior.
+before a cross-origin redirect is followed. Cronet rejects a sensitive
+cross-origin redirect because the selected provider API does not let AlphaX
+replace pending redirect headers. Same-origin redirects retain request headers
+subject to platform behavior. The focused physical-device assertion remains a
+release validation item.

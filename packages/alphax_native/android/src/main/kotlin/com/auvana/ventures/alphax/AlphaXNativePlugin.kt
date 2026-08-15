@@ -39,7 +39,7 @@ class AlphaXNativePlugin :
             return
         }
         when (call.method) {
-            "initialize" -> engine.initialize(result)
+            "initialize" -> engine.initialize(call.argumentsAsMap(), result)
             "start" -> engine.start(call.argumentsAsMap(), result)
             "grantCredits" -> engine.grantCredits(call.argumentsAsMap(), result)
             "cancel" -> engine.cancel(call.argumentsAsMap(), result)
