@@ -1,0 +1,33 @@
+{
+  "schema": "alphax.phase1f.macos-security-policy.v1",
+  "captured_at": "2026-08-15",
+  "platform": "macOS 26.5.2 arm64",
+  "transport": "Apple URLSession",
+  "build_mode": "profile correctness fixture; no performance data",
+  "tls": {
+    "default_trust_rejects_test_ca": "passed",
+    "custom_ca_succeeds": "passed",
+    "incorrect_custom_ca_fails": "passed",
+    "correct_spki_pin_succeeds": "passed",
+    "incorrect_spki_pin_fails": "passed",
+    "backup_spki_pin_succeeds": "passed",
+    "matching_pin_does_not_trust_untrusted_certificate": "passed",
+    "trust_all_override": "absent"
+  },
+  "proxy": {
+    "direct_policy": "passed",
+    "explicit_http_proxy_for_http": "passed",
+    "http_proxy_connect_to_trusted_https_destination": "passed",
+    "custom_ca_over_connect": "fails_closed_tls",
+    "basic_auth_success": "passed",
+    "wrong_basic_auth": "passed_as_normalized_proxy_authentication_error",
+    "unreachable_proxy": "passed_as_fail_closed",
+    "system_policy": "passed",
+    "explicit_https_proxy_endpoint": "unsupported_and_rejected"
+  },
+  "interpretation": {
+    "custom_ca_over_connect": "The local custom-CA tunnel did not complete TLS; URLSession returned a normalized TLS failure. The trusted HTTPS CONNECT path passed. No trust bypass was added.",
+    "credentials": "Basic credentials are sent only as Proxy-Authorization for the selected explicit HTTP proxy route; they are not copied to origin Authorization headers or logged."
+  },
+  "source_runner": "benchmarks/mobile_gate/lib/phase1f_macos_security_main.dart"
+}

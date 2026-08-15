@@ -249,6 +249,19 @@ private final class AlphaXURLSessionEngine: NSObject, URLSessionDataDelegate, UR
         return created
     }
 
+    func proxyAuthorizationHeader() -> String? {
+        stateLock.lock()
+        defer { stateLock.unlock() }
+        guard (proxyPolicy["mode"] as? String) == "explicit",
+              (proxyPolicy["scheme"] as? String) == "http",
+              let username = proxyPolicy["username"] as? String,
+              let password = proxyPolicy["password"] as? String else {
+            return nil
+        }
+        let credentials = Data("\(username):\(password)".utf8)
+        return "Basic \(credentials.base64EncodedString())"
+    }
+
     func remove(_ operation: AlphaXURLSessionOperation) {
         stateLock.lock()
         operations.removeValue(forKey: operation.taskIdentifier)
@@ -709,6 +722,14 @@ private final class AlphaXURLSessionOperation {
         self.response = httpResponse
         responseDate = Date()
         stateLock.unlock()
+        if httpResponse.statusCode == 407 {
+            finishError(
+                kind: "proxy_authentication",
+                message: "The configured proxy rejected authentication",
+                details: ["statusCode": httpResponse.statusCode]
+            )
+            return
+        }
         cancelTimeout("connect")
         cancelTimeout("request")
         if let readMillis = milliseconds(dictionary(arguments["timeouts"])?["readMs"]) {
@@ -1047,6 +1068,14 @@ private final class AlphaXURLSessionOperation {
                     request.addValue(String(describing: value), forHTTPHeaderField: name)
                 }
             }
+        }
+        if let proxyAuthorization = engine?.proxyAuthorizationHeader() {
+            // URLSession does not consistently surface HTTP proxy 407
+            // challenges on every Apple deployment target. When the caller
+            // selected an explicit HTTP proxy, scope Basic credentials to
+            // that route so the proxy receives them without relying on
+            // origin authentication behavior.
+            request.setValue(proxyAuthorization, forHTTPHeaderField: "Proxy-Authorization")
         }
         if let length = integer(dictionary(arguments["body"])?["length"]), length >= 0,
            request.value(forHTTPHeaderField: "Content-Length") == nil {
