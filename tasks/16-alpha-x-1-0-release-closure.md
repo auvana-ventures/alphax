@@ -160,6 +160,11 @@ unavailable. The exact states are tracked in
   Signed iPhone H2/H3/invalid-TLS probes passed; local H1 reachability and
   subsequent automation remained environment-blocked. Maintainer proxy/mTLS
   decisions are recorded as accepted boundaries, not blockers.
+- 2026-08-15: Committed focused fixture and Apple proxy normalization in
+  `0af3c69` (`test: add macOS TLS and proxy release fixtures`).
+- 2026-08-15: Committed requirements, ADR validation, and release-gate
+  reconciliation in `e92a382` (`docs: reconcile AlphaX 1.0 security release
+  gate`).
 
 ## Validation Record
 
@@ -204,3 +209,5 @@ unavailable. The exact states are tracked in
 - `markdownlint` — baseline and changed historical/table-heavy reports retain
   pre-existing line-length and second-H1 findings; no repository CI rule
   requires this tool.
+- `git diff --check` after the closure commits — passed; the local iOS signing
+  project modification remains unstaged and excluded from both commits.
