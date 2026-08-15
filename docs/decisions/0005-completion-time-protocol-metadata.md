@@ -1,6 +1,6 @@
 # ADR-0005: Completion-time protocol metadata
 
-Status: Proposed
+Status: Accepted
 
 ## Context
 

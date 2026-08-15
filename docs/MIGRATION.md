@@ -47,6 +47,33 @@ body must not be accidentally replayed by middleware or redirect handling.
 AlphaX 1.0 does not include an `alphax_dio` adapter, automatic retry/auth
 refresh, cache, telemetry SDK integration, or Dio-specific types in `alphax`.
 
+## Protocol, TLS, and proxy controls
+
+Use `protocolPreference` when fallback is acceptable and
+`protocolRequirement` when the request must fail unless the exact protocol is
+negotiated. Always inspect completion metrics for the actual protocol; a
+capability or preference is not proof of negotiation.
+
+`AlphaXTlsPolicy.platformDefault()` preserves platform trust. Custom DER trust
+anchors and SPKI SHA-256 pins are capability-dependent. Pins are checked only
+after normal hostname, validity, and chain validation; use more than one pin
+for key rotation. Dart IO cannot safely provide SPKI callbacks and therefore
+fails a configured pin policy rather than disabling verification.
+
+`AlphaXProxyPolicy.system()` preserves platform routing, `direct()` requests a
+no-proxy route where supported, and `http(...)` configures an explicit HTTP
+proxy, including CONNECT to HTTPS destinations where supported. The separate
+`https(...)` proxy-endpoint policy is not implemented by the selected
+transports. Unsupported routes fail with
+`AlphaXUnsupportedProxyPolicyException`; AlphaX never silently switches to a
+different route. Android’s selected Cronet provider is system-proxy-only. Apple
+uses URLSession/CFNetwork for system/direct/HTTP proxy policies and rejects the
+explicit HTTPS-proxy scheme in the shared iOS/macOS adapter.
+
+`AlphaXClientIdentity` is an opaque platform identity reference. mTLS is not
+implemented by the 1.0 adapters, so configuring one fails explicitly rather
+than encouraging raw private-key strings in Dart.
+
 ## Transport selection
 
 Applications should select the platform transport at composition time and keep

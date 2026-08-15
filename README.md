@@ -6,10 +6,10 @@ cancellation, capability, protocol, and error model over platform transports.
 
 ## Status
 
-**Phase 1F release-candidate hardening is in progress.** AlphaX remains
-pre-release and is not stable or published to pub.dev. The core API has been
-reviewed for the release-candidate boundary, but final 1.0 freeze, maintainer
-release approval, and naming clearance are still required.
+**1.0 release closure is in progress.** AlphaX remains pre-release and is not
+stable or published to pub.dev. The approved transport architecture and core
+policy contracts are implemented, but focused release-device validation and
+maintainer release approval are still required.
 
 AlphaX makes no unsupported fastest, zero-copy, universal HTTP/3, or always-H3
 claims.
@@ -132,6 +132,21 @@ print('fallback: ${fallback?.reason.name ?? 'none'}');
 fallback. URLSession may report the authoritative protocol only through
 completion metrics.
 
+To fail closed instead of allowing protocol fallback, set
+`protocolRequirement`. A Dart IO fallback rejects H2/H3 requirements because
+`dart:io` cannot prove the final negotiated protocol:
+
+```dart
+final response = await client.send(
+  AlphaXRequest(
+    method: HttpMethod.get,
+    uri: Uri.https('example.com', '/sensitive-operation'),
+    protocolPreference: AlphaXProtocolPreference.http3,
+    protocolRequirement: AlphaXProtocolRequirement.http3,
+  ),
+);
+```
+
 ## Platform and protocol support
 
 | Target | Transport | Protocol support in the 1.0 scope |
@@ -163,12 +178,22 @@ generator, WebSocket/SSE API, or browser transport in the 1.0 architecture.
 ## Security and known limitations
 
 TLS certificate verification uses platform defaults and is enabled by default.
-The Apple adapter explicitly strips `Authorization`, `Proxy-Authorization`,
-and `Cookie` on cross-origin redirects. Android delegates redirect header
-mutation to the selected Cronet provider and still requires the Phase 1F
-physical-device assertion for the same three headers. Explicit per-session proxy configuration,
-certificate pinning, and mTLS are not exposed by the current adapters; system
-proxy behavior is platform-managed and documented in the package review.
+`AlphaXTlsPolicy` can add or replace trust anchors where the transport supports
+it and can configure multiple host-scoped SPKI SHA-256 pins on Android and
+Apple. Dart IO reports pinning unsupported and fails explicitly rather than
+using a trust-all callback. `AlphaXProxyPolicy` supports system/direct/HTTP
+routes where each provider can honor them; the separate HTTPS-proxy endpoint
+scheme is unsupported by the selected transports. Unsupported modes fail
+explicitly.
+The selected Android Cronet API is system-proxy-only, while Apple uses
+URLSession/CFNetwork proxy configuration and rejects explicit HTTPS-proxy
+configuration. `AlphaXClientIdentity` is an opaque security-reference model;
+mTLS is not implemented by the 1.0 adapters.
+
+The Apple adapter strips `Authorization`, `Proxy-Authorization`, and `Cookie`
+on cross-origin redirects. Android rejects a sensitive cross-origin redirect
+when the selected Cronet provider cannot replace pending headers. The focused
+physical-device assertion remains part of release validation.
 
 Native/platform exceptions are retained only as diagnostic causes. Applications
 should handle the public AlphaX error categories such as DNS, connection, TLS,
@@ -203,6 +228,7 @@ alphax (pure-Dart contracts)
 
 See the [1.0 scope](docs/ALPHAX_1_0_SCOPE.md),
 [accepted transport ADR](docs/decisions/0004-platform-native-mobile-transports.md),
+the [1.0 requirements audit](docs/ALPHAX_1_0_REQUIREMENTS_AUDIT.md),
 and [Phase 1E validation report](docs/phase1e-cross-transport-validation.md).
 Historical Phase 0 benchmark results remain evidence for measured HTTP/1.1
 workloads and were not rewritten as H2/H3 performance claims.

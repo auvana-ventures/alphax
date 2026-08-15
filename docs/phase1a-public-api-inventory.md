@@ -6,13 +6,11 @@ describes the transport-neutral contracts and does not make platform-wide
 release claims; adapter evidence is recorded in the Phase 1B, Phase 1C, Phase
 1D, and Phase 1E review reports.
 
-**Review status: REVIEWED FOR THE 1.0 RELEASE-CANDIDATE REVIEW.** The core
-transport-neutral API has no accidental native exports after the Phase 1F
-cleanup. Final 1.0 freeze remains blocked by the explicit policy and protocol
-requirement surfaces recorded in the Phase 1F report; no breaking change was
-silently introduced. A release candidate must not add implementation-specific
-types to `alphax` without a new maintainer review and an explicit scope
-decision.
+**Review status: REVIEWED FOR 1.0 RELEASE CLOSURE.** The core transport-neutral
+API has no accidental native exports. Protocol requirements, TLS/proxy policy,
+normalized policy errors, and completion-time protocol semantics are now part
+of the reviewed public boundary. Focused provider/device validation remains
+tracked in `docs/ALPHAX_1_0_REQUIREMENTS_AUDIT.md`.
 
 ## Client and transport
 
@@ -28,7 +26,7 @@ decision.
 | Symbol | Responsibility |
 | --- | --- |
 | `HttpMethod` | GET, POST, PUT, PATCH, DELETE, HEAD, and OPTIONS wire tokens. |
-| `AlphaXRequest` | Immutable URI, headers, body, timeout, cancellation, protocol preference, redirect policy, priority, and progress callbacks. |
+| `AlphaXRequest` | Immutable URI, headers, body, timeout, cancellation, protocol preference and requirement, redirect policy, priority, and progress callbacks. |
 | `AlphaXResponse` | Status, headers, body, best-known protocol, completion metrics/fallback futures, fallback metadata, redirects, and metrics. |
 | `AlphaXEvent` | Sealed streaming event root. |
 | `AlphaXResponseStarted` | Response status, headers, best-known protocol, fallback, and redirects. |
@@ -60,11 +58,18 @@ decision.
 | --- | --- |
 | `AlphaXProtocol` | Actual `unknown`, `http10`, `http11`, `http2`, or `http3` result. |
 | `AlphaXProtocolPreference` | Caller preference, separate from actual negotiation. |
+| `AlphaXProtocolRequirement` | Exact protocol that must be observed; unknown never satisfies it. |
 | `AlphaXProtocolFallback` | Requested preference, actual protocol, and normalized reason. |
 | `AlphaXProtocolFallbackReason` | Unsupported, server, proxy, network, or unknown reason. |
 | `AlphaXSupport` | Supported, unsupported, or unknown capability state. |
 | `AlphaXCapability` | Protocol, stream, file, progress, proxy, TLS, migration, background, and negotiation capabilities. |
 | `AlphaXCapabilities` | Immutable capability discovery result. |
+| `AlphaXTlsPolicy` | Verified platform trust, custom anchors, SPKI pins, and opaque client identity policy. |
+| `AlphaXTrustAnchor` | Immutable DER trust-anchor value. |
+| `AlphaXSpkiPin` | Host-scoped, expiring SHA-256 SPKI pin with backup-pin support. |
+| `AlphaXClientIdentity` | Opaque platform-managed client identity reference. |
+| `AlphaXProxyPolicy` | System, direct, and explicit HTTP/HTTPS proxy routing policy. |
+| `AlphaXProxyCredentials` | Basic proxy credentials kept out of origin headers and diagnostics. |
 | `AlphaXRequestMetrics` | Optional transport-neutral timing, byte, protocol, redirect, and connection-reuse values; `AlphaXResponse.completionMetrics` is the final snapshot when available later. |
 | `AlphaXTransferDirection` | Upload or download progress direction. |
 | `AlphaXProgress` / `AlphaXProgressCallback` | Optional body-progress reporting. |
@@ -81,8 +86,8 @@ decision.
 | `AlphaXFileTarget` | Download destination abstraction. |
 | `AlphaXFileSink` | Bounded destination write/flush/close/abort lifecycle. |
 | `AlphaXTransferResult` | File-transfer status, headers, actual protocol, fallback, metrics, redirects, and byte counts. |
-| `AlphaXErrorKind` | Normalized error categories. |
-| `AlphaXException` and subclasses | DNS, connection, TLS, timeout, cancellation, protocol, redirect, body, unsupported-capability, and transport errors. |
+| `AlphaXErrorKind` | Normalized error categories, including protocol requirement and proxy failures. |
+| `AlphaXException` and subclasses | DNS, connection, TLS/certificate/pin, timeout, cancellation, protocol/requirement, redirect, proxy, body, unsupported-capability, and transport errors. |
 
 ## Compatibility and leak review
 

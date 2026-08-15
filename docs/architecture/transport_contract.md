@@ -95,21 +95,32 @@ taxonomy when it originates in the transport.
 ## Protocol terminology
 
 `AlphaXProtocolPreference` is caller intent (`auto`, H1, H2, or H3 preference).
-`AlphaXProtocol` is the actual result (`http10`, `http11`, `http2`, `http3`, or
-`unknown`). `AlphaXProtocolFallback` is present at completion when a concrete
-preferred protocol was not negotiated and the transport knows the actual
-protocol. An unknown response-start protocol produces no fallback metadata.
-A capability such as H3 support is never reported as an actual H3 response.
+`AlphaXProtocolRequirement` is fail-closed intent: the exact protocol must be
+observed at completion, and `unknown` never satisfies it. `AlphaXProtocol` is
+the actual result (`http10`, `http11`, `http2`, `http3`, or `unknown`).
+`AlphaXProtocolFallback` is present at completion when a concrete preferred
+protocol was not negotiated and the transport knows the actual protocol. An
+unknown response-start protocol produces no fallback metadata. A capability
+such as H3 support is never reported as an actual H3 response.
+
+`AlphaXTlsPolicy` and `AlphaXProxyPolicy` are immutable transport-neutral
+configuration values. Adapters must either honor a configured control or fail
+with a normalized unsupported-policy error; they must not silently fall back to
+system routing, direct routing, ordinary trust, or trust-all behavior.
 
 ## Capability discovery
 
 `AlphaXCapabilities` returns `supported`, `unsupported`, or `unknown` for H1,
 H2, H3, streaming upload/download, native file paths, progress, proxy
-configuration, certificate pinning, mTLS, connection migration, background
-transfer, and negotiated-protocol reporting. Callers may inspect capabilities
-before requesting an optional behavior. If a capability is unavailable at
-runtime, the transport throws `AlphaXUnsupportedCapabilityException`; it does
-not silently emulate a materially different semantic.
+configuration, default trust, custom trust anchors, certificate pinning, mTLS,
+system proxy, direct policy, explicit HTTP proxy, explicit HTTPS proxy
+endpoints, proxy authentication, protocol requirements, connection migration,
+background transfer, and negotiated-protocol reporting. An explicit HTTP
+proxy may service HTTPS destinations through CONNECT; that is not the same as
+an HTTPS proxy endpoint. Callers may inspect capabilities before
+requesting an optional behavior. If a capability is unavailable at runtime,
+the transport throws `AlphaXUnsupportedCapabilityException` or its normalized
+policy subtype; it does not silently emulate a materially different semantic.
 
 ## Cancellation and timeouts
 

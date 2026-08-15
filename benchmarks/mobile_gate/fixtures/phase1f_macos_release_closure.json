@@ -1,0 +1,66 @@
+{
+  "fixture": "phase1f-macos-release-closure",
+  "kind": "focused-correctness-evidence",
+  "status": "blocked",
+  "source_revision": "6e4111c-plus-release-closure-worktree",
+  "environment": {
+    "platform": "macos",
+    "os_version": "26.5.2 (25F84)",
+    "architecture": "arm64",
+    "dart_version": "3.13.0",
+    "build_mode": "profile"
+  },
+  "transport": {
+    "name": "Apple URLSession",
+    "h1": "supported",
+    "h2": "supported",
+    "h3": "supported",
+    "completion_time_protocol_metadata": true,
+    "bounded_window": "4 native credits x 64 KiB = 256 KiB"
+  },
+  "checks": {
+    "h3_actual_negotiation": "passed",
+    "h3_fallback_to_h1": "passed",
+    "invalid_tls_rejection": "passed",
+    "required_methods_and_bodies": "passed",
+    "streamed_request_body": "passed",
+    "bounded_stream_pause_resume": "passed",
+    "cancellation": "passed",
+    "request_timeout": "passed",
+    "native_file_download": {
+      "status": "passed",
+      "bytes": 1048576,
+      "hash": "4c568eccaeaf6c44"
+    },
+    "native_file_upload": {
+      "status": "passed",
+      "bytes": 1048576,
+      "hash": "4c568eccaeaf6c44"
+    },
+    "close_lifecycle": "passed",
+    "h2_reference_endpoint": {
+      "status": "blocked",
+      "observed_protocol": "http3",
+      "reason": "The configured endpoint no longer provides an H2-only observation. Existing H2 evidence is retained in Phase 1D/1E records."
+    }
+  },
+  "protocol_observations": [
+    {
+      "endpoint": "https://nghttp2.org/httpbin/get",
+      "requested": "auto",
+      "actual": "http3"
+    },
+    {
+      "endpoint": "https://cloudflare-quic.com/",
+      "requested": "http3",
+      "actual": "http3",
+      "alt_svc": "h3=\":443\"; ma=86400"
+    },
+    {
+      "endpoint": "http://127.0.0.1:18080/",
+      "requested": "http3",
+      "actual": "http11",
+      "fallback": "http3 -> http11"
+    }
+  ]
+}
