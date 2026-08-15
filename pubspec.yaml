@@ -1,6 +1,7 @@
 name: alphax_workspace
 description: AlphaX Dart and Flutter networking workspace.
 publish_to: none
+homepage: https://github.com/auvana-ventures/alphax
 repository: https://github.com/auvana-ventures/alphax
 issue_tracker: https://github.com/auvana-ventures/alphax/issues
 environment:

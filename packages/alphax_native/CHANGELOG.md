@@ -1,8 +1,8 @@
 # Changelog
 
-## 0.1.0
+## Unreleased (0.1.0 pre-release)
 
-- Added the experimental transport placeholder.
+- Added the platform transport integration boundary.
 - Added the Dart IO fallback transport with HTTP/1.1 request/response
   streaming, file transfers, cancellation, timeouts, redirects, progress,
   normalized errors, and reusable-client lifecycle handling.
@@ -12,5 +12,7 @@
   complete for the accepted Phase 1C evidence.
 - Added the shared iOS/macOS URLSession adapter with actual task-metric
   protocol reporting, bounded streaming, native file paths, progress,
-  cancellation, redirects, and normalized errors. macOS correctness is
-  validated; signed iPhone validation remains pending.
+  cancellation, redirects, and normalized errors. macOS and signed iPhone
+  correctness evidence covers H1/H2/H3 and fallback behavior.
+- Added release-hardening documentation for system-managed proxy behavior,
+  cross-origin redirect credential stripping, and the 1.0 platform matrix.

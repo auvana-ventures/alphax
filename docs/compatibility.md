@@ -1,17 +1,22 @@
 # Compatibility Plan
 
-## Current support
+## Current release-candidate support
 
 The `alphax` package targets Dart `>=3.8.0 <4.0.0` and has no Flutter SDK
-constraint. Phase 0 native prototypes target macOS and Linux. The repository does
-not claim Android, iOS, Windows, or Web native support yet.
+constraint. The 1.0 platform strategy is:
 
-## Planned compatibility
+- Android API 24+: Cronet/HttpEngine provider, H1/H2/H3 where the selected
+  provider and network path support them;
+- iOS 15+ and macOS 12+: Foundation URLSession, H1/H2/H3 where the OS and
+  network path support them;
+- Linux and Windows: Dart IO H1 fallback;
+- Web: unsupported in the 1.0 scope.
 
-- Android, iOS, macOS, Windows, and Linux after native transport selection and CI.
-- Web where a compatible fetch-based capability model can be defined.
-- Dio `HttpClientAdapter` compatibility after request/response lifecycle validation.
-- Retrofit validation through the Dio adapter rather than a separate generator.
+Protocol capability, request preference, actual negotiated protocol, and
+fallback are separate values. H3 preference does not guarantee H3 use.
+
+Dio `HttpClientAdapter` compatibility remains optional and is not implemented;
+Retrofit validation is outside the 1.0 package boundary.
 
 ## Compatibility principles
 

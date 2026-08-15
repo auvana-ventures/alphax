@@ -1,4 +1,7 @@
 # File transfer example
 
-Direct native-to-file upload/download examples will be added after the selected
-transport proves safe ownership and bounded-buffer behavior.
+File transfer is demonstrated in [`../basic`](../basic/README.md) using the
+transport-neutral `AlphaXClient.download()` and `AlphaXClient.upload()` APIs.
+The selected adapter may use a Dart stream or a native file-backed task; the
+application does not choose a different API. Native file paths are described as
+minimal-copy/direct-file paths, never as zero-copy.

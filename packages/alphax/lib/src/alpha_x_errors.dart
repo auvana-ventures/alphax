@@ -193,20 +193,6 @@ class AlphaXTransportException extends AlphaXException {
     : super(kind: AlphaXErrorKind.transport);
 }
 
-/// Compatibility name for implementation-level native failures.
-class AlphaXNativeTransportException extends AlphaXTransportException {
-  /// Creates a native transport failure with an optional diagnostic code.
-  const AlphaXNativeTransportException(
-    super.message, {
-    this.nativeErrorCode,
-    super.cause,
-    super.stackTrace,
-  });
-
-  /// Optional native error code retained only as diagnostic information.
-  final int? nativeErrorCode;
-}
-
 /// The client was closed before the operation could start.
 class AlphaXClientClosedException extends AlphaXException {
   /// Creates a client-lifecycle failure.

@@ -1,9 +1,18 @@
-# AlphaX Phase 1A public API inventory
+# AlphaX 1.0 public API inventory
 
 Generated from the exports in `packages/alphax/lib/alphax.dart` and reviewed
-against the Phase 1A contract. This inventory describes the transport-neutral
-contracts and does not make platform-wide release claims; adapter evidence is
-recorded in the Phase 1B, Phase 1C, and Phase 1D review reports.
+against the Phase 1A contract during Phase 1F release hardening. This inventory
+describes the transport-neutral contracts and does not make platform-wide
+release claims; adapter evidence is recorded in the Phase 1B, Phase 1C, Phase
+1D, and Phase 1E review reports.
+
+**Review status: REVIEWED FOR THE 1.0 RELEASE-CANDIDATE REVIEW.** The core
+transport-neutral API has no accidental native exports after the Phase 1F
+cleanup. Final 1.0 freeze remains blocked by the explicit policy and protocol
+requirement surfaces recorded in the Phase 1F report; no breaking change was
+silently introduced. A release candidate must not add implementation-specific
+types to `alphax` without a new maintainer review and an explicit scope
+decision.
 
 ## Client and transport
 
@@ -94,3 +103,32 @@ recorded in the Phase 1B, Phase 1C, and Phase 1D review reports.
 `InMemoryAlphaXFileTarget`, and `defineAlphaXTransportConformanceTests`. The
 fake supports predefined responses, streams, delays, failures, cancellation,
 request recording, file transfer, and close behavior.
+
+## Phase 1F freeze review
+
+- `alphax` exports only transport-neutral request, response, body, stream,
+  file, cancellation, timeout, redirect, protocol, capability, metric,
+  middleware, and error contracts.
+- `alphax_native` exports adapter and local-file entry points only from its
+  implementation package; Cronet, URLSession, Flutter channel, and native
+  handle types are not exported by `alphax`.
+- `alphax_test` exports deterministic fakes and conformance helpers for tests;
+  it is not a production dependency of `alphax` or `alphax_native`.
+- `alphax_dio` exports no production adapter and remains outside the required
+  1.0 transport gate.
+
+## Package barrel inventory
+
+`packages/alphax_native/lib/alphax_native.dart` exports exactly:
+
+- `DartIoTransport`;
+- `AndroidCronetTransport`;
+- `AppleUrlSessionTransport`;
+- `AlphaXLocalFileSource`;
+- `AlphaXLocalFileTarget`.
+
+The native barrel does not export the obsolete placeholder transport. Provider
+mapping helpers remain implementation files under `src/` and are not re-exported
+by the package barrel. `packages/alphax_dio/lib/alphax_dio.dart` intentionally
+exports no adapter. No package barrel exports a Cronet, URLSession, Flutter
+channel, native handle, C++, Rust, or libcurl type through `alphax`.

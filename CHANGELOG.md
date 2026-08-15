@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Bootstrapped the AlphaX Phase 0 monorepo.
-- Added the initial transport-independent Dart contracts and deterministic test
-  helpers.
-- Added macOS/Linux benchmark prototype scaffolding for Dart, libcurl/FFI, and Rust.
+- Prepared the AlphaX 1.0 release-candidate hardening review.
+- Retained the approved Android Cronet/HttpEngine and Apple URLSession
+  architecture with Dart IO fallback.
+- No package has been published and no stable 1.0 release is claimed.

@@ -6,11 +6,14 @@ import 'package:test/test.dart';
 
 void main() {
   late BenchmarkServer server;
+  late BenchmarkServer redirectTargetServer;
   late HttpClient client;
 
   setUp(() async {
     server = BenchmarkServer();
     await server.start();
+    redirectTargetServer = BenchmarkServer();
+    await redirectTargetServer.start();
     client = HttpClient();
     _activeServer = server;
     _activeClient = client;
@@ -19,6 +22,7 @@ void main() {
   tearDown(() async {
     client.close(force: true);
     await server.close();
+    await redirectTargetServer.close();
   });
 
   test('exposes health and deterministic bytes', () async {
@@ -54,6 +58,24 @@ void main() {
     expect(headers.headers['x-alphax-echo-trace'], contains('trace-1'));
     expect(status.statusCode, 418);
     expect(redirect.body, utf8.encode('redirect complete'));
+  });
+
+  test('redirect fixture can inspect sensitive headers at another origin', () async {
+    final target = redirectTargetServer.baseUri.resolve('/redirect-target-headers');
+    final redirect = await _get(
+      '/redirect-cross-origin?to=${Uri.encodeQueryComponent(target.toString())}',
+      requestHeaders: <String, String>{
+        'authorization': 'Bearer test-token',
+        'proxy-authorization': 'Basic test-credentials',
+        'cookie': 'session=test-cookie',
+      },
+    );
+    final body = jsonDecode(utf8.decode(redirect.body)) as Map<String, dynamic>;
+
+    expect(redirect.statusCode, 200);
+    expect(body['authorization_present'], isFalse);
+    expect(body['proxy_authorization_present'], isFalse);
+    expect(body['cookie_present'], isFalse);
   });
 
   test('streams deterministic chunks and delay endpoint waits', () async {

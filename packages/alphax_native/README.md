@@ -29,14 +29,18 @@ platform defaults; proxy configuration, certificate pinning, mTLS, background
 transfer, and connection-migration controls are not advertised by this
 adapter.
 
+The Android plugin declares API 24 as its minimum Android API and prefers the
+Google Play Services Cronet provider when available. The Apple plugin targets
+iOS 15+ and macOS 12+. CocoaPods is the supported 1.0 packaging path; Swift
+Package Manager integration is deferred and is not required for the release
+gate.
+
 The Android adapter completed Phase 1C physical-device validation, including
 actual H3 negotiation and truthful H3 fallback reporting. The Apple adapter is
-implemented for iOS 15+ and macOS 12+ using Foundation URLSession; macOS
-correctness validation covers H1/H2/H3, fallback, streaming, cancellation,
-TLS rejection, progress, and native file paths. Physical iPhone validation is
-still required before the Phase 1E release-validation gate can make an Apple
-H3 support claim. This package must not leak Cronet, URLSession, FFI, C++,
-libcurl, or Rust types into `alphax`.
+implemented for iOS 15+ and macOS 12+ using Foundation URLSession; macOS and
+signed iPhone correctness evidence covers H1/H2/H3, fallback, streaming,
+cancellation, TLS rejection, progress, and native file paths. This package must
+not leak Cronet, URLSession, FFI, C++, libcurl, or Rust types into `alphax`.
 
 Apple `send()` responses expose headers-time metadata. URLSession task metrics
 are authoritative only when the operation completes, so callers must await
@@ -47,7 +51,15 @@ exposes the same final metrics and fallback metadata in
 
 Apple uses `URLSessionConfiguration.default`, so system-managed proxy settings
 are inherited. AlphaX does not expose explicit per-session proxy configuration
-or proxy credentials, and the adapter reports proxy configuration as
+or proxy credentials, and the adapter reports explicit proxy configuration as
 unsupported. URLSession owns HTTP CONNECT and any platform proxy-auth flow;
 the adapter cannot force or inspect those steps. A proxy may prevent QUIC, in
 which case the final task metrics must report the negotiated H2/H1 fallback.
+
+Apple URLSession removes `Authorization`, `Proxy-Authorization`, and `Cookie`
+before a cross-origin redirect is followed. Cronet receives the same redirect
+through its provider-managed `followRedirect()` path; the public Cronet API
+does not let AlphaX replace the pending redirect headers, so the selected
+provider must be verified by the Phase 1F fixture before this behavior is a
+release claim. Same-origin redirects retain request headers subject to
+platform behavior.

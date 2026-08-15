@@ -1,6 +1,7 @@
 name: alphax_test
 description: Deterministic test transports and fixtures for AlphaX.
 version: 0.1.0
+homepage: https://github.com/auvana-ventures/alphax
 repository: https://github.com/auvana-ventures/alphax
 issue_tracker: https://github.com/auvana-ventures/alphax/issues
 topics:

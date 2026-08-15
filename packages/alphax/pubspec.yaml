@@ -1,6 +1,7 @@
 name: alphax
-description: Transport-independent networking contracts for Dart and Flutter.
+description: Transport-independent HTTP client contracts for Dart and Flutter.
 version: 0.1.0
+homepage: https://github.com/auvana-ventures/alphax
 repository: https://github.com/auvana-ventures/alphax
 issue_tracker: https://github.com/auvana-ventures/alphax/issues
 topics:

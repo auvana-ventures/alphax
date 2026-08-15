@@ -1,0 +1,26 @@
+name: alphax_basic_example
+description: Small pre-release AlphaX API example.
+publish_to: none
+
+environment:
+  sdk: ">=3.8.0 <4.0.0"
+
+dependencies:
+  alphax:
+    path: ../../packages/alphax
+  alphax_native:
+    path: ../../packages/alphax_native
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+
+dependency_overrides:
+  alphax:
+    path: ../../packages/alphax

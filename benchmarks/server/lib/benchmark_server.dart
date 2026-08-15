@@ -171,6 +171,17 @@ Future<void> _handleBenchmarkRequest(
         _writeText(response, 'headers');
       case 'redirect':
         _redirect(response, _positiveInt(segments, 1, 'count'));
+      case 'redirect-cross-origin':
+        _redirectTo(
+          response,
+          _redirectTarget(request.uri.queryParameters['to']),
+        );
+      case 'redirect-target-headers':
+        _writeJsonBody(response, <String, Object>{
+          'authorization_present': request.headers.value('authorization') != null,
+          'proxy_authorization_present': request.headers.value('proxy-authorization') != null,
+          'cookie_present': request.headers.value('cookie') != null,
+        });
       default:
         response.statusCode = HttpStatus.notFound;
         _writeText(response, 'not found');
@@ -360,6 +371,25 @@ void _redirect(HttpResponse response, int count) {
   response
     ..statusCode = HttpStatus.found
     ..headers.set(HttpHeaders.locationHeader, '/redirect/${count - 1}');
+}
+
+Uri _redirectTarget(String? value) {
+  if (value == null || value.isEmpty) {
+    throw const FormatException('Missing redirect target');
+  }
+  final target = Uri.tryParse(value);
+  if (target == null ||
+      (target.scheme != 'http' && target.scheme != 'https') ||
+      target.host.isEmpty) {
+    throw FormatException('Invalid redirect target: $value');
+  }
+  return target;
+}
+
+void _redirectTo(HttpResponse response, Uri target) {
+  response
+    ..statusCode = HttpStatus.found
+    ..headers.set(HttpHeaders.locationHeader, target.toString());
 }
 
 void _writeText(HttpResponse response, String text) {

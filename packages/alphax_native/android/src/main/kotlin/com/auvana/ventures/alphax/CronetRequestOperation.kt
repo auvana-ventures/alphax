@@ -141,6 +141,11 @@ internal class CronetRequestOperation(
                         "A redirect cannot replay the single-consumption request body",
                     )
                 } else {
+                    // Cronet exposes no API to replace headers on a pending
+                    // redirect. Header mutation therefore remains provider
+                    // managed here; the release-gate fixture must verify the
+                    // selected provider's cross-origin handling for
+                    // Authorization, Proxy-Authorization, and Cookie.
                     request.followRedirect()
                 }
             }

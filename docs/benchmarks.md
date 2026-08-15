@@ -15,8 +15,10 @@ tradeoff for Dart and Flutter. They are not marketing material.
 2. libcurl multi through Dart FFI.
 3. Rust reqwest/hyper prototype.
 
-Compare against Dio and `package:http` when their equivalent benchmark clients are
-available. Cronet and URLSession are deferred platform experiments.
+Compare against Dio and `package:http` only where an equivalent historical
+benchmark exists. The Phase 0 benchmark suite is historical evidence for
+HTTP/1.1 transport selection; production Android Cronet and Apple URLSession
+validation is recorded in the Phase 1 reports and is not a new benchmark track.
 
 ## Server
 
@@ -29,6 +31,10 @@ dart run benchmarks/server/server.dart --port 8080
 Endpoints include `/health`, `/bytes/{size}`, `/json/{size}`,
 `/stream/{chunks}/{chunkSize}`, `/echo`, `/upload?expected={bytes}`,
 `/delay/{milliseconds}`, `/status/{code}`, `/headers`, and `/redirect/{count}`.
+The release-hardening redirect fixture additionally uses
+`/redirect-cross-origin?to={absolute-uri}` and
+`/redirect-target-headers` to inspect sensitive-header handling across two
+origins.
 The upload endpoint returns the received count, a deterministic FNV-1a 64 content
 hash, an `ok` flag, and `x-alphax-uploaded-bytes` plus hash headers; a mismatched
 `expected` count or `expected_hash` returns 400. The response is emitted only
