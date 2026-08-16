@@ -4,6 +4,53 @@ Platform transport integration boundary for AlphaX, including the Phase 1B
 Dart IO fallback, the Phase 1C Android Cronet adapter, and the Phase 1D Apple
 URLSession adapter.
 
+## Start here
+
+Install this package together with `alphax`:
+
+```sh
+flutter pub add alphax alphax_native
+```
+
+The RC is not published yet. Until publication, use the repository dependency
+block in the [root README](../../README.md).
+
+Choose the transport that matches the device:
+
+```dart
+import 'dart:io';
+
+import 'package:alphax/alphax.dart';
+import 'package:alphax_native/alphax_native.dart';
+
+Future<AlphaXTransport> createTransport() async {
+  if (Platform.isAndroid) {
+    return await AndroidCronetTransport.create();
+  }
+  if (Platform.isIOS || Platform.isMacOS) {
+    return await AppleUrlSessionTransport.create();
+  }
+  return DartIoTransport();
+}
+
+Future<void> main() async {
+  final client = AlphaXClient(transport: await createTransport());
+  try {
+    final response = await client.get(Uri.https('example.com', '/'));
+    print('${response.statusCode}: ${await response.readAsString()}');
+  } finally {
+    await client.close();
+  }
+}
+```
+
+On Android, the native Cronet provider may negotiate H1, H2, or H3. On iOS and
+macOS, URLSession may negotiate H1, H2, or H3. The server, provider, proxy,
+and network decide the protocol for each request; H3 is not guaranteed.
+
+On Linux and Windows, `DartIoTransport` is the supported H1-only fallback. Web
+is not supported in AlphaX 1.0.
+
 `DartIoTransport` uses one reusable `dart:io` `HttpClient` and implements the
 transport-neutral AlphaX contract for the HTTP/1.1 fallback path. It provides
 progressive Dart-streamed request/response and file transfers, cancellation,
@@ -76,5 +123,5 @@ Apple URLSession removes `Authorization`, `Proxy-Authorization`, and `Cookie`
 before a cross-origin redirect is followed. Cronet rejects a sensitive
 cross-origin redirect because the selected provider API does not let AlphaX
 replace pending redirect headers. Same-origin redirects retain request headers
-subject to platform behavior. The focused physical-device assertion remains a
-release validation item.
+subject to platform behavior. The focused Android, iPhone, and macOS redirect
+assertions are covered by the retained release-gate evidence.

@@ -221,7 +221,7 @@ the API does not promise portable DNS/TCP/TLS phase precision.
 ## Migration and examples
 
 See [migration guidance](docs/MIGRATION.md) for `package:http` and Dio mapping.
-The small runnable-oriented example is in
+The small example source and test are in
 [`examples/basic`](examples/basic/README.md) and its source is in
 [`examples/basic/lib/main.dart`](examples/basic/lib/main.dart).
 

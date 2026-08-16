@@ -1,47 +1,83 @@
 # alphax_dio
 
-`alphax_dio` provides a focused Dio 5.x `HttpClientAdapter` backed by an
-already configured `AlphaXClient`.
+`alphax_dio` is for an existing Dio application that wants to use AlphaX as its
+transport. New applications can use `alphax` directly and do not need this
+adapter.
+
+## Start here
+
+After the RC is published, add the packages:
+
+```sh
+flutter pub add dio alphax alphax_native alphax_dio
+```
+
+While the RC is unpublished, use the repository dependency block in the [root
+README](../../README.md) and add `dio: ^5.9.2` to the same application.
+
+Create one AlphaX client, give it to the adapter, and keep using Dio:
 
 ```dart
+import 'dart:io';
+
 import 'package:alphax/alphax.dart';
 import 'package:alphax_dio/alphax_dio.dart';
+import 'package:alphax_native/alphax_native.dart';
 import 'package:dio/dio.dart';
 
-final alphaClient = AlphaXClient(transport: configuredTransport);
-final dio = Dio()
-  ..httpClientAdapter = AlphaXDioAdapter(alphaClient);
+Future<AlphaXTransport> createTransport() async {
+  if (Platform.isAndroid) {
+    return await AndroidCronetTransport.create();
+  }
+  if (Platform.isIOS || Platform.isMacOS) {
+    return await AppleUrlSessionTransport.create();
+  }
+  return DartIoTransport();
+}
 
-final response = await dio.get<String>('https://example.com/health');
-dio.close();
+Future<void> main() async {
+  final alphaClient = AlphaXClient(transport: await createTransport());
+  final dio = Dio()..httpClientAdapter = AlphaXDioAdapter(alphaClient);
+
+  try {
+    final response = await dio.get<String>('https://example.com/health');
+    print('${response.statusCode}: ${response.data}');
+  } finally {
+    dio.close();
+  }
+}
 ```
 
-The adapter preserves Dio's normal request transformation, interceptors,
-`FormData`, cancellation, timeout, progress, response transformers, and
-streaming pipeline. It maps the resulting request stream to an AlphaX
-single-use body and maps AlphaX responses to Dio `ResponseBody` values.
+The adapter keeps Dio's normal request methods, interceptors, form data,
+cancellation, timeouts, progress callbacks, response transformers, and stream
+handling. It passes the final request to AlphaX and returns a normal Dio
+response.
 
-AlphaX-specific protocol controls are supplied through typed
-`RequestOptions.extra` values:
+## Ask for or read the actual protocol
+
+Protocol preference is optional. It allows fallback:
 
 ```dart
-final response = await dio.get<String>(
-  'https://example.com/health',
-  options: Options(
-    extra: <String, Object>{
-      AlphaXDioAdapter.protocolPreferenceExtraKey:
-          AlphaXProtocolPreference.http3,
-      // Use protocolRequirementExtraKey for fail-closed behavior.
-    },
-  ),
-);
+Future<void> requestWithPreferredProtocol(Dio dio) async {
+  final response = await dio.get<String>(
+    'https://example.com/health',
+    options: Options(
+      extra: <String, Object>{
+        AlphaXDioAdapter.protocolPreferenceExtraKey:
+            AlphaXProtocolPreference.http3,
+      },
+    ),
+  );
 
-final actualProtocol =
-    response.extra[AlphaXDioAdapter.protocolExtraKey] as AlphaXProtocol?;
-final finalMetrics = response.extra[
-  AlphaXDioAdapter.completionMetricsExtraKey
-];
+  final actualProtocol =
+      response.extra[AlphaXDioAdapter.protocolExtraKey] as AlphaXProtocol?;
+  print('actual protocol: ${actualProtocol?.name ?? 'unknown'}');
+}
 ```
+
+Use `protocolRequirementExtraKey` instead when the request must fail if the
+requested protocol is not actually negotiated. A preference is not a promise
+that H3 will be used.
 
 `HttpClientAdapter.extraKeyHttpVersion` is also populated when AlphaX has a
 concrete negotiated protocol (`1.0`, `1.1`, `2.0`, or `3.0`). Completion-time
