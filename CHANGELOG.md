@@ -15,6 +15,9 @@
 - Retained bounded streaming/backpressure, native-capable file transfers,
   cancellation, timeout, redirect, TLS policy/pinning, proxy policy, and
   testing/conformance utilities.
+- Added the optional `alphax_dio` Dio 5.x `HttpClientAdapter` boundary backed by
+  an injected `AlphaXClient`, with focused request, response, cancellation,
+  progress, and protocol metadata compatibility.
 - Added migration, security, platform-capability, and RC review documentation.
 
 ### Known limitations
@@ -25,6 +28,8 @@
 - mTLS, uniform Android custom trust anchors, Dart IO SPKI pinning, and
   explicit HTTPS-proxy endpoint parity are not implemented uniformly.
 - CocoaPods is the Apple packaging path; Swift Package Manager is deferred.
+- `alphax_dio` is a focused adapter boundary, not full Dio API compatibility;
+  AlphaX Web remains unsupported in 1.0.
 
 No unsupported performance claim is made, and no package is published by this
 change.

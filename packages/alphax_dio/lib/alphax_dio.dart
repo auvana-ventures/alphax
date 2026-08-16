@@ -1,4 +1,4 @@
-/// Optional Dio compatibility adapter for AlphaX.
-///
-/// The adapter is intentionally not implemented during Phase 1A.
+/// Dio compatibility adapter for AlphaX.
 library;
+
+export 'src/alphax_dio_adapter.dart';

@@ -11,8 +11,10 @@ API has no accidental native exports. Protocol requirements, TLS/proxy policy,
 normalized policy errors, and completion-time protocol semantics are now part
 of the frozen public boundary. Focused provider/device validation remains
 tracked in `docs/ALPHAX_1_0_REQUIREMENTS_AUDIT.md`. No public exports were
-added during RC preparation; any later API change is a potential 1.0 breaking
-change.
+added to the core `alphax` boundary during RC preparation. Task 18 deliberately
+adds the optional `AlphaXDioAdapter` to the separate `alphax_dio` package; this
+adapter boundary is now included in the RC inventory. Any later API change is a
+potential 1.0 breaking change.
 
 ## Client and transport
 
@@ -123,8 +125,27 @@ recording, file transfer, and close behavior.
   handle types are not exported by `alphax`.
 - `alphax_test` exports deterministic fakes and conformance helpers for tests;
   it is not a production dependency of `alphax` or `alphax_native`.
-- `alphax_dio` exports no production adapter, is marked `publish_to: none`, and
-  remains outside the required 1.0 transport gate.
+- `alphax_dio` exports the focused `AlphaXDioAdapter` only. It remains an
+  optional package boundary, depends on Dio 5.x and `alphax`, and is not a
+  second transport or a promise of full Dio API compatibility.
+
+## Dio adapter inventory
+
+- `AlphaXDioAdapter`: Dio 5.x `HttpClientAdapter` backed by an injected
+  `AlphaXClient`; maps the Dio request/response lifecycle, cancellation,
+  timeouts, redirects, progress, normalized errors, and streaming.
+- `protocolPreferenceExtraKey`: typed `AlphaXProtocolPreference` input through
+  `RequestOptions.extra`.
+- `protocolRequirementExtraKey`: typed `AlphaXProtocolRequirement` input through
+  `RequestOptions.extra`.
+- `protocolExtraKey` and `protocolFallbackExtraKey`: actual protocol and known
+  fallback output through `Response.extra`.
+- `metricsExtraKey` and completion keys: current and completion-time AlphaX
+  metrics/fallback futures through `Response.extra`.
+
+The adapter does not export or reimplement Dio's `Dio`, interceptor, transformer,
+`FormData`, native transport, TLS, or proxy types. Those remain owned by the
+corresponding package or the configured AlphaX client.
 
 ## Package barrel inventory
 
@@ -138,6 +159,8 @@ recording, file transfer, and close behavior.
 
 The native barrel does not export the obsolete placeholder transport. Provider
 mapping helpers remain implementation files under `src/` and are not re-exported
-by the package barrel. `packages/alphax_dio/lib/alphax_dio.dart` intentionally
-exports no adapter. No package barrel exports a Cronet, URLSession, Flutter
-channel, native handle, C++, Rust, or libcurl type through `alphax`.
+by the package barrel. `packages/alphax_dio/lib/alphax_dio.dart` exports exactly
+`AlphaXDioAdapter`. Its static keys cover typed protocol preference/requirement
+inputs and actual/final protocol, fallback, metrics, and completion metadata
+outputs. No package barrel exports a Cronet, URLSession, Flutter channel, native
+handle, C++, Rust, or libcurl type through `alphax`.

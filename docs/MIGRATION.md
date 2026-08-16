@@ -96,8 +96,54 @@ retried.
 | `uploadFile()` | `AlphaXClient.upload()` with `AlphaXFileSource` |
 | interceptors | `AlphaXMiddleware` |
 
-`alphax_dio` is an unpublished skeleton in the RC. AlphaX does not include Dio
-types or promise full Dio `HttpClientAdapter` compatibility.
+For applications that need to keep Dio interceptors, transformers, Retrofit
+generated clients, and the normal Dio request API, use the optional
+`alphax_dio` adapter with a configured AlphaX client:
+
+```dart
+final alphaClient = AlphaXClient(transport: configuredTransport);
+final dio = Dio()
+  ..httpClientAdapter = AlphaXDioAdapter(alphaClient);
+
+final response = await dio.get<String>('https://example.com/users');
+dio.close();
+```
+
+The adapter maps Dio's already-transformed request stream to an AlphaX
+single-use body. Dio continues to own interceptors, `FormData`, request and
+response transformation, and its progress callbacks. AlphaX owns transport
+selection, cancellation propagation, timeout semantics, TLS/pinning, proxy
+policy, middleware, and normalized transport errors.
+
+The adapter accepts typed protocol controls through `Options.extra`:
+
+```dart
+final response = await dio.get<String>(
+  'https://example.com/users',
+  options: Options(
+    extra: <String, Object>{
+      AlphaXDioAdapter.protocolPreferenceExtraKey:
+          AlphaXProtocolPreference.http3,
+      // Replace with protocolRequirementExtraKey for fail-closed H3.
+    },
+  ),
+);
+final protocol = response.extra[AlphaXDioAdapter.protocolExtraKey];
+final completion = response.extra[
+  AlphaXDioAdapter.completionMetricsExtraKey
+];
+```
+
+The adapter also populates Dio's `HttpClientAdapter.extraKeyHttpVersion` when
+the actual protocol is known and exposes typed AlphaX fallback/metrics values.
+Completion metadata may update after response headers for streamed operations;
+`unknown` is never treated as H1. Configure TLS, trust anchors, SPKI pins, and
+proxy policy on the injected AlphaX client. Unsupported provider controls fail
+closed according to the AlphaX contract.
+
+`alphax_dio` is a focused Dio 5.x compatibility boundary, not full Dio source
+or API compatibility. It intentionally does not add automatic retries, a
+cookie jar, auth orchestration, caching, resilience policy, or Web support.
 
 ## Protocol preference, requirement, and actual reporting
 

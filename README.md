@@ -27,6 +27,10 @@ dependencies:
     git:
       url: https://github.com/auvana-ventures/alphax.git
       path: packages/alphax_native
+  alphax_dio:
+    git:
+      url: https://github.com/auvana-ventures/alphax.git
+      path: packages/alphax_dio
 ```
 
 `alphax` has no Flutter SDK dependency. `alphax_native` is the Flutter plugin
@@ -168,7 +172,7 @@ cannot authoritatively report H2/H3 and therefore does not advertise them.
 | [`alphax`](packages/alphax) | Pure-Dart transport-neutral contracts | Required core |
 | [`alphax_native`](packages/alphax_native) | Dart IO, Cronet, and URLSession adapters | Required platform boundary |
 | [`alphax_test`](packages/alphax_test) | Fakes and shared conformance helpers | Required test support |
-| [`alphax_dio`](packages/alphax_dio) | Optional Dio compatibility boundary | Unpublished skeleton; no adapter |
+| [`alphax_dio`](packages/alphax_dio) | Focused Dio 5.x `HttpClientAdapter` boundary | Optional RC package; not full Dio compatibility |
 
 There is no AlphaX-owned C++ engine, production Rust transport, libcurl
 dependency, cache, retry/resilience module, telemetry SDK, GraphQL layer, REST

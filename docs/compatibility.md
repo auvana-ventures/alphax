@@ -15,8 +15,10 @@ constraint. The 1.0 platform strategy is:
 Protocol capability, request preference, actual negotiated protocol, and
 fallback are separate values. H3 preference does not guarantee H3 use.
 
-Dio `HttpClientAdapter` compatibility remains optional and is not implemented;
-Retrofit validation is outside the 1.0 package boundary.
+Dio `HttpClientAdapter` compatibility remains optional to the native transport
+gate and is implemented as a focused `alphax_dio` boundary over an injected
+`AlphaXClient`. It is not full Dio API compatibility; Retrofit usage is not
+validated as a separate 1.0 guarantee.
 
 ## Compatibility principles
 

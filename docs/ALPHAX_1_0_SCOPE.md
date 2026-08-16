@@ -230,7 +230,7 @@ the contract applies independently to every named capability.
 
 | Capability | Classification | 1.0 decision and boundary |
 |---|---|---|
-| Dio adapter | `OPTIONAL FOR 1.0` | `alphax_dio` may provide a focused `HttpClientAdapter` after core lifecycle parity; it is not required for the 1.0 transport gate and must not expand `alphax`’s API. |
+| Dio adapter | `OPTIONAL FOR 1.0` | `alphax_dio` provides a focused Dio 5.x `HttpClientAdapter` over an injected `AlphaXClient`; it is optional to the native transport gate, must not expand `alphax`’s API, and does not promise full Dio compatibility. |
 | Cache | `POST-1.0` | No HTTP cache, stale policy, eviction, or cache metrics in the 1.0 transport/client release. |
 | Retry/resilience | `POST-1.0` | No automatic retry policy; errors expose safe retry context, and unsafe mutations are never silently retried. |
 | Circuit breaker | `POST-1.0` | No circuit state, failure budgets, or breaker middleware in 1.0. |
@@ -254,7 +254,7 @@ the contract applies independently to every named capability.
 | `packages/alphax` | Stabilize immutable request/response/body/header models, method/URI/query behavior, cancellation, timeout policy, errors, protocol enum, capabilities, metrics, middleware foundation, and transport interfaces. Keep the SDK constraint `>=3.8.0 <4.0.0` and no Flutter SDK constraint. |
 | `packages/alphax_native` | Become the platform integration boundary for Cronet/HttpEngine and URLSession adapters, provider diagnostics, lifecycle bridging, and native file paths. It must not export native provider types. Its Flutter/platform dependencies are introduced only when the implementation is approved. |
 | `packages/alphax_test` | Add deterministic fake transports, protocol/fallback fixtures, bounded streams, file fixtures, cancellation/timeouts, and shared contract tests. |
-| `packages/alphax_dio` | No required implementation for the 1.0 gate. Keep it isolated; add only the optional focused adapter and migration examples if it does not delay required work. |
+| `packages/alphax_dio` | Publish the isolated focused Dio 5.x adapter for the RC when its lifecycle, stream, cancellation, error, progress, and protocol metadata tests pass. Keep transport/TLS/proxy policy in the injected AlphaX client and do not expand `alphax`’s API. |
 | `alphax_flutter` | No package is required by this scope. Create one only if a concrete Flutter-only lifecycle/platform integration cannot remain isolated in `alphax_native`, with a separate package-boundary review. |
 | Android/iOS/macOS build areas | Add platform build files, provider setup, signing/device test configuration, and release artifacts only during the corresponding Phase 1 transport phases. No native source is added by this scope document. |
 | Documentation/CI | Replace conflicting capability status tables with links to this document, add protocol/provider matrices, device/platform validation, security/build instructions, examples, and release checks. |

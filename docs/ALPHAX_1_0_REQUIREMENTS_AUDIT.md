@@ -119,7 +119,7 @@ explicitly.
 
 | Capability | Scope class | Exact state | Deliberate decision |
 | --- | --- | --- | --- |
-| Dio adapter | OPTIONAL FOR 1.0 | `OPTIONAL_NOT_IMPLEMENTED` | Migration guidance exists; the adapter is not a release gate. |
+| Dio adapter | OPTIONAL FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | `alphax_dio` provides a focused Dio 5.x `HttpClientAdapter` over an injected `AlphaXClient`; request/response lifecycle, cancellation, timeout/error mapping, progress, streaming, redirects, and protocol metadata are tested. It is not full Dio API compatibility and is not required by the native transport gate. |
 | Cookie jar | OPTIONAL FOR 1.0 | `OPTIONAL_NOT_IMPLEMENTED` | No cross-platform persistent cookie store is included. |
 | Request priorities | OPTIONAL FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Retained as a transport-neutral hint with no provider-specific guarantee. |
 | mTLS | OPTIONAL FOR 1.0 | `OPTIONAL_NOT_IMPLEMENTED` | Evaluated and explicitly capability-rejected by current adapters. |

@@ -32,7 +32,8 @@ package, or create a release tag.
 Foundation, Rust, libcurl, C++, FFI handle, socket, certificate-object, or
 native error type. `alphax_native` exports only Dart IO, Android Cronet, and
 Apple URLSession adapters. `alphax_test` exports fakes and conformance
-fixtures. `alphax_dio` remains an optional boundary without an adapter.
+fixtures. `alphax_dio` exports only the focused `AlphaXDioAdapter`; it is an
+optional Dio compatibility boundary and does not add a transport.
 
 ## 2. Exact platform/protocol matrix
 
@@ -289,7 +290,9 @@ alphax_test
   └── alphax + deterministic test utilities
 
 alphax_dio
-  └── optional boundary; no production adapter
+  ├── alphax
+  ├── Dio 5.x
+  └── focused `AlphaXDioAdapter` boundary
 ```
 
 Production packages contain no Rust runtime, libcurl, C++ engine, benchmark
@@ -301,11 +304,13 @@ claims.
 ## RC package boundary
 
 The proposed first release candidate is `1.0.0-rc.1`. The intended publication
-set is `alphax`, `alphax_test`, and `alphax_native`; `alphax_dio` remains an
-unpublished skeleton with `publish_to: none` until it has real functionality.
-The dependency order is `alphax`, then `alphax_test`, then `alphax_native`
-(`alphax_native` consumes `alphax` at runtime and `alphax_test` as a development
-dependency). No package is published by this release-gate change.
+set is `alphax`, `alphax_test`, `alphax_dio`, and `alphax_native`. The exact
+dependency order is `alphax`, then `alphax_test`, followed by the independent
+`alphax_dio` and `alphax_native` branches. The proposed linear order is
+`alphax` → `alphax_test` → `alphax_dio` → `alphax_native`; `alphax_dio` also
+requires external Dio 5.x, while `alphax_native` consumes `alphax` at runtime
+and `alphax_test` as a development dependency. No package is published by this
+release-gate change.
 
 ## 15. Security review
 
@@ -339,7 +344,8 @@ Present and updated:
 
 The older Phase 1F report remains historical evidence and is not rewritten to
 erase the pre-closure gap it recorded. The public API inventory is frozen for
-`1.0.0-rc.1`; no new public exports are introduced by RC preparation.
+`1.0.0-rc.1`; the core `alphax` exports remain unchanged, while task 18
+deliberately adds and freezes the optional `AlphaXDioAdapter` package boundary.
 
 ## 17. Required 1.0 item states
 

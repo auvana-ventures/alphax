@@ -2,8 +2,9 @@
 
 Review date: 2026-08-16  
 Proposed version: `1.0.0-rc.1`  
-Review scope: release-candidate preparation only. No new feature, transport
-architecture, benchmark, publication, tag, or GitHub release work is included.
+Review scope: release-candidate preparation plus the deliberately bounded
+optional Dio adapter package. No transport architecture, benchmark,
+publication, tag, or GitHub release work is included.
 
 ## 1. Proposed version and publication set
 
@@ -13,23 +14,26 @@ Packages intended for RC publication:
 
 - `alphax`
 - `alphax_test`
+- `alphax_dio`
 - `alphax_native`
 
-`alphax_dio` was evaluated and is deliberately not part of the RC. It remains
-version `0.1.0`, has `publish_to: none`, and is documented as an unpublished
-skeleton until it contains a real compatibility adapter. An effectively empty
-package will not be published without a separate maintainer decision.
+`alphax_dio` is now version `1.0.0-rc.1` and publishable as a focused Dio 5.x
+`HttpClientAdapter` over an injected `AlphaXClient`. It is optional to the
+native transport gate and does not claim full Dio source/API compatibility.
 
 ## 2. Publication order
 
-The dependency-aware order is:
+The dependency-aware partial order is:
 
 1. `alphax`
 2. `alphax_test`
-3. `alphax_native`
+3. `alphax_dio` and `alphax_native` (independent branches)
 
-The order follows the package manifests: `alphax_test` depends on `alphax`,
-and `alphax_native` depends on `alphax` at runtime and `alphax_test` for
+The proposed linear publication order is `alphax` → `alphax_test` →
+`alphax_dio` → `alphax_native`. The order follows the manifests:
+`alphax_test` depends on `alphax`; `alphax_dio` depends on `alphax` at runtime
+and `alphax_test` for development tests plus external Dio 5.x; and
+`alphax_native` depends on `alphax` at runtime and `alphax_test` for
 development/conformance testing. No package was published during this review.
 
 ## 3. Git state and release commits
@@ -64,10 +68,12 @@ The barrel review found no accidental exports. `alphax` exports only its
 transport-neutral contracts; `alphax_native` exports the Dart IO, Android
 Cronet, Apple URLSession, and local-file entry points; `alphax_test` exports
 deterministic fakes, file fixtures, and conformance helpers; `alphax_dio`
-exports no production adapter. No native handle, Flutter channel, Cronet,
-URLSession, C++, Rust, libcurl, or machine-specific type crosses the core
-public boundary. No public API was added during RC preparation. Any later API
-change is treated as a potential 1.0 breaking change.
+exports only `AlphaXDioAdapter` and its documented metadata keys. No native
+handle, Flutter channel, Cronet, URLSession, C++, Rust, libcurl, or
+machine-specific type crosses the core public boundary. The core `alphax`
+public API did not change; the optional Dio adapter addition was deliberate and
+is now frozen as part of this package review. Any later API change is treated
+as a potential 1.0 breaking change.
 
 ## 5. ADR status
 
@@ -127,10 +133,10 @@ also unavailable on the affected provider paths.
 
 ## 9. Package metadata and dry-runs
 
-The three intended packages use `1.0.0-rc.1`, describe shipped functionality,
+All four intended packages use `1.0.0-rc.1`, describe shipped functionality,
 declare repository/homepage/issue metadata, use the repository license, and
-have compatible SDK/platform declarations. `alphax_dio` is excluded from the
-publication set as described above.
+have compatible SDK/platform declarations. `alphax_dio` depends on Dio 5.x and
+the AlphaX core, and remains pure Dart.
 
 The clean publication dry-runs completed with zero warnings and zero errors:
 
@@ -138,13 +144,15 @@ The clean publication dry-runs completed with zero warnings and zero errors:
 | --- | --- | ---: |
 | `alphax` | `dart pub publish --dry-run` | 28 KB |
 | `alphax_test` | `dart pub publish --dry-run` | 8 KB |
+| `alphax_dio` | `dart pub publish --dry-run` | 10 KB |
 | `alphax_native` | `flutter pub publish --dry-run` | 72 KB |
 
 The archives contained only expected package source, tests, documentation,
 metadata, and native plugin files. No generated build output, benchmark data,
 local fixture output, signing configuration, or machine-specific file was
-included. `alphax_dio` was not dry-run because `publish_to: none` intentionally
-keeps it unpublished.
+included. The `alphax_dio` archive contains only the adapter source, tests,
+metadata, and documentation; the initial dirty-worktree warning disappeared
+after the closeout commit and clean dry-run.
 
 ## 10. Dependency graph and third-party notices
 
@@ -153,6 +161,8 @@ The RC dependency graph is:
 ```text
 alphax
 ├── alphax_test
+├── alphax_dio
+│   └── dio 5.x
 └── alphax_native
     └── Flutter host integration
 ```
@@ -165,7 +175,21 @@ project NOTICE entry was required. Apple integration uses the system URLSession
 framework through CocoaPods; Swift Package Manager remains deferred. The
 package license and dependency review found no missing redistribution notice.
 
-## 11. Example status
+## 11. Dio adapter status
+
+`AlphaXDioAdapter` is implemented and tested as a focused Dio 5.x compatibility
+boundary. The adapter maps Dio request streams, headers, methods, cancellation,
+timeouts, redirects, normalized AlphaX errors, response streams, and Dio-owned
+progress callbacks. It exposes the actual protocol, fallback, current metrics,
+and completion-time metadata through documented `Response.extra` keys and
+Dio's standard HTTP-version key.
+
+It intentionally does not add automatic retries, cookies, auth orchestration,
+caching, resilience policy, or per-request native TLS/proxy controls. Those
+policies remain on the injected AlphaX client. It does not promise full Dio API
+compatibility or make AlphaX Web supported.
+
+## 12. Example status
 
 The example was reviewed to use released APIs only and demonstrates:
 
@@ -182,7 +206,7 @@ behavior accurately. The example has no platform host project; its
 platform-independent bundle build and widget test passed, and the README
 states this boundary.
 
-## 12. Documentation and migration status
+## 13. Documentation and migration status
 
 The root README, package READMEs, scope, requirements audit, release gate,
 public API inventory, migration guide, security policy, and changelogs were
@@ -202,13 +226,14 @@ release documents retain baseline line-length and table-column-style warnings;
 these are non-functional documentation follow-ups and do not indicate broken
 links or incorrect RC claims.
 
-## 13. Validation evidence
+## 14. Validation evidence
 
 The consolidated RC validation completed for the affected packages and release
 surfaces:
 
 - `dart format --set-exit-if-changed`: passed;
 - Dart analysis for all four packages: passed;
+- `alphax_dio` adapter tests: passed;
 - Flutter analysis for the mobile gate and example: passed;
 - all package tests: passed;
 - shared package and benchmark/conformance scripts: passed;
@@ -234,7 +259,7 @@ claim.
 
 No broad transport performance benchmark was restarted.
 
-## 14. Known limitations
+## 15. Known limitations
 
 - Linux and Windows are H1-only through Dart IO in 1.0.
 - Web is unsupported in 1.0.
@@ -245,10 +270,15 @@ No broad transport performance benchmark was restarted.
 - Dart IO SPKI pinning is unsupported.
 - Swift Package Manager packaging is deferred; CocoaPods is used for Apple
   packaging.
+- `alphax_dio` is a focused Dio 5.x adapter, not full Dio source/API
+  compatibility.
+- `alphax_dio` uses the injected AlphaX client's TLS, pinning, proxy, and
+  middleware policies; it does not add independent per-request native policy.
+- AlphaX Web remains unsupported in 1.0.
 - Android H3 remains dependent on the selected provider, server, and network;
   the current retained H3 path is evidence, not a guarantee.
 
-## 15. Outstanding non-gating follow-ups
+## 16. Outstanding non-gating follow-ups
 
 The optional H3 runner can be exercised later on a validated UDP/443 and
 QUIC-permissive path. That is evidence follow-up only; no production hint or
@@ -256,7 +286,7 @@ force behavior is needed for this RC. Naming clearance and maintainer approval
 remain publication prerequisites. Neither item requires another implementation
 phase or changes the frozen transport architecture.
 
-## 16. Final verdict
+## 17. Final verdict
 
 READY TO PUBLISH 1.0.0-rc.1
 

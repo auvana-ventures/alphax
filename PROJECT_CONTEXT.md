@@ -32,7 +32,8 @@ The initial packages are:
 
 - `alphax`: pure Dart, Flutter-independent contracts and client facade.
 - `alphax_native`: experimental native transport boundary.
-- `alphax_dio`: future Dio adapter skeleton.
+- `alphax_dio`: optional focused Dio 5.x `HttpClientAdapter` boundary backed by
+  an injected AlphaX client; it does not promise full Dio compatibility.
 - `alphax_test`: deterministic transport and stream testing helpers.
 
 Future packages must remain independently publishable, avoid circular dependencies,
@@ -70,11 +71,12 @@ not change architecture based solely on preference.
 ## Explicit non-goals
 
 Phase 1A did not implement a cache, offline queue, circuit breaker, telemetry
-exporter, complete DevTools extension, complete Dio adapter, GraphQL integration,
-REST generation, custom QUIC/TLS, or a full authentication framework. The
-Cronet and URLSession adapters are now implemented in their approved phases;
-cross-transport release validation is the current scope, and deferred features
-remain out of scope.
+exporter, complete DevTools extension, full Dio API compatibility, GraphQL
+integration, REST generation, custom QUIC/TLS, or a full authentication
+framework. The focused `alphax_dio` adapter is an optional 1.0 boundary; full
+Dio parity and deferred features remain out of scope. The Cronet and URLSession
+adapters are implemented in their approved phases; cross-transport release
+validation remains the current scope.
 
 ## Source documents
 
