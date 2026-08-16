@@ -1,0 +1,52 @@
+{
+  "schema": "alphax.phase1f.android-usb-install-attempt.v1",
+  "captured_at": "2026-08-15",
+  "device": {
+    "model": "M2003J6A1G",
+    "product": "PHK110",
+    "android_version": "15",
+    "api_level": 35,
+    "architecture": "arm64-v8a",
+    "adb_transport": "wired USB after reboot"
+  },
+  "environment_recovery": {
+    "package_manager_shell": "responsive",
+    "storage": "healthy; 76G available on /data",
+    "install_non_market_apps": "enabled",
+    "adb_install_enable": "enabled",
+    "device_unlocked": true,
+    "stale_sessions_abandoned": 18,
+    "reboot": "performed before USB retry"
+  },
+  "builds": {
+    "profile": {
+      "mode": "profile",
+      "target": "lib/phase1c_main.dart",
+      "git_commit": "e1baf9d",
+      "apk_bytes": 73751472,
+      "apk_sha256": "eadbc8faba35a26820d5fdbf0cb189dfeb322106fdc7700bb43d9453d3a91527"
+    },
+    "release": {
+      "mode": "release",
+      "target": "lib/phase1c_main.dart",
+      "git_commit": "e1baf9d",
+      "apk_bytes": 48183276,
+      "apk_sha256": "0d173c089bbc576422be43d9637db22745c29b023924eae883c1015e5138b352"
+    }
+  },
+  "package_manager": {
+    "profile_adb_install": "stalled_at_90_percent_without_result",
+    "profile_pm_install": "stalled_at_90_percent_without_result",
+    "profile_ignore_dexopt_profile_retry": "stalled_at_90_percent_without_result",
+    "release_adb_install": "stalled_at_90_percent_without_result",
+    "parse_and_integrity_checks": "passed",
+    "final_status": "not_reported",
+    "package_present_after_attempts": false,
+    "observed_vendor_component": "Oplus package installer/intercept path"
+  },
+  "transport_probes": {
+    "status": "not_run",
+    "reason": "Neither the profile nor release Phase 1C runner could be installed; no Android transport result is inferred."
+  },
+  "interpretation": "ADB is healthy over USB and the APKs transfer and parse successfully, but the device package-manager install stage remains blocked at 90 percent for both profile and release artifacts. This is environment evidence, not a transport result."
+}

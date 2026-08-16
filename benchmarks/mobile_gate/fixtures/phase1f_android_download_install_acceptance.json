@@ -1,0 +1,77 @@
+{
+  "schema": "alphax.phase1f.android-download-install-acceptance.v1",
+  "captured_at": "2026-08-15",
+  "device": {
+    "model": "M2003J6A1G",
+    "product": "PHK110",
+    "android_version": "15",
+    "api_level": 35,
+    "architecture": "arm64-v8a",
+    "adb_transport": "wired USB",
+    "network": "Wi-Fi; 192.168.50.204 reachable"
+  },
+  "artifact": {
+    "mode": "release",
+    "target": "lib/phase1c_main.dart",
+    "git_commit": "e1baf9d",
+    "apk_bytes": 48183276,
+    "apk_sha256": "0d173c089bbc576422be43d9637db22745c29b023924eae883c1015e5138b352",
+    "download_path": "/sdcard/Download/alphax_phase1c_release.apk",
+    "download_sha256": "0d173c089bbc576422be43d9637db22745c29b023924eae883c1015e5138b352"
+  },
+  "installation": {
+    "flow": "ColorOS My Files -> Downloads -> Package Installer",
+    "result": "installed",
+    "package": "com.auvana.ventures.alphax_mobile_gate",
+    "version_name": "1.0.0",
+    "version_code": 1,
+    "installed_at": "2026-08-15 19:02:41",
+    "package_path": "/data/app/~~kxqhJ9qF6_XH6_KxnOVgMA==/com.auvana.ventures.alphax_mobile_gate-XLuyNcCjk48KExXPPzy-ig==/base.apk"
+  },
+  "focused_runner": {
+    "target": "lib/phase1c_main.dart",
+    "apk_mode": "release",
+    "harness_reported_mode": "profile device build; no debug transport comparison",
+    "cronet_provider": "Google Play Services Cronet",
+    "cronet_version": "151.0.7922.29",
+    "capabilities": {
+      "http11": "supported",
+      "http2": "supported",
+      "http3": "supported",
+      "streaming_upload": "supported",
+      "streaming_download": "supported",
+      "native_file_upload": "supported",
+      "native_file_download": "supported"
+    },
+    "result_status": "correctness_or_capability_failure",
+    "observations": [
+      {
+        "name": "h1_cancellation",
+        "ok": true,
+        "details": "delayed request produced AlphaX cancellation"
+      },
+      {
+        "name": "h2",
+        "ok": true,
+        "status_code": 200,
+        "requested_protocol": "http2",
+        "negotiated_protocol": "http2",
+        "alt_svc": "h3=\":443\"; ma=3600"
+      },
+      {
+        "name": "h3",
+        "ok": true,
+        "status_code": 200,
+        "requested_protocol": "http3",
+        "negotiated_protocol": "http2",
+        "fallback": {
+          "requested": "http3",
+          "negotiated": "http2",
+          "reason": "unknown"
+        },
+        "alt_svc": "h3=\":443\"; ma=86400"
+      }
+    ],
+    "result_note": "The runner completed and emitted its terminal result. H3 was not observed on this network path; fallback was reported as H2. This focused runner does not cover the remaining Android protocol-requirement, pinning, or redirect-security assertions, so this evidence does not close the Android release gate."
+  }
+}

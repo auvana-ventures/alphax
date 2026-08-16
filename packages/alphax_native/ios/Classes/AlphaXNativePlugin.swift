@@ -921,7 +921,15 @@ private final class AlphaXURLSessionOperation {
             finishSuccessIfMetricsReady()
             return
         }
-        let protocolName = transaction.networkProtocolName
+        // Some Apple OS/network combinations include a trailing transaction
+        // record without a protocol name when HTTP/3 is requested. Keep the
+        // last transaction for timing and transfer metrics, but select the
+        // last non-empty protocol across the task's transaction history. This
+        // preserves the final negotiated protocol without converting an
+        // actually reported earlier transaction into `unknown`.
+        let protocolName = metrics.transactionMetrics.reversed().compactMap {
+            $0.networkProtocolName
+        }.first
         let protocolValue = normalizedProtocol(protocolName)
         let total = metrics.taskInterval.duration
         let ttfb = interval(transaction.requestStartDate, transaction.responseStartDate)
@@ -1023,6 +1031,18 @@ private final class AlphaXURLSessionOperation {
             finishError(kind: classify(error), message: diagnosticMessage(error))
         } else if hasMetrics {
             finishSuccess()
+        } else if arguments["protocolRequirement"] as? String != nil {
+            // A concrete protocol requirement must never be evaluated from
+            // fallback metrics. URLSession normally delivers task metrics
+            // immediately after completion, but when that callback is late we
+            // must wait for it so `unknown` cannot be mistaken for a failed
+            // negotiation or, worse, a successful requirement. The metrics
+            // callback calls finishSuccessIfMetricsReady() when it arrives.
+            // If metrics never arrive, the bounded fallback fails closed as
+            // `unknown` instead of leaving the request pending indefinitely.
+            DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + .seconds(2)) { [weak self] in
+                self?.finishSuccessIfMetricsReady(allowMissingMetrics: true)
+            }
         } else {
             // URLSession normally delivers task metrics before completion,
             // but keep a bounded fallback for providers that omit metrics.
@@ -1205,7 +1225,7 @@ private final class AlphaXURLSessionOperation {
         let received = bytesDownloaded
         let redirects = self.redirects
         let requiredProtocol = arguments["protocolRequirement"] as? String
-        let actualProtocol = normalizedProtocol(finalMetrics["protocol"] as? String)
+        let actualProtocol = normalizedProtocol(stringValue(finalMetrics["protocol"]))
         if let requiredProtocol, requiredProtocol != actualProtocol {
             stateLock.unlock()
             finishError(
@@ -1411,6 +1431,13 @@ private final class AlphaXURLSessionOperation {
 
     private func normalizedProtocol(_ value: String?) -> String {
         guard let value = value?.lowercased(), !value.isEmpty else { return "unknown" }
+        switch value {
+        case "http10": return "http10"
+        case "http11": return "http11"
+        case "http2": return "http2"
+        case "http3": return "http3"
+        default: break
+        }
         if value.contains("h3") || value.contains("http/3") || value.contains("quic") {
             return "http3"
         }
@@ -1420,6 +1447,13 @@ private final class AlphaXURLSessionOperation {
         if value.contains("1.1") { return "http11" }
         if value.contains("1.0") { return "http10" }
         return "unknown"
+    }
+
+    private func stringValue(_ value: Any?) -> String? {
+        guard let value, !(value is NSNull) else { return nil }
+        if let value = value as? String { return value }
+        if let value = value as? NSString { return value as String }
+        return String(describing: value)
     }
 
     private func interval(_ start: Date?, _ end: Date?) -> Int? {

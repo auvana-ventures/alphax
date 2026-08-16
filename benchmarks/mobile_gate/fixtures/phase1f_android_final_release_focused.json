@@ -1,0 +1,125 @@
+{
+  "status": "blocked_environment",
+  "date": "2026-08-15",
+  "device": {
+    "model": "M2003J6A1G",
+    "product": "PHK110",
+    "android": "PHK110_15.0.0.700(CN01)",
+    "api": 35,
+    "architecture": "arm64-v8a",
+    "network": "Wi-Fi",
+    "adb_transport": "wireless TLS ADB",
+    "build_mode": "profile/release-equivalent correctness validation"
+  },
+  "runtime": {
+    "dart": "3.13.0",
+    "flutter": "3.47.0",
+    "benchmark_commit": "e1baf9d809e70a36756a933b41ab68a9632dbb86",
+    "provider": "Android Cronet (Google-Play-Services-Cronet-Provider)",
+    "provider_version": "151.0.7922.29",
+    "google_play_services_version": "26.29.32",
+    "quic_enabled": true,
+    "diagnostic_quic_hint": false,
+    "tls": "Cronet platform trust defaults; no trust-all override"
+  },
+  "endpoints": {
+    "h3_primary": "https://cloudflare-quic.com/",
+    "h3_secondary": "https://www.google.com/",
+    "pin_host": "cloudflare-quic.com",
+    "redirect_fixture": "http://192.168.50.204:18081/redirect-target-headers"
+  },
+  "runs": [
+    {
+      "name": "default",
+      "pin_mode": "none",
+      "apk_sha256": "47ab21276c7edc6c83173bcec77335e0a4935576f261bc4eceab84dd0a9e9c91",
+      "status": "blocked_environment",
+      "h3": {
+        "status": "blocked_environment",
+        "probes": [
+          {
+            "endpoint": "https://cloudflare-quic.com/",
+            "status_code": 200,
+            "body_bytes": 125959,
+            "requested_protocol": "http3",
+            "actual_protocol": "http2",
+            "alphax_reported_protocol": "http2",
+            "alt_svc": "h3=\":443\"; ma=86400"
+          },
+          {
+            "endpoint": "https://www.google.com/",
+            "status_code": 200,
+            "body_bytes": 230766,
+            "requested_protocol": "http3",
+            "actual_protocol": "http2",
+            "alphax_reported_protocol": "http2",
+            "alt_svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000"
+          }
+        ]
+      },
+      "checks": {
+        "h3_requirement_success": "blocked_environment",
+        "h3_requirement_failure": "passed: AlphaXProtocolRequirementException",
+        "h3_preference_fallback": "passed: http3 -> http11",
+        "redirect_sensitive_headers": "passed: secure_rejection",
+        "cancellation": "passed",
+        "file_transfer": "passed: 1048576 bytes, FNV-1a 4c568eccaeaf6c44",
+        "close_and_reuse": "passed: 2 sequential requests, repeated close, post-close rejection"
+      }
+    },
+    {
+      "name": "correct_pin",
+      "pin_mode": "correct",
+      "apk_sha256": "9d2ddf011693443edf0fecc18044aa064c3be7a529dce4b2e871f2cbfa17cb5d",
+      "status": "blocked_environment",
+      "checks": {
+        "h3_requirement_success": "blocked_environment",
+        "h3_requirement_failure": "passed: AlphaXProtocolRequirementException",
+        "h3_preference_fallback": "passed: http3 -> http11",
+        "spki_pin": "passed: status 200, protocol http2",
+        "redirect_sensitive_headers": "passed: secure_rejection",
+        "cancellation": "passed",
+        "file_transfer": "passed: 1048576 bytes, FNV-1a 4c568eccaeaf6c44",
+        "close_and_reuse": "passed"
+      }
+    },
+    {
+      "name": "backup_pin",
+      "pin_mode": "backup",
+      "apk_sha256": "36508b2e8610c42035828ddfba57a4e5a7ef7dc3d6cf97dabac788560adce536",
+      "status": "blocked_environment",
+      "checks": {
+        "h3_requirement_success": "blocked_environment",
+        "h3_requirement_failure": "passed: AlphaXProtocolRequirementException",
+        "h3_preference_fallback": "passed: http3 -> http11",
+        "spki_backup_pin": "passed: status 200, backup_pin_used true",
+        "redirect_sensitive_headers": "passed: secure_rejection",
+        "cancellation": "passed",
+        "file_transfer": "passed: 1048576 bytes, FNV-1a 4c568eccaeaf6c44",
+        "close_and_reuse": "passed"
+      }
+    },
+    {
+      "name": "wrong_pin",
+      "pin_mode": "wrong",
+      "apk_sha256": "f585d44a641b2ddb490d6fdbb2a28f16e2a0712ba22950174bc89675513db4cf",
+      "status": "blocked_environment",
+      "checks": {
+        "h3_requirement_success": "blocked_environment",
+        "h3_requirement_failure": "passed: AlphaXProtocolRequirementException",
+        "h3_preference_fallback": "passed: http3 -> http11",
+        "spki_pin_mismatch": "passed: AlphaXCertificatePinMismatchException",
+        "redirect_sensitive_headers": "passed: secure_rejection",
+        "cancellation": "passed",
+        "file_transfer": "passed: 1048576 bytes, FNV-1a 4c568eccaeaf6c44",
+        "close_and_reuse": "passed"
+      },
+      "additional_observation": "The pinned cloudflare probe failed with net::ERR_SSL_PINNED_KEY_NOT_IN_CERT_CHAIN; the dedicated mismatch assertion also passed."
+    }
+  ],
+  "interpretation": {
+    "provider_capabilities": "H1/H2/H3 and protocol requirement reported supported; pinning supported; custom trust and explicit proxy unsupported and fail closed.",
+    "h3_result": "No actual HTTP/3 negotiation was observed on the tested Wi-Fi path. Both known-good endpoints returned HTTP/2 and AlphaX reported HTTP/2 accurately.",
+    "remaining_release_blocker": "A live H3 negotiation and H3-requirement success branch on a QUIC-permissive Android network remain unverified."
+  }
+}

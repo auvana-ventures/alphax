@@ -1,0 +1,116 @@
+{
+  "status": "blocked_environment",
+  "captured_at": "2026-08-16T15:57:29.167866Z",
+  "metadata": {
+    "platform": "android",
+    "os_version": "RMX3660_15.0.0.1620(EX01)",
+    "device_model": "M2003J6A1G",
+    "architecture": "arm64-v8a",
+    "dart_version": "3.13.0 (stable) (Wed Aug 5 00:28:05 2026 -0700) on \"android_arm64\"",
+    "flutter_version": "3.47.0",
+    "build_mode": "profile/release-equivalent focused validation",
+    "git_commit": "e1baf9d809e70a36756a933b41ab68a9632dbb86",
+    "network_type_configured": "Mobile-data",
+    "network_selection_mode": "cellular",
+    "endpoints": [
+      "https://cloudflare-quic.com/",
+      "https://www.google.com/"
+    ],
+    "diagnostic_quic_hint": false,
+    "tls_policy": "platform trust defaults; no trust-all override",
+    "network_selection": {
+      "status": "bound",
+      "requested": "cellular",
+      "runtime": {
+        "active": true,
+        "transports": [
+          "cellular"
+        ],
+        "validated": true,
+        "internet": true,
+        "not_restricted": true
+      }
+    },
+    "provider": "Android Cronet (Google-Play-Services-Cronet-Provider)",
+    "provider_version": "151.0.7922.29",
+    "capabilities": {
+      "http10": "unsupported",
+      "http11": "supported",
+      "http2": "supported",
+      "http3": "supported",
+      "streamingUpload": "supported",
+      "streamingDownload": "supported",
+      "nativeFileUpload": "supported",
+      "nativeFileDownload": "supported",
+      "uploadProgress": "supported",
+      "downloadProgress": "supported",
+      "proxyConfiguration": "unsupported",
+      "tlsDefaultTrust": "supported",
+      "customTrustAnchors": "unsupported",
+      "certificatePinning": "supported",
+      "mutualTls": "unsupported",
+      "systemProxy": "supported",
+      "directConnectionPolicy": "unsupported",
+      "explicitHttpProxy": "unsupported",
+      "explicitHttpsProxy": "unsupported",
+      "proxyAuthentication": "unsupported",
+      "protocolRequirement": "supported",
+      "connectionMigration": "unknown",
+      "backgroundTransfer": "unsupported",
+      "negotiatedProtocolReporting": "supported"
+    }
+  },
+  "checks": {
+    "h3_preference": {
+      "status": "blocked_environment",
+      "probes": [
+        {
+          "endpoint": "https://cloudflare-quic.com/",
+          "status_code": 200,
+          "body_bytes": 125959,
+          "requested_protocol": "http3",
+          "initial_protocol": "http2",
+          "actual_protocol": "http2",
+          "alphax_reported_protocol": "http2",
+          "protocol_fallback": {
+            "requested": "http3",
+            "negotiated": "http2",
+            "reason": "unknown"
+          },
+          "alt_svc": "h3=\":443\"; ma=86400"
+        },
+        {
+          "endpoint": "https://www.google.com/",
+          "status_code": 200,
+          "body_bytes": 222654,
+          "requested_protocol": "http3",
+          "initial_protocol": "http2",
+          "actual_protocol": "http2",
+          "alphax_reported_protocol": "http2",
+          "protocol_fallback": {
+            "requested": "http3",
+            "negotiated": "http2",
+            "reason": "unknown"
+          },
+          "alt_svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000"
+        }
+      ],
+      "verified_endpoint": null,
+      "required_actual_protocol": "http3"
+    },
+    "h3_requirement": {
+      "status": "blocked_environment",
+      "endpoint": "https://cloudflare-quic.com/",
+      "required_protocol": "http3",
+      "actual_protocol": "http2",
+      "error_type": "AlphaXProtocolRequirementException",
+      "error": "AlphaXProtocolRequirementException (protocolRequirement): The negotiated protocol http2 did not satisfy http3"
+    }
+  },
+  "blockers": [
+    "No tested endpoint negotiated HTTP/3 on this network path.",
+    "HTTP/3 requirement could not be proven without actual HTTP/3 negotiation."
+  ],
+  "report_file_name": "alphax-phase1f-h3-release.json",
+  "report_path": "<app-documents>/alphax-phase1f-h3-release.json"
+}

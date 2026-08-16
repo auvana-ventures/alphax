@@ -1,0 +1,153 @@
+{
+  "status": "failed",
+  "metadata": {
+    "platform": "android",
+    "os_version": "PHK110_15.0.0.700(CN01)",
+    "device_model": "M2003J6A1G",
+    "architecture": "arm64-v8a",
+    "dart_version": "3.13.0 (stable) (Wed Aug 5 00:28:05 2026 -0700) on \"android_arm64\"",
+    "flutter_version": "3.47.0",
+    "build_mode": "profile/release-equivalent correctness validation",
+    "git_commit": "e1baf9d",
+    "network_type": "Wi-Fi",
+    "google_play_services_version": "26.29.32",
+    "h1_url": "http://192.168.50.204:18080/",
+    "h3_primary_url": "https://cloudflare-quic.com/",
+    "h3_secondary_url": "https://www.google.com/",
+    "pin_host": "cloudflare-quic.com",
+    "pin_url": "https://cloudflare-quic.com/",
+    "pin_mode": "none",
+    "tls_policy": "Cronet platform trust defaults; no trust-all override",
+    "diagnostic_quic_hint": false,
+    "provider": "Android Cronet (Google-Play-Services-Cronet-Provider)",
+    "provider_version": "151.0.7922.29",
+    "capabilities": {
+      "http10": "unsupported",
+      "http11": "supported",
+      "http2": "supported",
+      "http3": "supported",
+      "streamingUpload": "supported",
+      "streamingDownload": "supported",
+      "nativeFileUpload": "supported",
+      "nativeFileDownload": "supported",
+      "uploadProgress": "supported",
+      "downloadProgress": "supported",
+      "proxyConfiguration": "unsupported",
+      "tlsDefaultTrust": "supported",
+      "customTrustAnchors": "unsupported",
+      "certificatePinning": "supported",
+      "mutualTls": "unsupported",
+      "systemProxy": "supported",
+      "directConnectionPolicy": "unsupported",
+      "explicitHttpProxy": "unsupported",
+      "explicitHttpsProxy": "unsupported",
+      "proxyAuthentication": "unsupported",
+      "protocolRequirement": "supported",
+      "connectionMigration": "unknown",
+      "backgroundTransfer": "unsupported",
+      "negotiatedProtocolReporting": "supported"
+    }
+  },
+  "checks": [
+    {
+      "name": "h3_live_negotiation",
+      "status": "blocked_environment",
+      "result": {
+        "probes": [
+          {
+            "endpoint": "https://cloudflare-quic.com/",
+            "status_code": 200,
+            "body_bytes": 125959,
+            "requested_protocol": "http3",
+            "initial_protocol": "http2",
+            "actual_protocol": "http2",
+            "alphax_reported_protocol": "http2",
+            "fallback": {
+              "requested": "http3",
+              "negotiated": "http2",
+              "reason": "unknown"
+            },
+            "alt_svc": "h3=\":443\"; ma=86400"
+          },
+          {
+            "endpoint": "https://www.google.com/",
+            "status_code": 200,
+            "body_bytes": 230506,
+            "requested_protocol": "http3",
+            "initial_protocol": "http2",
+            "actual_protocol": "http2",
+            "alphax_reported_protocol": "http2",
+            "fallback": {
+              "requested": "http3",
+              "negotiated": "http2",
+              "reason": "unknown"
+            },
+            "alt_svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000"
+          }
+        ],
+        "verified_endpoint": null,
+        "requirement": "actual Cronet HTTP/3 metadata and AlphaX HTTP/3 report"
+      },
+      "error": "No probe negotiated HTTP/3; lower-protocol fallback was observed or the endpoint failed."
+    },
+    {
+      "name": "h3_protocol_requirement_succeeds",
+      "status": "blocked_environment",
+      "result": {
+        "reason": "No live H3 path was available to exercise the success branch."
+      }
+    },
+    {
+      "name": "h3_protocol_requirement_fails_on_h1",
+      "status": "failed",
+      "error": "StateError: Bad state: H3 requirement accepted a non-H3 response"
+    },
+    {
+      "name": "h3_preference_falls_back_truthfully",
+      "status": "passed",
+      "result": {
+        "requested_protocol": "http3",
+        "actual_protocol": "http11",
+        "response_fallback": "http11"
+      }
+    },
+    {
+      "name": "cross_origin_sensitive_redirect_is_safe",
+      "status": "passed",
+      "result": {
+        "mode": "secure_rejection"
+      }
+    },
+    {
+      "name": "cancellation_sanity",
+      "status": "passed",
+      "result": {
+        "cancelled": true
+      }
+    },
+    {
+      "name": "file_transfer_sanity",
+      "status": "passed",
+      "result": {
+        "download_status": 200,
+        "download_bytes": 1048576,
+        "download_hash": "4c568eccaeaf6c44",
+        "upload_bytes": 1048576,
+        "upload_status": 200
+      }
+    },
+    {
+      "name": "close_and_reuse_sanity",
+      "status": "passed",
+      "result": {
+        "sequential_requests": 2,
+        "repeated_close": true,
+        "post_close_rejected": true
+      }
+    }
+  ],
+  "blockers": [
+    "No actual HTTP/3 negotiation was observed on the tested network paths.",
+    "h3_protocol_requirement_fails_on_h1: StateError: Bad state: H3 requirement accepted a non-H3 response"
+  ]
+}

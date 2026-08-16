@@ -56,6 +56,7 @@ final class AndroidCronetTransport extends AlphaXTransport {
     final operation = await _start(request);
     try {
       final started = await operation.started;
+      await _enforceStartedProtocolRequirement(operation, started, request);
       return AlphaXResponse(
         statusCode: started.statusCode,
         headers: started.headers,
@@ -82,6 +83,7 @@ final class AndroidCronetTransport extends AlphaXTransport {
     final operation = await _start(request);
     try {
       final started = await operation.started;
+      await _enforceStartedProtocolRequirement(operation, started, request);
       yield AlphaXResponseStarted(
         statusCode: started.statusCode,
         headers: started.headers,
@@ -122,6 +124,7 @@ final class AndroidCronetTransport extends AlphaXTransport {
     final operation = await _start(request, directDownloadPath: target.path);
     try {
       final started = await operation.started;
+      await _enforceStartedProtocolRequirement(operation, started, request);
       final completed = await operation.completed;
       return AlphaXTransferResult(
         statusCode: started.statusCode,
@@ -151,6 +154,7 @@ final class AndroidCronetTransport extends AlphaXTransport {
     );
     try {
       final started = await operation.started;
+      await _enforceStartedProtocolRequirement(operation, started, request);
       await operation.bodyStream.drain<void>();
       final completed = await operation.completed;
       return AlphaXTransferResult(
@@ -401,6 +405,26 @@ final class AndroidCronetTransport extends AlphaXTransport {
         },
       );
     }
+  }
+
+  Future<void> _enforceStartedProtocolRequirement(
+    _AndroidOperation operation,
+    _AndroidStarted started,
+    AlphaXRequest request,
+  ) async {
+    final requirement = request.protocolRequirement;
+    if (requirement == null || requirement.isSatisfiedBy(started.protocol)) {
+      return;
+    }
+    await operation.cancel(
+      'The negotiated protocol ${started.protocol.name} did not satisfy ${requirement.name}',
+    );
+    throw AlphaXProtocolRequirementException(
+      requiredProtocol: requirement,
+      actualProtocol: started.protocol,
+      message:
+          'The negotiated protocol ${started.protocol.name} did not satisfy ${requirement.name}',
+    );
   }
 
   AlphaXException _normalize(Object error, StackTrace stackTrace) {

@@ -1,0 +1,40 @@
+{
+  "status": "blocked_environment",
+  "metadata": {
+    "platform": "android",
+    "os_version": "PHK110_15.0.0.700(CN01)",
+    "device_model": "M2003J6A1G",
+    "architecture": "arm64-v8a",
+    "dart_version": "3.13.0 (stable) (Wed Aug 5 00:28:05 2026 -0700) on \"android_arm64\"",
+    "flutter_version": "3.47.0",
+    "build_mode": "profile/release-equivalent focused validation",
+    "git_commit": "e1baf9d809e70a36756a933b41ab68a9632dbb86",
+    "network_type_configured": "Mobile-data",
+    "network_selection_mode": "cellular",
+    "endpoints": [
+      "https://cloudflare-quic.com/",
+      "https://www.google.com/"
+    ],
+    "diagnostic_quic_hint": false,
+    "tls_policy": "platform trust defaults; no trust-all override",
+    "network_selection": {
+      "status": "bound",
+      "requested": "cellular",
+      "runtime": {
+        "active": true,
+        "transports": [
+          "cellular"
+        ],
+        "validated": false,
+        "internet": true,
+        "not_restricted": true
+      }
+    }
+  },
+  "checks": [],
+  "blockers": [
+    "The requested Android network path was not active, validated, and unrestricted; no H3 probe was run."
+  ],
+  "report_file_name": "alphax-phase1f-h3-release.json",
+  "report_path": "<app-documents>/alphax-phase1f-h3-release.json"
+}

@@ -1,0 +1,52 @@
+{
+  "schema": "alphax.phase1f.iphone-release-acceptance.v1",
+  "captured_at": "2026-08-15",
+  "device": {
+    "model": "iPhone XR",
+    "os": "iOS 18.7.9",
+    "architecture": "arm64e",
+    "connection": "physical device; USB attached",
+    "network_type": "not separately captured"
+  },
+  "build": {
+    "mode": "profile",
+    "target": "lib/phase1f_apple_security_main.dart",
+    "git_commit": "e1baf9d",
+    "working_tree_change_under_test": "Apple URLSession canonical protocol normalization"
+  },
+  "protocol": {
+    "h1_fixture": "passed",
+    "h2_endpoint": {
+      "endpoint": "https://www.apple.com/",
+      "actual": "http2",
+      "reported": "http2",
+      "status": 200
+    },
+    "h3_endpoint": {
+      "endpoint": "https://cloudflare-quic.com/",
+      "actual": "http3",
+      "reported": "http3",
+      "status": 200
+    },
+    "h3_preference_to_h1": "passed",
+    "h3_requirement_on_h3": "passed",
+    "h3_requirement_on_h1": "passed_as_fail_closed_rejection"
+  },
+  "security": {
+    "default_trust_rejects_test_ca": "passed",
+    "custom_ca_succeeds": "passed",
+    "incorrect_custom_ca_fails": "passed",
+    "correct_spki_pin_succeeds": "passed",
+    "backup_spki_pin_succeeds": "passed",
+    "incorrect_spki_pin_fails": "passed",
+    "matching_pin_does_not_trust_untrusted_certificate": "passed",
+    "cross_origin_sensitive_headers": "passed",
+    "trust_all_override": "absent"
+  },
+  "interpretation": {
+    "status": "passed",
+    "scope": "focused release/security validation; no performance data",
+    "native_diagnostic_logging": "removed after diagnosis",
+    "credentials_or_signing_material": "not included"
+  }
+}
