@@ -1,6 +1,6 @@
 # AlphaX 1.0 Release Candidate Preparation
 
-Status: [*] In Progress
+Status: [x] Completed
 
 ## Goal
 
@@ -54,38 +54,75 @@ Codex coordinator with maintainer approval required before publication.
 
 ## Work Items
 
-- [ ] Classify the current worktree and reserve release-preparation changes.
-- [ ] Freeze and verify the public API, ADRs, platform matrix, and capability
+- [x] Classify the current worktree and reserve release-preparation changes.
+- [x] Freeze and verify the public API, ADRs, platform matrix, and capability
   boundaries.
-- [ ] Set consistent RC versions and decide the `alphax_dio` publication state.
-- [ ] Complete package metadata, README, migration, changelog, license,
+- [x] Set consistent RC versions and decide the `alphax_dio` publication state.
+- [x] Complete package metadata, README, migration, changelog, license,
   security, and example review.
-- [ ] Run final validation, audits, and package publication dry-runs.
-- [ ] Create the RC review document with exact evidence and verdict.
-- [ ] Commit release-gate work and retained evidence, push `main`, and verify
+- [x] Run final validation, audits, and package publication dry-runs.
+- [x] Create the RC review document with exact evidence and verdict.
+- [x] Commit release-gate work and retained evidence, push `main`, and verify
   remote/worktree/security state.
 
 ## Validation
 
-The final consolidated pass will cover formatting, Dart/Flutter analysis,
-package and conformance tests, deterministic fixtures, Dartdoc, Markdown/link
-checks, package dry-runs, example validation, Android/iOS/macOS builds,
-dependency/native/security audits, and `git diff --check`. Broad transport
-benchmarks are intentionally excluded.
+The final consolidated pass covered formatting, Dart/Flutter analysis, package
+and conformance tests, deterministic fixtures, Dartdoc, Markdown/link checks,
+package dry-runs, example validation, Android/iOS/macOS builds,
+dependency/native/security audits, and `git diff --check`.
+
+Results:
+
+- `dart format --set-exit-if-changed` passed for packages, the example, and
+  the mobile gate.
+- Dart analysis passed for `alphax`, `alphax_native`, `alphax_test`, and
+  `alphax_dio`.
+- Flutter analysis passed for `benchmarks/mobile_gate` and `examples/basic`.
+- All four package test suites, shared conformance tests, benchmark contract
+  tests, and benchmark harness tests passed.
+- Deterministic JSON fixtures passed `jq` validation.
+- Dartdoc with `--validate-links` passed for all four packages with zero
+  warnings and zero errors.
+- Local Markdown links passed. The new RC review document and newly authored
+  prose documentation passed Markdown lint; large table-heavy historical docs
+  retain baseline line-length/table-style warnings.
+- The example widget test and host-independent bundle build passed. An APK
+  build was not applicable because the example intentionally has no platform
+  host project.
+- The Android production Flutter host APK/plugin build, iOS no-code-sign
+  build, and macOS no-code-sign build passed. Plugin-only standalone Gradle
+  invocation was not used as release validation because its version/plugin
+  management is supplied by the Flutter host.
+- Dependency, native dependency, license/notice, signing/secret, endpoint,
+  machine-path, and certificate/private-key audits passed.
+- Clean publication dry-runs passed with zero warnings and zero errors:
+  `alphax` 28 KB, `alphax_test` 8 KB, and `alphax_native` 72 KB. `alphax_dio`
+  was intentionally excluded because it is `publish_to: none`.
+- `git diff --check` passed.
+- After cleanup and push, `git rev-parse HEAD` equals
+  `git rev-parse origin/main`, and `git status --short --branch` reports a
+  clean worktree.
+
+Broad transport performance benchmarks were intentionally excluded.
 
 ## Next Action
 
-Review the current diff and package/release metadata, then implement only the
-bounded RC-preparation corrections before the final validation pass.
+Wait for maintainer approval and naming clearance. Publication, tagging, and
+post-1.0 work are intentionally excluded from this task.
 
 ## Blockers
 
-None known at task creation. Publication remains intentionally out of scope and
-requires maintainer approval after this task.
+None. Publication remains intentionally out of scope and requires maintainer
+approval after this task.
 
 ## Outcome
 
-Pending final validation, commit/push verification, and RC review document.
+AlphaX is prepared for `1.0.0-rc.1` maintainer review. The public API is frozen,
+ADRs 0004 through 0008 are Accepted, `alphax_dio` is deliberately unpublished,
+the RC review document is complete, and the release-gate/evidence commits plus
+RC review closeout are pushed to `origin/main`. No publication, tag, GitHub
+release, transport change, feature work, or benchmark restart was performed.
 
 ## References
 
@@ -101,8 +138,18 @@ Pending final validation, commit/push verification, and RC review document.
 - `docs/decisions/0006-protocol-preference-vs-requirement.md`
 - `docs/decisions/0007-transport-neutral-tls-policy-and-pinning.md`
 - `docs/decisions/0008-proxy-policy-semantics.md`
+- `docs/ALPHAX_1_0_RC_REVIEW.md`
 
 ## History
 
 - 2026-08-16: Reserved task 17 for AlphaX 1.0 RC preparation after task 16
   reached `UNBLOCKED FOR 1.0 RC REVIEW`.
+- 2026-08-16: Completed RC metadata, package-boundary, documentation,
+  example, security, license, API-freeze, and validation work. Committed
+  release acceptance as `7cbe8db`, release-gate documentation as `896ddb0`,
+  and the RC review as `e7d284b`.
+- 2026-08-16: Clean package dry-runs reported archives of 28 KB (`alphax`),
+  8 KB (`alphax_test`), and 72 KB (`alphax_native`), all with zero warnings
+  and zero errors. Cleaned disposable build output, verified no signing or
+  machine-specific artifacts, and confirmed `HEAD == origin/main` with a
+  clean worktree.
