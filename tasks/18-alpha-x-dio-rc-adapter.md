@@ -1,6 +1,6 @@
 # AlphaX Dio RC Adapter
 
-Status: [*] In Progress
+Status: [x] Completed
 
 ## Goal
 
@@ -57,20 +57,20 @@ Codex coordinator with maintainer approval required before publication.
 
 ## Work Items
 
-- [ ] Implement and document `AlphaXDioAdapter` with safe lifecycle and error
+- [x] Implement and document `AlphaXDioAdapter` with safe lifecycle and error
   mapping.
-- [ ] Add deterministic tests for request mapping, response/body streaming,
+- [x] Add deterministic tests for request mapping, response/body streaming,
   cancellation, timeout/error mapping, redirects, progress, and protocol
   metadata.
-- [ ] Update package version, dependencies, publish state, README, changelog,
+- [x] Update package version, dependencies, publish state, README, changelog,
   migration/API inventory, release gate, and RC review publication set/order.
-- [ ] Run scoped formatting, analysis, tests, docs, package dry-run, and
+- [x] Run scoped formatting, analysis, tests, docs, package dry-run, and
   security/endpoint/package audits.
-- [ ] Commit and push the bounded Dio RC update; verify remote and worktree.
+- [x] Commit and push the bounded Dio RC update; verify remote and worktree.
 
 ## Validation
 
-Planned scoped checks:
+The scoped checks completed:
 
 - `dart format --set-exit-if-changed packages/alphax_dio`;
 - `dart analyze packages/alphax_dio`;
@@ -80,13 +80,31 @@ Planned scoped checks:
 - package dependency and production-endpoint audits;
 - `git diff --check`, push verification, and clean worktree check.
 
+Results:
+
+- `dart format --set-exit-if-changed packages/alphax_dio/lib
+  packages/alphax_dio/test` passed.
+- `dart analyze` and all six `alphax_dio` adapter tests passed.
+- Dartdoc with `--validate-links` passed with zero warnings and zero errors.
+- Package README, changelog, migration, compatibility, API inventory, RC
+  review, and task documentation passed the focused Markdown checks; the
+  existing table-heavy API/root release docs retain only baseline line-length
+  warnings.
+- `dart pub publish --dry-run` for `alphax_dio` passed with zero warnings and
+  zero errors. The compressed archive is 10 KB and contains only the expected
+  adapter source, tests, metadata, license, and documentation.
+- Dependency, production-endpoint, signing/secret, certificate/private-key,
+  machine-path, and `git diff --check` audits passed.
+- The adapter commit is `8b2975b`; final remote/worktree verification is
+  recorded with the closeout commit after push.
+
 The existing AlphaX transport and broad release-gate benchmark validation will
 not be restarted for this adapter-only boundary.
 
 ## Next Action
 
-Implement the adapter and its deterministic tests, then update the RC package
-set and documentation after the public behavior is validated.
+Wait for maintainer approval and naming clearance before publication. No new
+transport, benchmark, or post-1.0 work is authorized by this task.
 
 ## Blockers
 
@@ -95,7 +113,11 @@ naming clearance.
 
 ## Outcome
 
-Pending adapter implementation and scoped validation.
+`alphax_dio` is ready as an optional `1.0.0-rc.1` package. The focused
+`AlphaXDioAdapter` is implemented, tested, documented, included in the RC
+publication set, and represented in the frozen API/package review. It remains
+a deliberate compatibility boundary rather than full Dio API compatibility.
+No package was published.
 
 ## References
 
@@ -112,3 +134,7 @@ Pending adapter implementation and scoped validation.
 
 - 2026-08-16: Reserved task 18 after the maintainer expanded RC scope to make
   `alphax_dio` publishable as a deliberate adapter boundary.
+- 2026-08-16: Implemented the adapter, deterministic tests, RC package metadata,
+  migration/API/release documentation, and clean 10 KB pub dry-run. Committed
+  the bounded implementation as `8b2975b`; final closeout push verification is
+  pending in the next documentation commit.

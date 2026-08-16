@@ -43,10 +43,11 @@ in these logical commits:
 
 - `7cbe8db` — `test: complete AlphaX 1.0 release acceptance`
 - `896ddb0` — `docs: close AlphaX 1.0 release gate`
+- `8b2975b` — `feat: add AlphaX Dio RC adapter`
 
-The RC review document and final task record are committed separately as the
-RC closeout. The final handoff reports that commit together with the two
-release-gate commits after push verification.
+The final task-18 traceability record is committed separately as the RC
+closeout. The final handoff reports that closeout commit together with the
+release-gate and Dio adapter commits after push verification.
 
 ## 4. Public API freeze
 
