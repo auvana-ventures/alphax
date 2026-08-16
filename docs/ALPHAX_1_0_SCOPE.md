@@ -1,6 +1,6 @@
 # AlphaX 1.0 Scope
 
-Review state: Accepted for implementation planning
+Review state: Accepted for 1.0.0-rc.1 review
 
 This document is the source of truth for AlphaX 1.0 scope. It supersedes
 conflicting capability status language in older PRDs, README tables, and
@@ -24,7 +24,9 @@ mobile and Apple transport strategy is:
 Protocol support means that the selected platform transport can negotiate the
 protocol. A server, proxy, or network may cause a correct fallback. Every
 response must expose the actual negotiated protocol and, when applicable, the
-fallback reason. AlphaX must never label an H2/H1 fallback as H3.
+fallback reason. AlphaX must never label an H2/H1 fallback as H3. For the
+`1.0.0-rc.1` review, representative provider/device evidence establishes the
+implementation boundary; it does not promise H3 on every network.
 
 ## Classification rules
 
@@ -45,7 +47,7 @@ Every capability in this document has exactly one classification:
 |---|---|---|
 | HTTP/1.1 | `REQUIRED FOR 1.0` | Supported on Android, iOS, macOS, Windows, and Linux through the selected transport or Dart IO fallback. |
 | HTTP/2 | `REQUIRED FOR 1.0` | Supported and verified on Android, iOS, and macOS; Windows/Linux may report unavailable when using Dart IO. |
-| HTTP/3 | `REQUIRED FOR 1.0` | Supported and verified on Android, iOS, and macOS through Cronet/HttpEngine or URLSession; no Windows/Linux H3 guarantee. |
+| HTTP/3 | `REQUIRED FOR 1.0` | Supported and verified on Android, iOS, and macOS through Cronet/HttpEngine or URLSession when the selected provider and path negotiate it; H3 remains opportunistic and no Windows/Linux H3 guarantee is made. |
 | Negotiated protocol reporting | `REQUIRED FOR 1.0` | Every completed response exposes the actual protocol as a transport-neutral enum when the provider reports it. |
 | Fallback reporting | `REQUIRED FOR 1.0` | H3→H2/H1 and H2→H1 fallback is explicit, with a normalized reason when available. |
 
@@ -423,8 +425,10 @@ Exit criteria:
 
 AlphaX 1.0 cannot ship until:
 
-- H1/H2/H3 are verified on Android, iOS, and macOS through the selected native
-  platform transports.
+- H1/H2/H3 capability is verified through the selected native Android, iOS,
+  and macOS platform transports on representative provider/device paths; an
+  individual request may fall back when the server, proxy, or network does not
+  negotiate H3.
 - Negotiated protocol and fallback are observable and truthful.
 - Dart IO fallback is correct and explicitly reports its protocol ceiling.
 - Core methods, bodies, redirects, multipart, lifecycle, errors, streaming,
@@ -438,20 +442,12 @@ AlphaX 1.0 cannot ship until:
 The historical Phase 0 reports remain evidence for measured HTTP/1.1 behavior;
 they are not rewritten to imply H2/H3 performance conclusions.
 
-## Unresolved 1.0 shipping prerequisites
+## Remaining publication prerequisites
 
-The architecture review found no new protocol contradiction, but AlphaX 1.0
-cannot ship until these concrete prerequisites are resolved:
+The architecture review found no new protocol contradiction. The
+implementation/evidence prerequisites are complete for RC review; publication
+still requires these final non-technical approvals:
 
-- Maintainer approval of this scope and acceptance of ADR 0004 (complete).
-- An Android provider/minimum-API policy that gives a truthful H1/H2/H3
-  capability result on supported devices, including the no-Play-Services case.
-- Confirmed iOS/macOS deployment targets and physical-device H3 validation for
-  URLSession, including correct H3→H2/H1 fallback reporting.
-- Final public API review for protocol preference/requirement, capabilities,
-  timeout granularity, file references, progress, and multipart semantics.
-- Approved `alphax_native` platform package boundary, signing, build, and CI
-  configuration for Android, iOS, and macOS.
-- Deterministic TLS/protocol fixtures and cross-adapter conformance tests for
-  H1/H2/H3, fallback, streaming, files, cancellation, and cleanup.
-- Naming clearance, security review, and release approval before publication.
+- Naming clearance before publication.
+- Maintainer approval of the frozen public API and RC review document.
+- Publication approval after the package dry-runs and final validation pass.

@@ -52,12 +52,28 @@ final class _AlphaXExampleState extends State<AlphaXExampleApp> {
   Future<String> _get() async {
     final response = await _client.get(
       _uri('/'),
-      protocolPreference: AlphaXProtocolPreference.auto,
+      protocolPreference: AlphaXProtocolPreference.http3,
     );
     final body = await response.readAsString();
     final finalMetrics = await response.completionMetrics;
+    final fallback = await response.completionProtocolFallback;
     return 'HTTP ${response.statusCode}, ${body.length} chars, '
-        'protocol ${finalMetrics.negotiatedProtocol.name}';
+        'protocol ${finalMetrics.negotiatedProtocol.name}, '
+        'fallback ${fallback?.negotiated.name ?? 'none'}';
+  }
+
+  Future<String> _requireH3() async {
+    try {
+      final response = await _client.get(
+        _uri('/'),
+        protocolPreference: AlphaXProtocolPreference.http3,
+        protocolRequirement: AlphaXProtocolRequirement.http3,
+      );
+      final metrics = await response.completionMetrics;
+      return 'H3 requirement met: ${metrics.negotiatedProtocol.name}';
+    } on AlphaXException catch (error) {
+      return 'H3 requirement failed closed: ${error.kind.name}';
+    }
   }
 
   Future<String> _cancel() async {
@@ -118,6 +134,10 @@ final class _AlphaXExampleState extends State<AlphaXExampleApp> {
           FilledButton(
             onPressed: () => _run('GET', _get),
             child: const Text('GET'),
+          ),
+          FilledButton(
+            onPressed: () => _run('Require H3', _requireH3),
+            child: const Text('Require HTTP/3'),
           ),
           FilledButton(
             onPressed: () => _run('Cancel', _cancel),

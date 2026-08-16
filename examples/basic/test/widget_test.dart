@@ -7,6 +7,7 @@ void main() {
 
     expect(find.text('AlphaX example'), findsOneWidget);
     expect(find.text('GET'), findsOneWidget);
+    expect(find.text('Require HTTP/3'), findsOneWidget);
     expect(find.text('Cancel request'), findsOneWidget);
     expect(find.text('Stream response'), findsOneWidget);
     expect(find.text('Download/upload file'), findsOneWidget);

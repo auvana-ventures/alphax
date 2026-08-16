@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased (0.1.0 pre-release)
+## 1.0.0-rc.1 - 2026-08-16
 
 - Added a deterministic fake AlphaX transport with delayed responses, failures,
   cancellation, request recording, streamed events, and file fixtures.
@@ -8,3 +8,6 @@
 - Added lazy fixture-URI resolution so the same conformance suite can run
   against deterministic local adapter servers.
 - Added focused release-gate fixtures without adding a transport dependency.
+
+The package provides deterministic test utilities only and is not a production
+transport.

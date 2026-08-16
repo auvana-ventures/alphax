@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased (0.1.0 pre-release)
+## 1.0.0-rc.1 - 2026-08-16
 
 - Added the platform transport integration boundary.
 - Added the Dart IO fallback transport with HTTP/1.1 request/response
@@ -14,5 +14,11 @@
   protocol reporting, bounded streaming, native file paths, progress,
   cancellation, redirects, and normalized errors. macOS and signed iPhone
   correctness evidence covers H1/H2/H3 and fallback behavior.
-- Added release-hardening documentation for system-managed proxy behavior,
-  cross-origin redirect credential stripping, and the 1.0 platform matrix.
+- Added release-hardening documentation for secure TLS/pinning, system-managed
+  proxy behavior, cross-origin redirect credential stripping, and the 1.0
+  platform matrix.
+
+Known limitations are provider-dependent H3 availability, Dart IO H1-only
+fallback, unsupported mTLS, selected-provider Android custom trust limits,
+unsupported Dart IO SPKI pinning, explicit HTTPS-proxy endpoint parity, and
+deferred Swift Package Manager packaging.

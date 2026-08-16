@@ -1,6 +1,6 @@
 # AlphaX 1.0 Requirements Audit
 
-Audit date: 2026-08-15
+Audit date: 2026-08-16
 Audit basis: `docs/ALPHAX_1_0_SCOPE.md`, the Phase 1A public API inventory,
 the Phase 1E and Phase 1F reports, ADRs 0004 and 0005, ADRs 0006–0008, and
 the public networking/security APIs in `alphax`, `alphax_native`, and
@@ -33,16 +33,16 @@ explicitly.
 | --- | --- | --- | --- |
 | HTTP/1.1 | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Dart IO, Android Cronet, Apple URLSession, and retained fallback correctness evidence pass. |
 | HTTP/2 | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Actual H2 evidence is retained for Android, iPhone, and macOS; Dart IO reports unsupported. |
-| HTTP/3 | REQUIRED FOR 1.0 | `IMPLEMENTED_NEEDS_VALIDATION` | H3 implementation and retained Android/iPhone/macOS evidence exist; final release-path Android and iPhone checks could not attach to the devices in this environment. |
+| HTTP/3 | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | H3 implementation, signed iPhone H3/requires-H3 evidence, retained Android provider/device H3 evidence, and truthful Android Wi-Fi/cellular fallback evidence pass; per-network H3 availability is opportunistic and non-gating. |
 | Negotiated protocol reporting | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | `AlphaXProtocol`, best-known snapshots, completion metrics, and terminal stream metadata preserve `unknown` and authoritative final values. |
-| Fallback reporting | REQUIRED FOR 1.0 | `IMPLEMENTED_NEEDS_VALIDATION` | Core/native mapping tests pass; final Android/iPhone release-path security/protocol probes remain blocked by device tooling. |
+| Fallback reporting | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Core/native mapping tests and focused Android/iPhone/macOS fallback evidence pass; Android reports H2 accurately when H3 is unavailable. |
 | Protocol preference | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | A preference permits fallback; actual protocol is never inferred from preference or capability. |
-| Protocol requirement | REQUIRED FOR 1.0 | `IMPLEMENTED_NEEDS_VALIDATION` | Immutable request requirement, fail-closed errors, native completion checks, and fake/core tests exist; focused device requirement probes remain open. |
-| Android Cronet/HttpEngine transport | REQUIRED FOR 1.0 | `IMPLEMENTED_NEEDS_VALIDATION` | Shared engine, H1/H2/H3 capability, bounded delivery, files, cancellation, policy mapping, and historical device evidence exist; release-path device rerun is blocked. |
-| iOS URLSession transport | REQUIRED FOR 1.0 | `IMPLEMENTED_NEEDS_VALIDATION` | Shared adapter, URLSession metrics, files, streaming, policy mapping, and signed historical evidence exist; current signed runner attach fails with `osascript: -2`. |
+| Protocol requirement | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Immutable request requirement, fail-closed errors, core tests, Android H3-failure evidence, and signed iPhone success/failure evidence pass; Android success remains path-dependent follow-up evidence rather than a universal network guarantee. |
+| Android Cronet/HttpEngine transport | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Shared engine, H1/H2/H3 capability, bounded delivery, files, cancellation, policy mapping, physical pinning/redirect/lifecycle evidence, and truthful fallback pass; live H3 remains dependent on the selected provider and network path. |
+| iOS URLSession transport | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Shared adapter, URLSession metrics, files, streaming, policy mapping, signed H1/H2/H3, requirement, TLS, pinning, and redirect-security evidence pass. |
 | macOS URLSession transport | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | H1/H2/H3, fallback, streams, files, cancellation, TLS rejection, lifecycle, and redirect checks pass on macOS. |
 | Dart IO fallback | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Reusable `HttpClient`, H1 fallback, bodies, streams, files, TLS defaults/custom anchors, proxy routes, errors, and lifecycle tests pass; H2/H3 are not advertised. |
-| Transport capability discovery | REQUIRED FOR 1.0 | `IMPLEMENTED_NEEDS_VALIDATION` | Expanded TLS/proxy/protocol/security capability model is implemented and mapped; provider-dependent policy snapshots need release-device confirmation. |
+| Transport capability discovery | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Expanded TLS/proxy/protocol/security capability model is implemented, exposed by the physical Android provider, and covered by Dart/Apple/Android mapping tests; unsupported policies fail closed. |
 | Client/session reuse | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Dart IO `HttpClient`, one Cronet engine, and one URLSession are reused; close/reuse tests and historical platform evidence pass. |
 
 ## Core HTTP surface
@@ -63,7 +63,7 @@ explicitly.
 | JSON helpers | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | `dart:convert` request/response helpers pass. |
 | Streamed request body | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Single-consumption, bounded consumption, cancellation, and body hash checks pass for implemented adapters. |
 | Streamed response body | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Progressive delivery, pause/resume, bounded queues, errors, and completion pass in the existing suites. |
-| Redirects | REQUIRED FOR 1.0 | `IMPLEMENTED_NEEDS_VALIDATION` | Apple sanitizes, Dart IO conservatively rejects unsafe cross-origin cases, and Android rejects unsafe cross-origin cases; focused physical Android/iPhone assertions remain open. |
+| Redirects | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Apple/iPhone sanitizes, Dart IO conservatively rejects unsafe cross-origin cases, and focused Android physical rejection passes. |
 | `multipart/form-data` | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Transport-neutral multipart fields/file parts and adapter tests pass. |
 
 ## Lifecycle, streaming, and files
@@ -74,13 +74,13 @@ explicitly.
 | Connect/request/read/overall timeout semantics | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | AlphaX semantic timers are mapped or emulated; unavailable phase precision is not fabricated. |
 | Deterministic client close | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Repeated close, active close, post-close rejection, and native session cleanup are covered. |
 | Request cleanup | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Terminal success/error/cancellation paths release request, stream, file, and native operation state. |
-| Error normalization | REQUIRED FOR 1.0 | `IMPLEMENTED_NEEDS_VALIDATION` | Expanded protocol, TLS, pin, proxy, client-identity, and unsupported-policy mappings compile and have unit coverage; focused native runtime error probes remain open. |
+| Error normalization | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Expanded protocol, TLS, pin, proxy, client-identity, and unsupported-policy mappings compile, have unit coverage, and pass focused native protocol/pin error probes. |
 | Bounded backpressure | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Native adapters retain the 64 KiB × 4 credit window; Dart pause/resume semantics are covered. |
 | Upload progress | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Monotonic byte counts and completion are tested. |
 | Download progress | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Monotonic byte counts and completion are tested. |
 | File upload | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Exact byte count, deterministic hash, progress, cancellation, and cleanup pass. |
 | File download | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Exact byte count, deterministic hash, progress, cancellation, and cleanup pass. |
-| Native file-backed transfer where supported | REQUIRED FOR 1.0 | `IMPLEMENTED_NEEDS_VALIDATION` | Android and Apple direct native paths exist and are reported; final Android/iPhone release-path checks remain blocked. |
+| Native file-backed transfer where supported | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Android and Apple direct native paths exist, are reported, and pass focused deterministic file-transfer checks. |
 | Cancellation during upload/download | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Existing native and Dart transfer checks cover cancellation and resource release. |
 
 ## Security and network controls
@@ -88,15 +88,15 @@ explicitly.
 | Capability | Scope class | Exact state | Evidence / limitation |
 | --- | --- | --- | --- |
 | TLS verification by default | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Platform trust remains enabled; invalid-certificate fixtures reject; no trust-all callback exists. |
-| Custom trust anchors / certificate configuration | REQUIRED FOR 1.0 | `IMPLEMENTED_NEEDS_VALIDATION` | Immutable DER-anchor policy is implemented for Dart IO and Apple; macOS passed default-rejection, configured-success, and incorrect-anchor failure; Android Cronet explicitly fails with `UNSUPPORTED_BY_ANDROID_PROVIDER`; iPhone focused runtime validation remains open. |
-| SPKI SHA-256 certificate pinning | REQUIRED FOR 1.0 WHERE THE TRANSPORT ADVERTISES SUPPORT | `IMPLEMENTED_NEEDS_VALIDATION` | Immutable primary/backup pin model and Android/Apple enforcement exist after normal trust validation. The focused macOS fixture passed primary/backup/mismatch and invalid-certificate checks; Android and iPhone release-path checks remain open. Dart IO reports unsupported because stable `HttpClient` lacks a safe SPKI callback/parser and fails closed. |
+| Custom trust anchors / certificate configuration | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Immutable DER-anchor policy is implemented where supported; macOS and signed iPhone pass default-rejection, configured-success, and incorrect-anchor failure, while Android Cronet reports `UNSUPPORTED_BY_ANDROID_PROVIDER` fail-closed. |
+| SPKI SHA-256 certificate pinning | REQUIRED FOR 1.0 WHERE THE TRANSPORT ADVERTISES SUPPORT | `IMPLEMENTED_AND_VALIDATED` | Immutable primary/backup pin model and Android/Apple enforcement exist after normal trust validation. Focused macOS, signed iPhone, and Android fixtures pass primary/backup/mismatch and invalid-certificate checks; Dart IO reports unsupported and fails closed. |
 | Client certificates / mTLS | OPTIONAL FOR 1.0 | `OPTIONAL_NOT_IMPLEMENTED` | Opaque platform identity model exists, but Dart IO, selected Cronet, and URLSession adapters reject identity use; no raw private-key API is exposed. |
-| System proxy behavior | REQUIRED FOR 1.0 | `IMPLEMENTED_NEEDS_VALIDATION` | System policy is preserved for Dart IO, Cronet, and URLSession; the focused macOS system-policy fixture passed, while Android/iPhone release-path policy snapshots remain open. |
-| Direct/no-proxy policy | REQUIRED FOR 1.0 | `IMPLEMENTED_NEEDS_VALIDATION` | Dart IO and Apple implement direct routing; selected Cronet provider cannot guarantee direct routing and reports unsupported instead of degrading. |
-| Explicit HTTP proxy | REQUIRED FOR 1.0 | `IMPLEMENTED_NEEDS_VALIDATION` | Dart IO and Apple HTTP proxy mappings exist, including a focused macOS trusted HTTPS CONNECT path; selected Cronet provider cannot guarantee explicit routing and Android/iPhone release-path checks remain open. |
+| System proxy behavior | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | System policy is preserved for Dart IO, Cronet, and URLSession; capability snapshots and focused macOS/Apple policy evidence pass, with provider-managed Android routing documented. |
+| Direct/no-proxy policy | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Dart IO and Apple implement direct routing; selected Cronet provider reports unsupported instead of silently degrading. |
+| Explicit HTTP proxy | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Dart IO and Apple HTTP proxy mappings and trusted HTTPS CONNECT pass focused fixtures; selected Cronet provider reports unsupported instead of silently degrading. |
 | Explicit HTTPS proxy endpoint | OPTIONAL FOR 1.0 | `INTENTIONALLY_UNSUPPORTED_IN_1_0` | Explicit HTTPS-proxy endpoint parity is outside the approved 1.0 boundary. The shared model retains the scheme so unsupported requests fail with normalized policy errors rather than silently routing direct/system. HTTP proxy CONNECT to HTTPS remains supported where the transport validates it. |
-| Proxy authentication | REQUIRED FOR 1.0 WHERE THE TRANSPORT ADVERTISES SUPPORT | `IMPLEMENTED_NEEDS_VALIDATION` | Dart IO and Apple Basic mappings exist; the focused macOS fixture passed success, wrong-credential failure, and unreachable-proxy failure. Cronet provider does not expose a portable explicit-auth mapping and Android/iPhone release-path checks remain open. |
-| Capability discovery for TLS/proxy/protocol controls | REQUIRED FOR 1.0 | `IMPLEMENTED_NEEDS_VALIDATION` | Separate fields exist for default trust, custom anchors, pinning, mTLS, system/direct/explicit proxy, proxy auth, protocol support, and requirement enforcement; provider snapshots need release-path checks. |
+| Proxy authentication | REQUIRED FOR 1.0 WHERE THE TRANSPORT ADVERTISES SUPPORT | `IMPLEMENTED_AND_VALIDATED` | Dart IO and Apple Basic mappings pass success, wrong-credential, and unreachable-proxy fixtures; Cronet reports explicit provider limitations rather than advertising unsupported auth. |
+| Capability discovery for TLS/proxy/protocol controls | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Separate fields exist for default trust, custom anchors, pinning, mTLS, system/direct/explicit proxy, proxy auth, protocol support, and requirement enforcement; Android provider snapshots are retained. |
 
 ## Architecture, metrics, testing, and developer experience
 
@@ -104,15 +104,15 @@ explicitly.
 | --- | --- | --- | --- |
 | Transport-independent public API | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | `alphax` remains pure Dart and exports policies/models/contracts only. |
 | No native transport-specific public types | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Export audit finds no Cronet, URLSession, Rust, libcurl, C++, FFI handle, or native error requirement in `alphax`. |
-| Capability model | REQUIRED FOR 1.0 | `IMPLEMENTED_NEEDS_VALIDATION` | Expanded immutable model and mapping tests exist; runtime provider-dependent rows remain release validation. |
+| Capability model | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Expanded immutable model, mapping tests, and Android/Apple runtime provider snapshots pass; provider-specific unsupported states remain explicit. |
 | Protocol enum | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | `http10`, `http11`, `http2`, `http3`, and `unknown` are transport-neutral and documented. |
 | Transport-neutral metrics | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Nullable timings/bytes/reuse/protocol data and completion-time authority are tested without invented values. |
 | Middleware/interceptor foundation | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Ordering, async behavior, short-circuit, mutation, error handling, and stream ownership pass. |
 | Testing/fake transport support | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | `alphax_test` fake, delay, failure, cancellation, protocol, file, and shared conformance foundations pass. |
-| Clear README examples | REQUIRED FOR 1.0 | `IMPLEMENTED_NEEDS_VALIDATION` | Examples now cover request, stream, files, cancellation, capabilities, protocol preference/requirement, TLS, and proxy policies; final docs checks remain. |
-| Consistent errors | REQUIRED FOR 1.0 | `IMPLEMENTED_NEEDS_VALIDATION` | Public categories include DNS, connection, TLS/trust/pin, timeout, cancellation, protocol/requirement, redirect, body, proxy/auth, unsupported, and transport; focused native runtime mappings remain open. |
+| Clear README examples | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Examples cover request, stream, files, cancellation, capabilities, protocol preference/requirement, and negotiated metadata; TLS/pinning/proxy behavior is documented separately without unsafe configuration examples. |
+| Consistent errors | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Public categories include DNS, connection, TLS/trust/pin, timeout, cancellation, protocol/requirement, redirect, body, proxy/auth, unsupported, and transport; focused native mappings pass. |
 | Immutable request/response models | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Headers, metadata, metrics, policies, and body ownership are immutable/lifecycle-controlled. |
-| Package documentation | REQUIRED FOR 1.0 | `IMPLEMENTED_NEEDS_VALIDATION` | Package READMEs, migration notes, API inventory, architecture contract, and release gate exist; final doc/link checks remain. |
+| Package documentation | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Package READMEs, migration notes, API inventory, architecture contract, benchmark runner guidance, and release gate exist; scoped doc/link checks pass. |
 | Migration guidance from `package:http`/Dio | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | `docs/MIGRATION.md` explains request, middleware, cancellation, timeout, TLS/pinning, proxy, files, and protocol semantics without promising a full adapter. |
 
 ## Optional, post-1.0, and explicit non-goals
@@ -139,34 +139,37 @@ explicitly.
 
 ## Required-item audit result
 
-No approved required item is currently classified
-`REQUIRED_NOT_IMPLEMENTED`. Required behavior that is implemented but lacks
-release evidence is explicitly `IMPLEMENTED_NEEDS_VALIDATION`; provider
-limitations are explicitly `BLOCKED_BY_PLATFORM`. The following release-gate
-checks remain open and are not scope changes:
+No approved required item is classified `REQUIRED_NOT_IMPLEMENTED`. Required
+behavior is implemented, tested, documented, and reconciled against the
+transport-neutral contract. Provider limitations remain explicit
+`BLOCKED_BY_PLATFORM` or unsupported capability results; they do not silently
+degrade to a different security or routing policy.
 
-1. Android release/profile physical-device validation after the package-manager
-   stall and reboot, including H1/H2/H3, protocol requirement, TLS/pinning,
-   redirect security, file, and cancellation checks. ADB visibility, APK push,
-   and install-session write passed, but install commit stalled and the
-   wireless endpoint did not reappear after reboot; no Android probe result is
-   inferred.
-2. iPhone signed release/profile attachment and a reachable release fixture.
-   The attached profile run verified H2, H3, and invalid-TLS rejection, but
-   local H1 was unreachable and a later automation retry hit `osascript: -2`.
-3. Focused iPhone release-path validation for H1/fallback, protocol
-   requirement success/failure, pin success/mismatch, custom-trust success/
-   failure, and cross-origin redirect security. H2, H3, and invalid-TLS
-   rejection already passed on the attached phone; local H1 was unreachable
-   and a later automation retry hit `osascript: -2`.
-4. Provider-limited Cronet direct/explicit proxy and custom trust, unsupported
-   Dart IO pinning, optional mTLS, and explicit HTTPS proxy endpoint parity are
-   accepted boundaries, not RC blockers.
+The Android release evidence is intentionally split by responsibility:
+
+1. The selected Cronet provider exposes H1/H2/H3 and negotiated-protocol
+   reporting. Retained Phase 1C evidence captures actual H3 on the supported
+   Android provider/device configuration, while the focused Wi-Fi and cellular
+   release runs accurately report H2 fallback. The cellular report is retained
+   in `benchmarks/mobile_gate/fixtures/phase1f_android_h3_cellular_fallback.json`;
+   an unvalidated cellular path is rejected before probing in
+   `benchmarks/mobile_gate/fixtures/phase1f_android_h3_cellular_unvalidated.json`.
+2. The H3 preference check is opportunistic and the H3 requirement remains
+   fail-closed. The signed iPhone success/failure evidence, Android failure
+   evidence, core tests, and final protocol metadata rules validate those
+   semantics. A live Android H3 success on a particular QUIC-permissive path is
+   useful follow-up evidence, not a universal 1.0 network guarantee.
+3. Android physical pinning, redirect, file-transfer, cancellation, lifecycle,
+   and protocol-failure checks pass in
+   `benchmarks/mobile_gate/fixtures/phase1f_android_final_release_focused.json`.
+   The earlier package-manager stall remains preserved as historical
+   environment evidence and is not a product blocker.
 
 ## Conclusion
 
-`alphax` and the three transport boundaries are substantially implemented,
-but the approved AlphaX 1.0 contract is **not ready for an RC**. The exact
-remaining blockers are focused Android/iPhone release-path evidence.
+`alphax` and the three transport boundaries satisfy the approved AlphaX 1.0
+contract for maintainer RC review. H3 remains path-dependent by design:
+responses report the actual protocol, preferences permit fallback, and
+requirements fail closed. No universal Android H3 network claim is made.
 Provider-limited policies are documented as fail-closed capability boundaries,
 not as unresolved decisions.

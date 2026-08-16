@@ -39,12 +39,22 @@ iOS 15+ and macOS 12+. CocoaPods is the supported 1.0 packaging path; Swift
 Package Manager integration is deferred and is not required for the release
 gate.
 
+The Android plugin resolves Google Play Services Cronet through Gradle; it does
+not bundle a copied Cronet binary in the pub package. Apple uses system
+Foundation/URLSession frameworks through CocoaPods. Upstream dependency and
+system-framework licensing remains with those providers; no third-party source
+or binary is redistributed by this package.
+
 The Android adapter completed Phase 1C physical-device validation, including
-actual H3 negotiation and truthful H3 fallback reporting. The Apple adapter is
-implemented for iOS 15+ and macOS 12+ using Foundation URLSession; macOS and
-signed iPhone correctness evidence covers H1/H2/H3, fallback, streaming,
-cancellation, TLS rejection, progress, and native file paths. This package must
-not leak Cronet, URLSession, FFI, C++, libcurl, or Rust types into `alphax`.
+actual H3 negotiation and truthful H3 fallback reporting. H3 is opportunistic:
+the selected provider and network path determine whether a request negotiates
+it, while `protocolRequirement` remains fail-closed. The disposable release
+runner records both Alt-Svc discovery and fallback without adding a production
+QUIC hint. The Apple adapter is implemented for iOS 15+ and macOS 12+ using
+Foundation URLSession; macOS and signed iPhone correctness evidence covers
+H1/H2/H3, fallback, streaming, cancellation, TLS rejection, progress, and
+native file paths. This package must not leak Cronet, URLSession, FFI, C++,
+libcurl, or Rust types into `alphax`.
 
 Apple `send()` responses expose headers-time metadata. URLSession task metrics
 are authoritative only when the operation completes, so callers must await

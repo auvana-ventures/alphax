@@ -408,6 +408,15 @@ counted as new device evidence. A later `flutter drive` retry hit the existing
 `osascript: -2` automation attachment failure. Historical signed Phase 1D/1E
 evidence remains preserved and is not rewritten.
 
+Subsequent focused release-closure validation on the same signed iPhone XR
+profile runner reached the LAN H1 fixture and passed H1 requirement rejection,
+H2, H3, H3 requirement success, H3 preference fallback, custom trust,
+primary/backup pinning, pin mismatch, invalid-certificate rejection, and
+cross-origin sensitive-header protection. The native completion-time
+normalizer was corrected to accept canonical protocol values before this
+rerun. Machine-readable evidence is retained in
+`benchmarks/mobile_gate/fixtures/phase1f_iphone_release_acceptance.json`.
+
 ## 14. Phase 1E blockers
 
 Before AlphaX 1.0 can claim the accepted platform strategy across Apple and

@@ -1,5 +1,6 @@
 name: alphax_dio
-description: Optional Dio compatibility adapter package for AlphaX; not part of 1.0.
+description: Unpublished skeleton for a future AlphaX Dio compatibility adapter.
+publish_to: none
 version: 0.1.0
 homepage: https://github.com/auvana-ventures/alphax
 repository: https://github.com/auvana-ventures/alphax

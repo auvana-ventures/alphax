@@ -1,9 +1,10 @@
 # alphax_dio
 
-Optional Dio `HttpClientAdapter` compatibility layer for AlphaX.
+Unpublished skeleton for a future Dio `HttpClientAdapter` compatibility layer
+for AlphaX.
 
-Phase 1A only stabilizes the transport-independent AlphaX contract. The adapter
-remains deferred until the required request/response lifecycle, cancellation,
-streams, progress, and body semantics have been validated by a production
-transport. This package is not published until naming clearance and its scope
-review are complete.
+The adapter remains deferred until the required request/response lifecycle,
+cancellation, streams, progress, and body semantics have been validated by a
+production transport. It is deliberately marked `publish_to: none` and is not
+part of the `1.0.0-rc.1` publication set. Migration guidance documents the
+supported mapping without promising full Dio API compatibility.

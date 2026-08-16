@@ -6,11 +6,13 @@ describes the transport-neutral contracts and does not make platform-wide
 release claims; adapter evidence is recorded in the Phase 1B, Phase 1C, Phase
 1D, and Phase 1E review reports.
 
-**Review status: REVIEWED FOR 1.0 RELEASE CLOSURE.** The core transport-neutral
+**Review status: FROZEN FOR 1.0.0-RC.1.** The core transport-neutral
 API has no accidental native exports. Protocol requirements, TLS/proxy policy,
 normalized policy errors, and completion-time protocol semantics are now part
-of the reviewed public boundary. Focused provider/device validation remains
-tracked in `docs/ALPHAX_1_0_REQUIREMENTS_AUDIT.md`.
+of the frozen public boundary. Focused provider/device validation remains
+tracked in `docs/ALPHAX_1_0_REQUIREMENTS_AUDIT.md`. No public exports were
+added during RC preparation; any later API change is a potential 1.0 breaking
+change.
 
 ## Client and transport
 
@@ -70,6 +72,7 @@ tracked in `docs/ALPHAX_1_0_REQUIREMENTS_AUDIT.md`.
 | `AlphaXClientIdentity` | Opaque platform-managed client identity reference. |
 | `AlphaXProxyPolicy` | System, direct, and explicit HTTP/HTTPS proxy routing policy. |
 | `AlphaXProxyCredentials` | Basic proxy credentials kept out of origin headers and diagnostics. |
+| `AlphaXProxyScheme` / `AlphaXProxyMode` | Explicit proxy scheme and routing-mode values used by `AlphaXProxyPolicy`. |
 | `AlphaXRequestMetrics` | Optional transport-neutral timing, byte, protocol, redirect, and connection-reuse values; `AlphaXResponse.completionMetrics` is the final snapshot when available later. |
 | `AlphaXTransferDirection` | Upload or download progress direction. |
 | `AlphaXProgress` / `AlphaXProgressCallback` | Optional body-progress reporting. |
@@ -98,18 +101,19 @@ tracked in `docs/ALPHAX_1_0_REQUIREMENTS_AUDIT.md`.
 - H2/H3 names in this inventory are protocol and capability representations;
   they are not global release claims. Current adapter evidence is recorded in
   the Phase 1C and Phase 1D review reports.
-- `AlphaXTimeout` and `AlphaXConnectException`/`AlphaXCancelledException` are
-  compatibility names retained from the Phase 0 scaffold; new code should use
-  the Phase 1A names.
+- `AlphaXRequestBody`, `AlphaXTimeout`, `AlphaXConnectException`,
+  `AlphaXCancelledException`, and `AlphaXBodyException` are compatibility names
+  retained from the Phase 0 scaffold; new code should use the Phase 1A names.
 
 ## Test package inventory
 
 `alphax_test` exports `FakeAlphaXTransport`, `InMemoryAlphaXFileSource`,
-`InMemoryAlphaXFileTarget`, and `defineAlphaXTransportConformanceTests`. The
-fake supports predefined responses, streams, delays, failures, cancellation,
-request recording, file transfer, and close behavior.
+`InMemoryAlphaXFileTarget`, `defineAlphaXTransportConformanceTests`, and the
+transport/factory callback typedefs used by those helpers. The fake supports
+predefined responses, streams, delays, failures, cancellation, request
+recording, file transfer, and close behavior.
 
-## Phase 1F freeze review
+## 1.0.0-rc.1 freeze review
 
 - `alphax` exports only transport-neutral request, response, body, stream,
   file, cancellation, timeout, redirect, protocol, capability, metric,
@@ -119,8 +123,8 @@ request recording, file transfer, and close behavior.
   handle types are not exported by `alphax`.
 - `alphax_test` exports deterministic fakes and conformance helpers for tests;
   it is not a production dependency of `alphax` or `alphax_native`.
-- `alphax_dio` exports no production adapter and remains outside the required
-  1.0 transport gate.
+- `alphax_dio` exports no production adapter, is marked `publish_to: none`, and
+  remains outside the required 1.0 transport gate.
 
 ## Package barrel inventory
 

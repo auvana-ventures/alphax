@@ -1,23 +1,21 @@
 # AlphaX
 
-AlphaX is an experimental, transport-independent HTTP client API for Dart and
-Flutter. It provides one request/response, streaming, file-transfer,
-cancellation, capability, protocol, and error model over platform transports.
+AlphaX is a transport-independent HTTP client API for Dart and Flutter. It
+provides one request/response, streaming, file-transfer, cancellation,
+capability, protocol, and error model over platform transports.
 
 ## Status
 
-**1.0 release closure is in progress.** AlphaX remains pre-release and is not
-stable or published to pub.dev. The approved transport architecture and core
-policy contracts are implemented, but focused release-device validation and
-maintainer release approval are still required.
+**`1.0.0-rc.1` is prepared for maintainer review.** AlphaX remains a release
+candidate and is not published to pub.dev. Publication requires naming
+clearance and maintainer approval after the RC review.
 
-AlphaX makes no unsupported fastest, zero-copy, universal HTTP/3, or always-H3
-claims.
+AlphaX makes no universal H3, zero-copy, or unsupported performance claim.
 
-## Installation during pre-release review
+## Installation during RC review
 
 Until package naming clearance and publication approval are complete, consume
-the packages from the public repository:
+the candidate packages from the public repository:
 
 ```yaml
 dependencies:
@@ -149,18 +147,19 @@ final response = await client.send(
 
 ## Platform and protocol support
 
-| Target | Transport | Protocol support in the 1.0 scope |
+| Target | Transport | 1.0 protocol boundary |
 | --- | --- | --- |
-| Android API 24+ | Supported Cronet/HttpEngine provider | H1/H2/H3, provider- and network-dependent |
-| iOS 15+ | URLSession | H1/H2/H3, OS- and network-dependent |
-| macOS 12+ | URLSession | H1/H2/H3, OS- and network-dependent |
-| Linux | Dart IO fallback | H1 baseline |
-| Windows | Dart IO fallback | H1 baseline |
-| Web | No AlphaX 1.0 transport | Unsupported |
+| Android API 24+ | Supported non-fallback Cronet/HttpEngine provider | H1/H2/H3; the provider and network determine whether an individual request uses H3 |
+| iOS 15+ | URLSession | H1/H2/H3; the OS, provider, server, and network determine the negotiated protocol |
+| macOS 12+ | URLSession | H1/H2/H3; the OS, provider, server, and network determine the negotiated protocol |
+| Linux | Dart IO fallback | H1 only |
+| Windows | Dart IO fallback | H1 only |
+| Web | No AlphaX 1.0 transport | Unsupported in 1.0 |
 
 H3 preference may legitimately negotiate H2 or H1. The actual protocol and
-fallback metadata must be inspected for each completed request. Dart IO is the
-fallback/baseline and does not advertise H2 or H3.
+fallback metadata must be inspected for each completed request. A protocol
+requirement fails closed when the exact protocol is not observed. Dart IO
+cannot authoritatively report H2/H3 and therefore does not advertise them.
 
 ## Packages
 
@@ -169,13 +168,19 @@ fallback/baseline and does not advertise H2 or H3.
 | [`alphax`](packages/alphax) | Pure-Dart transport-neutral contracts | Required core |
 | [`alphax_native`](packages/alphax_native) | Dart IO, Cronet, and URLSession adapters | Required platform boundary |
 | [`alphax_test`](packages/alphax_test) | Fakes and shared conformance helpers | Required test support |
-| [`alphax_dio`](packages/alphax_dio) | Optional Dio compatibility boundary | Not required; no adapter yet |
+| [`alphax_dio`](packages/alphax_dio) | Optional Dio compatibility boundary | Unpublished skeleton; no adapter |
 
 There is no AlphaX-owned C++ engine, production Rust transport, libcurl
 dependency, cache, retry/resilience module, telemetry SDK, GraphQL layer, REST
 generator, WebSocket/SSE API, or browser transport in the 1.0 architecture.
 
-## Security and known limitations
+## Capability boundaries and known limitations
+
+Capability is not actual negotiation: it describes what the selected provider
+can support, while completion metadata describes what one request used.
+Preference is not requirement: preference permits fallback, while a requirement
+fails closed. Dart IO cannot authoritatively report H2/H3. Provider-limited TLS
+or proxy controls fail closed with normalized errors.
 
 TLS certificate verification uses platform defaults and is enabled by default.
 `AlphaXTlsPolicy` can add or replace trust anchors where the transport supports
@@ -189,6 +194,12 @@ The selected Android Cronet API is system-proxy-only, while Apple uses
 URLSession/CFNetwork proxy configuration and rejects explicit HTTPS-proxy
 configuration. `AlphaXClientIdentity` is an opaque security-reference model;
 mTLS is not implemented by the 1.0 adapters.
+
+Known 1.0 limitations are Linux/Windows H1-only fallback, unsupported Web,
+unimplemented mTLS, unavailable explicit HTTPS-proxy endpoint parity, Android
+custom trust anchors being unsupported by the selected provider, Dart IO SPKI
+pinning being unsupported, and Swift Package Manager packaging being deferred;
+CocoaPods is the Apple packaging path.
 
 The Apple adapter strips `Authorization`, `Proxy-Authorization`, and `Cookie`
 on cross-origin redirects. Android rejects a sensitive cross-origin redirect

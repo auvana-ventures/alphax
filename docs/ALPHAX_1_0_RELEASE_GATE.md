@@ -1,6 +1,6 @@
 # AlphaX 1.0 Release Gate
 
-Gate date: 2026-08-15
+Gate date: 2026-08-16
 Architecture: Android Cronet/HttpEngine; iOS/macOS URLSession; Dart IO
 fallback; pure-Dart transport-independent `alphax` API.
 
@@ -48,8 +48,11 @@ fixtures. `alphax_dio` remains an optional boundary without an adapter.
 | Web | UNSUPPORTED IN 1.0 | UNSUPPORTED IN 1.0 | UNSUPPORTED IN 1.0 | UNSUPPORTED IN 1.0 | UNSUPPORTED IN 1.0 |
 
 The Android H3 fixture and Apple H3/fallback evidence remain preserved in the
-Phase 1C/1D/1E reports. Final release-path Android and iPhone reruns were not
-completed in this environment.
+Phase 1C/1D/1E reports. The focused signed iPhone release/security rerun is
+also preserved in
+`benchmarks/mobile_gate/fixtures/phase1f_iphone_release_acceptance.json`.
+Current Android release-path runs preserve truthful H2 fallback on both Wi-Fi
+and cellular; live H3 remains dependent on the provider and network path.
 
 ## 3. TLS policy matrix
 
@@ -58,7 +61,7 @@ completed in this environment.
 | Platform default trust | SUPPORTED | SUPPORTED | SUPPORTED |
 | Hostname/validity checks | PLATFORM-MANAGED | PLATFORM-MANAGED | PLATFORM-MANAGED |
 | Trust-all / accept-any certificate | INTENTIONALLY UNSUPPORTED IN 1.0 | INTENTIONALLY UNSUPPORTED IN 1.0 | INTENTIONALLY UNSUPPORTED IN 1.0 |
-| Invalid certificate normalization | IMPLEMENTED; focused tests pass | IMPLEMENTED; native TLS errors normalized | IMPLEMENTED; macOS/iPhone historical invalid-TLS checks pass |
+| Invalid certificate normalization | IMPLEMENTED; focused tests pass | IMPLEMENTED; native TLS errors normalized | IMPLEMENTED; macOS and signed iPhone focused invalid-TLS checks pass |
 | Policy immutability | SUPPORTED in pure Dart | SUPPORTED at policy boundary | SUPPORTED at policy boundary |
 
 ## 4. Pinning matrix
@@ -69,8 +72,8 @@ evaluation, and preserve hostname and certificate validity checks.
 | Transport | Pin implementation | Unsupported behavior | Validation |
 | --- | --- | --- | --- |
 | Dart IO | UNSUPPORTED_BY_PLATFORM_API; no safe stable `HttpClient` SPKI callback/parser | `AlphaXUnsupportedTlsPolicyException` | Constructor/policy tests pass; unsupported behavior is explicit |
-| Android Cronet | SUPPORTED through provider public-key pin configuration; local-trust bypass disabled | Invalid/expired pins fail initialization | Native mapping/build pass; physical pin success/mismatch probe remains open |
-| Apple URLSession | SUPPORTED through server-trust challenge and SPKI extraction | Invalid/expired pins fail initialization; mismatch cancels challenge | Focused macOS custom-CA, primary/backup/mismatch, and invalid-certificate fixture passed; iPhone probe remains open |
+| Android Cronet | SUPPORTED through provider public-key pin configuration; local-trust bypass disabled | Invalid/expired pins fail initialization | Native mapping/build and focused physical success/backup/mismatch probes pass |
+| Apple URLSession | SUPPORTED through server-trust challenge and SPKI extraction | Invalid/expired pins fail initialization; mismatch cancels challenge | Focused macOS and signed iPhone custom-CA, primary/backup/mismatch, and invalid-certificate fixtures passed |
 
 No configured pin silently falls back to ordinary trust.
 
@@ -146,8 +149,10 @@ For cross-origin redirects, `Authorization`, `Proxy-Authorization`, and
 - Android Cronet rejects the cross-origin redirect when those headers exist,
   because the selected public API cannot safely replace pending headers.
 
-Deterministic server fixtures and macOS assertions pass. Android/iPhone
-physical assertions remain release-path validation blockers.
+Deterministic server fixtures and macOS/iPhone assertions pass. Android
+physical redirect assertions now pass. H3 remains an opportunistic protocol;
+the adapters report H2/H1 fallback accurately and H3 requirements fail closed
+when the path cannot negotiate H3.
 
 Streamed request bodies are never silently replayed. File bodies are replayed
 only when their source declares replayability and the adapter can reset it.
@@ -168,21 +173,81 @@ wireless TLS ADB. APK push, install-session creation, and install-session write
 all passed, but both `adb install`/`pm install` and explicit
 `cmd package install-commit` stalled without a result. After the permitted
 reboot, the wireless endpoint did not reappear. No Android transport probe is
-claimed from this attempt; focused release acceptance remains
-`IMPLEMENTED_NEEDS_VALIDATION`. Machine-readable evidence is retained in
-`benchmarks/mobile_gate/fixtures/phase1f_android_release_attempt.json`.
+claimed from this attempt; this attempt remains historical environment evidence
+only. Machine-readable evidence is retained in
+`benchmarks/mobile_gate/fixtures/phase1f_android_release_attempt.json`. A
+targeted reconnect to the previously recorded `192.168.50.56:42799` endpoint
+also refused; mDNS and `adb devices` remain empty. No Android result is
+inferred from that environment check.
+
+After the device became available again, it was recovered onto wired USB ADB.
+The package manager was responsive, the device was unlocked, storage and ADB
+install settings were healthy, and the stale install sessions were abandoned.
+Both a fresh profile APK and a fresh release APK targeting
+`lib/phase1c_main.dart` transferred and passed package parsing/integrity
+checks, but `adb install`, direct `pm install`, and the documented
+`--ignore-dexopt-profile` retry all stalled at the same 90% install-stage
+progress with no final status. The package was absent after each attempt. That
+historical install failure is retained in
+`benchmarks/mobile_gate/fixtures/phase1f_android_usb_install_attempt.json`.
+
+The requested installation path was then recovered without changing the APK
+or production code: release-equivalent APKs were placed at
+`/sdcard/Download/alphax_phase1f_android_release.apk`, opened from ColorOS My
+Files, and installed through the normal Package Installer. The APK hashes
+matched before and after transfer. The focused runs used Google Play Services
+Cronet `151.0.7922.29` on the physical Android 15/API 35 device. The default,
+correct-pin, backup-pin, and wrong-pin runs all passed the secure redirect,
+cancellation, native file-transfer, and close/reuse checks. The protocol
+requirement failure branch now correctly returns
+`AlphaXProtocolRequirementException`; the earlier pre-fix failure is retained
+as historical evidence. Correct and backup SPKI pins succeeded, and an
+incorrect pin failed with `AlphaXCertificatePinMismatchException`.
+
+The machine-readable focused evidence is retained in
+`benchmarks/mobile_gate/fixtures/phase1f_android_final_release_focused.json`.
+Both `cloudflare-quic.com` and `www.google.com` advertised H3 but negotiated
+HTTP/2 on the tested Wi-Fi path; AlphaX reported HTTP/2 accurately. The
+2026-08-16 cellular report is retained in
+`benchmarks/mobile_gate/fixtures/phase1f_android_h3_cellular_fallback.json`;
+it records the same truthful H2 result after the process was bound to a
+validated cellular network. These are network-path observations, not a
+failure of the H3-capable provider or a universal H3 guarantee. No diagnostic
+QUIC hint was used. A subsequent physical run where Android reported the
+cellular path as unvalidated was rejected before any H3 probe; that guard is
+retained in
+`benchmarks/mobile_gate/fixtures/phase1f_android_h3_cellular_unvalidated.json`.
+
+The self-contained two-check runner is now available at
+`benchmarks/mobile_gate/lib/phase1f_h3_self_check_main.dart`. It uses only
+the approved public endpoints, creates the selected production transport, and
+performs a bounded Alt-Svc prewarm/retry sequence on the same engine before
+saving `alphax-phase1f-h3-release.json` in the app documents directory. The
+runner does not add a production QUIC hint or force a protocol; the report can
+be retrieved after the device is reachable over network tooling.
 
 ## 11. iPhone physical acceptance
 
-The signed iPhone runner attached successfully for one direct profile run and
-verified actual HTTP/2 on `https://www.apple.com/`, actual HTTP/3 on
-`https://cloudflare-quic.com/`, and invalid-certificate rejection. The local
-plain-HTTP fixture was unreachable from the phone on both tested host
-interfaces, so local H1/fallback, file, stream, and lifecycle checks were not
-counted as new device evidence. A later `flutter drive` retry hit
-`osascript: -2`. Retained Phase 1D/1E signed evidence remains preserved; the
-current release-path security/protocol rerun is still
-`IMPLEMENTED_NEEDS_VALIDATION`.
+The signed iPhone XR profile runner attached successfully on iOS 18.7.9
+(arm64e). The focused release/security run passed:
+
+- H1 fixture reachability and H3 requirement rejection on H1;
+- actual HTTP/2 on `https://www.apple.com/`;
+- actual HTTP/3 and H3 requirement success on
+  `https://cloudflare-quic.com/`;
+- H3 preference/fallback reporting;
+- default trust rejection, custom CA success/failure;
+- primary/backup SPKI pin success, mismatch failure, and invalid-certificate
+  rejection despite a matching pin;
+- cross-origin `Authorization`, `Proxy-Authorization`, and `Cookie` removal;
+- no trust-all override.
+
+The native completion-time protocol normalizer was corrected after the first
+probe: canonical `http10`/`http11`/`http2`/`http3` values are now accepted when
+evaluating a protocol requirement. The focused result is preserved in
+`benchmarks/mobile_gate/fixtures/phase1f_iphone_release_acceptance.json`.
+The earlier `osascript: -2` retry and prior unreachable-fixture attempt remain
+historical environment evidence and are not rewritten.
 
 ## 12. macOS acceptance
 
@@ -233,18 +298,27 @@ configuration. CocoaPods is the 1.0 Apple packaging path; SPM is not required
 for this release. Package source/archive observations are not final app-size
 claims.
 
+## RC package boundary
+
+The proposed first release candidate is `1.0.0-rc.1`. The intended publication
+set is `alphax`, `alphax_test`, and `alphax_native`; `alphax_dio` remains an
+unpublished skeleton with `publish_to: none` until it has real functionality.
+The dependency order is `alphax`, then `alphax_test`, then `alphax_native`
+(`alphax_native` consumes `alphax` at runtime and `alphax_test` as a development
+dependency). No package is published by this release-gate change.
+
 ## 15. Security review
 
 | Assertion | State |
 | --- | --- |
 | Secure trust defaults | IMPLEMENTED_AND_VALIDATED |
 | Trust-all prohibition | IMPLEMENTED_AND_VALIDATED |
-| SPKI pins and backup pins | IMPLEMENTED_NEEDS_VALIDATION; macOS passed, Android/iPhone focused checks remain |
-| Custom trust anchors | IMPLEMENTED_NEEDS_VALIDATION; macOS passed, Android provider limitation is explicit, iPhone focused checks remain |
+| SPKI pins and backup pins | IMPLEMENTED_AND_VALIDATED where supported; macOS/iPhone/Android focused success, backup, mismatch, and invalid-certificate checks pass; Dart IO reports unsupported |
+| Custom trust anchors | IMPLEMENTED_AND_VALIDATED where supported; macOS/iPhone passed, Android provider limitation is explicit |
 | Private-key handling | IMPLEMENTED_AND_VALIDATED; only opaque identity references are public |
-| Cross-origin sensitive-header protection | IMPLEMENTED_NEEDS_VALIDATION for physical Android/iPhone; macOS/Dart IO pass |
+| Cross-origin sensitive-header protection | IMPLEMENTED_AND_VALIDATED; Android secure rejection and macOS/Dart IO/iPhone protection pass |
 | Proxy credential redaction/logging | IMPLEMENTED_AND_VALIDATED; macOS route/auth fixture passed and no credentials were logged |
-| Native error sanitization | IMPLEMENTED_NEEDS_VALIDATION for focused device policy errors |
+| Native error sanitization | IMPLEMENTED_AND_VALIDATED for focused Android protocol and pin errors |
 | File/temp cleanup | IMPLEMENTED_AND_VALIDATED in existing transfer suites |
 | Diagnostic QUIC hint absent from production | IMPLEMENTED_AND_VALIDATED |
 
@@ -258,42 +332,44 @@ Present and updated:
 - `docs/architecture/transport_contract.md`;
 - `docs/phase1a-public-api-inventory.md`;
 - `docs/MIGRATION.md`;
+- `SECURITY.md` and `CHANGELOG.md`;
 - package READMEs;
 - ADRs 0004–0008;
 - retained Phase 0/Phase 1 historical reports.
 
 The older Phase 1F report remains historical evidence and is not rewritten to
-erase the pre-closure gap it recorded.
+erase the pre-closure gap it recorded. The public API inventory is frozen for
+`1.0.0-rc.1`; no new public exports are introduced by RC preparation.
 
 ## 17. Required 1.0 item states
 
 The authoritative per-capability list is in
 [`ALPHAX_1_0_REQUIREMENTS_AUDIT.md`](ALPHAX_1_0_REQUIREMENTS_AUDIT.md). No
-required item is silently reclassified. The exact non-complete states are:
+required item is silently reclassified. No required item remains blocked for
+RC review. The following evidence boundary is retained explicitly:
 
-| Required area | Exact state | Blocking evidence |
+| Required area | Exact state | Evidence boundary |
 | --- | --- | --- |
-| Android H3/release security acceptance | `IMPLEMENTED_NEEDS_VALIDATION` | Wireless ADB/package manager did not recover after reboot |
-| iPhone H1/fallback, requirement, pin/trust, redirect release checks | `IMPLEMENTED_NEEDS_VALIDATION` | H2, H3, and invalid-TLS checks passed; local H1 was unreachable and a later automation retry hit `osascript: -2` |
-| Android protocol requirement, pin/trust, redirect, file, and cancellation checks | `IMPLEMENTED_NEEDS_VALIDATION` | Device/package-manager access is unavailable |
+| Android live H3 and H3-requirement semantics | `IMPLEMENTED_AND_VALIDATED` | Actual Android H3 is retained in Phase 1C provider/device evidence; current Wi-Fi and cellular release paths accurately fall back to H2. The per-network success observation remains a non-gating follow-up. |
+| Android protocol requirement failure, pinning, redirect, file, cancellation, and lifecycle checks | `IMPLEMENTED_AND_VALIDATED` | Focused profile/release-equivalent physical-device runs passed; evidence is retained in `phase1f_android_final_release_focused.json` |
 | Final repository/package/security validation | `IMPLEMENTED_AND_VALIDATED` | Consolidated repository, package, security, dependency, build, and documentation checks passed |
 
-## 18. Remaining blockers and alternatives
+## 18. Non-gating follow-ups
 
-1. Recover Android ADB/package-manager access, install the existing profile
-   runner, and run only H1, H2, H3, protocol requirement, TLS/pin, redirect,
-   file, and cancellation checks.
-2. Re-run the focused signed iPhone checks with a reachable H1 fixture (or a
-   known H1-only endpoint): H1/fallback, protocol requirement, pin/custom
-   trust, redirect security, and minimal file/cancellation sanity. H2/H3 and
-   invalid-TLS evidence from the attached phone is already retained.
+There are no remaining RC blockers. As a non-gating follow-up, run the
+self-contained Android H3 runner on a path known to permit outbound UDP/443 if
+additional live H3 evidence is desired. The runner now performs its own
+bounded Alt-Svc discovery retry; no additional device/network matrix is
+required, and a diagnostic QUIC hint must not be added to production.
 
 ## 19. Final conclusion
 
-# BLOCKED FOR 1.0 RC
+## UNBLOCKED FOR 1.0 RC REVIEW
 
-The code and public contract are not eligible for an AlphaX 1.0 release
-candidate until the focused Android/iPhone release-path evidence above is
-complete. Provider-limited policies are accepted fail-closed boundaries and
-are not RC blockers. No package has been published and no 1.0 tag has been
-created.
+The code and public contract are eligible for maintainer 1.0 RC review. H3 is
+supported where the selected provider and network negotiate it; otherwise the
+request reports the actual H2/H1 fallback, and an explicit H3 requirement fails
+closed. The signed iPhone focused release/security gate and Android focused
+security/lifecycle evidence are complete. Provider-limited policies are
+accepted fail-closed boundaries and are not RC blockers. No package has been
+published and no 1.0 tag has been created.
