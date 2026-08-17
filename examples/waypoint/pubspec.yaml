@@ -8,19 +8,15 @@ environment:
   flutter: ">=3.22.0"
 
 dependencies:
-  alphax:
-    path: ../../packages/alphax
-  alphax_dio:
-    path: ../../packages/alphax_dio
-  alphax_native:
-    path: ../../packages/alphax_native
+  alphax: ^1.0.0-rc.3
+  alphax_dio: ^1.0.0-rc.3
+  alphax_native: ^1.0.0-rc.3
   dio: ^5.9.2
   flutter:
     sdk: flutter
 
 dev_dependencies:
-  alphax_test:
-    path: ../../packages/alphax_test
+  alphax_test: ^1.0.0-rc.3
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
@@ -28,13 +24,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-
-dependency_overrides:
-  alphax:
-    path: ../../packages/alphax
-  alphax_dio:
-    path: ../../packages/alphax_dio
-  alphax_native:
-    path: ../../packages/alphax_native
-  alphax_test:
-    path: ../../packages/alphax_test

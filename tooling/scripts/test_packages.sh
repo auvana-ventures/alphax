@@ -5,7 +5,7 @@ for package in packages/*; do
   echo "Testing ${package}"
   (
     cd "${package}"
-    if rg -q '^\s+sdk:\s+flutter\s*$' pubspec.yaml; then
+    if grep -Eq '^[[:space:]]+sdk:[[:space:]]+flutter[[:space:]]*$' pubspec.yaml; then
       flutter test
     else
       dart test

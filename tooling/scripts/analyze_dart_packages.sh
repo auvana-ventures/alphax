@@ -8,7 +8,7 @@ for package in packages/* benchmarks/client benchmarks/server benchmarks/runner;
   echo "Analyzing ${package}"
   (
     cd "${package}"
-    if rg -q '^\s+sdk:\s+flutter\s*$' pubspec.yaml; then
+    if grep -Eq '^[[:space:]]+sdk:[[:space:]]+flutter[[:space:]]*$' pubspec.yaml; then
       flutter pub get
       flutter analyze
     else

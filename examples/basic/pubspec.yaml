@@ -6,10 +6,8 @@ environment:
   sdk: ">=3.8.0 <4.0.0"
 
 dependencies:
-  alphax:
-    path: ../../packages/alphax
-  alphax_native:
-    path: ../../packages/alphax_native
+  alphax: ^1.0.0-rc.3
+  alphax_native: ^1.0.0-rc.3
   flutter:
     sdk: flutter
 
@@ -20,7 +18,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-
-dependency_overrides:
-  alphax:
-    path: ../../packages/alphax
