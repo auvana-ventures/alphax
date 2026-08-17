@@ -1,6 +1,6 @@
 # Task 33: Fix pub.dev README logo rendering
 
-Status: [*] In Progress
+Status: [x] Completed
 
 ## Goal
 
@@ -50,13 +50,13 @@ pub.dev account.
 
 ## Work Items
 
-- [ ] Create the task record and inspect the existing publication state.
-- [ ] Replace all package-relative logo references with absolute asset URLs.
-- [ ] Add RC2 changelog entries and update package versions/constraints.
-- [ ] Run focused formatting, metadata, dry-run, and image URL validation.
-- [ ] Publish all five packages in dependency order.
-- [ ] Verify pub.dev package pages and rendered logo URLs.
-- [ ] Commit/push the source and publication records.
+- [x] Create the task record and inspect the existing publication state.
+- [x] Replace all package-relative logo references with absolute asset URLs.
+- [x] Add RC2 changelog entries and update package versions/constraints.
+- [x] Run focused formatting, metadata, dry-run, and image URL validation.
+- [x] Publish all five packages in dependency order.
+- [x] Verify pub.dev package pages and rendered logo URLs.
+- [x] Commit/push the source and publication records.
 
 ## Validation
 
@@ -69,8 +69,8 @@ pub.dev account.
 
 ## Next Action
 
-Update all package README/changelog/version metadata, validate the archives, and
-publish `1.0.0-rc.2` in dependency order.
+Wait for maintainer review. Do not create a tag or GitHub release as part of
+this documentation-only correction.
 
 ## Blockers
 
@@ -79,7 +79,20 @@ README, the coordinated RC2 upload is the only supported path.
 
 ## Outcome
 
-Pending implementation and publication.
+The five coordinated `1.0.0-rc.2` packages were published successfully on
+2026-08-17 after clean dry-runs with zero warnings:
+
+- [alphax](https://pub.dev/packages/alphax) — 52 KB
+- [alphax_test](https://pub.dev/packages/alphax_test) — 12 KB
+- [alphax_native](https://pub.dev/packages/alphax_native) — 75 KB
+- [alphax_web](https://pub.dev/packages/alphax_web) — 11 KB
+- [alphax_dio](https://pub.dev/packages/alphax_dio) — 14 KB
+
+Pub.dev API checks report `latest.version = 1.0.0-rc.2` for every package.
+Each rendered README now contains an absolute light/dark SVG repository URL,
+has no `/packages/assets/...` relative reference, and its pub.dev-proxied dark
+logo returns HTTP 200. The source/publication record is pushed; no tag or
+GitHub release was created.
 
 ## References
 
@@ -93,3 +106,5 @@ Pending implementation and publication.
 
 - 2026-08-17: Created after pub.dev showed `/packages/assets/branding/...` 404
   for package-relative README logo paths.
+- 2026-08-17: Published RC2, verified all five pub.dev pages and image proxy
+  responses, and completed the task.
