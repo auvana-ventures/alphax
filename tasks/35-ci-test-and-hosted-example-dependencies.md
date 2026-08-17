@@ -1,6 +1,6 @@
 # Task 35: Fix CI Flutter test selection and hosted example dependencies
 
-Status: [*] In Progress
+Status: [x] Completed
 
 ## Goal
 
@@ -53,7 +53,7 @@ Maintainer-authorized Codex execution.
 - [x] Change user-facing example dependencies to hosted RC3 packages.
 - [x] Regenerate and inspect example lockfiles.
 - [x] Run focused validation and the relevant package/example tests.
-- [ ] Commit, push, and verify the resulting CI run.
+- [x] Commit, push, and verify the resulting CI run.
 
 ## Validation
 
@@ -66,8 +66,7 @@ Maintainer-authorized Codex execution.
 
 ## Next Action
 
-Commit and push the portable CI detection and hosted example dependency changes,
-then verify the new GitHub Actions run.
+No further action for this task; maintainer review can proceed.
 
 ## Blockers
 
@@ -80,7 +79,8 @@ POSIX `grep` in both package test and analysis scripts. The user-facing Basic
 and Waypoint examples now resolve AlphaX `1.0.0-rc.3` packages from pub.dev;
 their regenerated local lockfiles show `source: hosted` and `url: https://pub.dev`.
 The package test script, both example test suites, package analysis, and both
-example analyses pass locally. Push and remote CI verification remain pending.
+example analyses pass locally. Commit `3eddeca` is pushed, and GitHub Actions
+run `32030984456` completed successfully across all four jobs.
 
 ## References
 
@@ -99,3 +99,5 @@ example analyses pass locally. Push and remote CI verification remain pending.
 - 2026-08-17: Replaced `rg` feature detection with `grep`, migrated the two
   user-facing examples to hosted RC3 dependencies, and passed the focused local
   package/example validation.
+- 2026-08-17: Pushed `3eddeca`; GitHub Actions run `32030984456` passed the
+  Dart package, native prototype, and Android plugin jobs.
