@@ -1,0 +1,40 @@
+name: waypoint
+description: "A polished AlphaX travel-planning reference application."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.8.0 <4.0.0"
+  flutter: ">=3.22.0"
+
+dependencies:
+  alphax:
+    path: ../../packages/alphax
+  alphax_dio:
+    path: ../../packages/alphax_dio
+  alphax_native:
+    path: ../../packages/alphax_native
+  dio: ^5.9.2
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  alphax_test:
+    path: ../../packages/alphax_test
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  test: ^1.25.0
+
+flutter:
+  uses-material-design: true
+
+dependency_overrides:
+  alphax:
+    path: ../../packages/alphax
+  alphax_dio:
+    path: ../../packages/alphax_dio
+  alphax_native:
+    path: ../../packages/alphax_native
+  alphax_test:
+    path: ../../packages/alphax_test

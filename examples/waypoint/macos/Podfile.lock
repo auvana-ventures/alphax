@@ -1,0 +1,22 @@
+PODS:
+  - alphax_native (1.0.0-rc.1):
+    - FlutterMacOS
+  - FlutterMacOS (1.0.0)
+
+DEPENDENCIES:
+  - alphax_native (from `Flutter/ephemeral/.symlinks/plugins/alphax_native/macos`)
+  - FlutterMacOS (from `Flutter/ephemeral`)
+
+EXTERNAL SOURCES:
+  alphax_native:
+    :path: Flutter/ephemeral/.symlinks/plugins/alphax_native/macos
+  FlutterMacOS:
+    :path: Flutter/ephemeral
+
+SPEC CHECKSUMS:
+  alphax_native: 3d4f03513bc08b2d75ac280ed17bb59dbcda5e17
+  FlutterMacOS: c232990155153907050900a2e175c7773903ba4e
+
+PODFILE CHECKSUM: 1e95c36afbfd1cb6423ceca4de7a8e1b256fb6ac
+
+COCOAPODS: 1.16.2

@@ -1,18 +1,21 @@
-name: alphax_workspace
-description: AlphaX Dart and Flutter networking workspace.
-publish_to: none
+name: alphax_web
+description: Browser Fetch transport adapter for AlphaX.
+version: 1.0.0-rc.1
 homepage: https://github.com/auvana-ventures/alphax
 repository: https://github.com/auvana-ventures/alphax
 issue_tracker: https://github.com/auvana-ventures/alphax/issues
+topics:
+  - networking
+  - http
+  - web
+  - flutter
+resolution: workspace
 environment:
   sdk: ">=3.8.0 <4.0.0"
 
-workspace:
-  - packages/alphax
-  - packages/alphax_native
-  - packages/alphax_dio
-  - packages/alphax_test
-  - packages/alphax_web
+dependencies:
+  alphax: ^1.0.0-rc.1
+  http: ^1.6.0
 
 dev_dependencies:
   lints: ^5.1.1

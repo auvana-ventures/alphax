@@ -42,6 +42,9 @@ enum AlphaXErrorKind {
 
   /// An error occurred inside the selected transport.
   transport,
+
+  /// A generic resilience policy rejected or terminated the operation.
+  resilience,
 }
 
 /// Base exception for the AlphaX public API.
@@ -271,6 +274,13 @@ class AlphaXTransportException extends AlphaXException {
   /// Creates a transport failure.
   const AlphaXTransportException(super.message, {super.cause, super.stackTrace})
     : super(kind: AlphaXErrorKind.transport);
+}
+
+/// A generic resilience policy rejected a request before transport dispatch.
+class AlphaXResilienceException extends AlphaXException {
+  /// Creates a resilience-policy failure.
+  const AlphaXResilienceException(super.message, {super.cause, super.stackTrace})
+    : super(kind: AlphaXErrorKind.resilience);
 }
 
 /// The client was closed before the operation could start.
