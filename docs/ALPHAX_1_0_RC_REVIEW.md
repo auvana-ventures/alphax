@@ -54,10 +54,12 @@ The final task-18 traceability record is committed separately as the RC
 closeout. The final handoff reports that closeout commit together with the
 release-gate and Dio adapter commits after push verification.
 
-The current non-H3 capability and validation-boundary work is captured in
-`534b627` together with the accompanying release-documentation commit; no
-historical release commit is rewritten. The final handoff reports the exact
-documentation commit hash after push verification.
+The current release-preparation work is captured in these commits:
+
+- `534b627` — `feat: complete AlphaX 1.0 RC capabilities`
+- `25cb525` — `docs: finalize AlphaX 1.0 RC release gate`
+
+No historical release commit is rewritten.
 
 ## 4. Public API freeze
 
@@ -167,9 +169,8 @@ declare repository/homepage/issue metadata, use the repository license, and
 have compatible SDK/platform declarations. `alphax_dio` depends on Dio 5.x and
 the AlphaX core, and remains pure Dart.
 
-The publication dry-runs completed with zero package-content errors. The
-approved RC packages emitted only dirty-worktree warnings because this task is
-being reviewed before commit:
+The clean-state publication dry-runs completed with zero warnings, zero
+package-content errors, and no generated or machine-specific files:
 
 | Package | Command | Compressed archive |
 | --- | --- | ---: |
@@ -185,10 +186,8 @@ archive is 8 KB. It is not part of the approved native RC publication set.
 The archives contained only expected package source, tests, documentation,
 metadata, and native plugin files. No generated build output, benchmark data,
 local fixture output, signing configuration, or machine-specific file was
-included. The current worktree is intentionally uncommitted, so the four
-existing RC packages reported only the expected dirty-worktree warning; no
-package-content warnings or errors were reported. The separately prepared
-`alphax_web` dry-run reported zero warnings.
+included. The separately prepared `alphax_web` dry-run also reported zero
+warnings.
 
 ## 10. Dependency graph and third-party notices
 
