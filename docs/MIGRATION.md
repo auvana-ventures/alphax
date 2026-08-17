@@ -81,6 +81,18 @@ circuit breaker. Unsafe or non-replayable operations are never silently
 retried; persistent stores and model-specific authentication remain application
 responsibilities.
 
+Before adding middleware, remember the default behavior:
+
+| Behavior | Default |
+| --- | --- |
+| Middleware | Empty list; no policy is enabled. |
+| Retry | Off; one attempt. |
+| Authentication | Off; token storage remains application-owned. |
+| Cookies/cache | Off; the supplied implementations are in-memory when added. |
+| Resilience | Off; no circuit breaker. |
+| TLS/proxy | Verified platform trust and system proxy policy on the selected transport. |
+| Protocol | `auto` preference; actual protocol comes from provider/server/proxy/network negotiation. |
+
 For a starting policy set:
 
 ```dart
@@ -102,7 +114,60 @@ an unsafe mutation silently. Authentication injects a caller-owned token and
 can perform one single-flight refresh after a buffered challenge. Cookie and
 cache state are in memory unless the application supplies its own store. The
 resilience middleware is a generic circuit breaker, not an offline queue or
-vendor-specific retry service.
+vendor-specific retry service. For step-by-step examples and customization
+guidance, see [policy defaults and customization](POLICIES.md).
+
+### Cookie persistence boundary
+
+The old concrete `AlphaXCookieJar` middleware call remains source-compatible:
+
+```dart
+final jar = AlphaXCookieJar();
+final client = AlphaXClient(
+  transport: transport,
+  middleware: <AlphaXMiddleware>[AlphaXCookieMiddleware(jar)],
+);
+await jar.clear(); // logout
+```
+
+Cookie store operations are asynchronous in AlphaX 1.0. `AlphaXCookieStore`
+stores parsed `AlphaXCookie` values through `readCookies()`,
+`writeCookies(...)`, atomic `updateCookies(...)`, and `clear()`. The middleware
+continues to own parsing, domain/path matching, expiry, Secure, HttpOnly,
+host-only, replacement, and deletion behavior, so a custom
+encrypted/database/secure-storage adapter does not need to reimplement HTTP
+cookie rules. The adapter must serialize `updateCookies` transactions, surface
+failures, protect values at rest, and clear the session on logout. The
+convenience methods `cookieHeaderFor(...)` and `storeFromResponse(...)` are now
+asynchronous and must be awaited.
+SameSite and browser cookie context remain outside the native core.
+
+### HTTP-aware private cache boundary
+
+`AlphaXCacheStore` is no longer keyed by `Uri` alone. A custom store must use
+`AlphaXCacheKey` and `AlphaXCacheEntry`, preserving the method, URI, response
+`Vary` fields, optional identity scope, validators, freshness metadata, and
+response headers:
+
+```dart
+final store = AlphaXMemoryCacheStore(maxEntries: 100, maxBytes: 10 * 1024 * 1024);
+final cachePolicy = const AlphaXCachePolicy(
+  defaultMaxAge: Duration(minutes: 5),
+  identityKey: 'account-42', // non-secret; use only for this identity
+);
+```
+
+The default cache is private, opt-in, bounded, and in memory. AlphaX owns
+variant selection and conservative `Cache-Control`/`Date`/`Age`/`Expires`
+freshness, `Vary`, ETag/Last-Modified revalidation, 304 metadata merging,
+authenticated-response isolation, and POST/PUT/PATCH/DELETE invalidation.
+Authorization- or cookie-bearing requests bypass the cache unless an explicit
+stable identity key is configured; proxy-authenticated requests always bypass;
+responses that set cookies are not stored. Change the identity key or clear
+the store on account switch. Custom stores own durability, encryption, access
+control, corruption handling, and concurrent-write serialization. The cache is
+not an offline queue or synchronization system, and request coalescing is not
+promised.
 
 ## Dio mapping
 
@@ -220,4 +285,6 @@ AlphaX 1.0 intentionally differs from both source clients: response bodies are
 explicitly consumed, streamed bodies have ownership/replay rules, protocol
 metadata may complete later, capability limitations are visible, unsupported
 security/routing controls fail closed, and policy behavior is explicit
-middleware rather than an implicit vendor-specific default.
+middleware rather than an implicit vendor-specific default. The [policy guide](POLICIES.md)
+shows how to choose a transport, add one policy at a time, and provide custom
+stores or application middleware when the built-in boundaries are not enough.

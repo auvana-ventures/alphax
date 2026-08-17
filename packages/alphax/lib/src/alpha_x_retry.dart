@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'alpha_x_errors.dart';
+import 'alpha_x_http_date.dart';
 import 'alpha_x_method.dart';
 import 'alpha_x_middleware.dart';
 import 'alpha_x_policy_helpers.dart';
@@ -163,7 +164,15 @@ final class AlphaXRetryPolicy {
       return null;
     }
     final seconds = int.tryParse(value);
-    return seconds == null || seconds < 0 ? null : Duration(seconds: seconds);
+    if (seconds != null) {
+      return seconds < 0 ? null : Duration(seconds: seconds);
+    }
+    final retryAt = parseAlphaXHttpDate(value);
+    if (retryAt == null) {
+      return null;
+    }
+    final delay = retryAt.difference(DateTime.now().toUtc());
+    return delay.isNegative ? Duration.zero : delay;
   }
 }
 

@@ -174,27 +174,37 @@ inferred as H1.
 ### Add AlphaX policies to the injected client
 
 Dio keeps its own interceptors and response behavior. AlphaX policies are
-configured once on the client passed to the adapter:
+configured once on the client passed to the adapter. Nothing in this adapter
+enables retries, authentication, cookies, caching, or resilience automatically:
 
 ```dart
+final cookieJar = AlphaXCookieJar();
 final alphaClient = AlphaXClient(
   transport: transport,
   middleware: <AlphaXMiddleware>[
-    AlphaXAuthenticationMiddleware(accessToken: tokenStore.currentAccessToken),
-    AlphaXCookieMiddleware(AlphaXCookieJar()),
+    AlphaXAuthenticationMiddleware(
+      accessToken: currentAccessToken,
+      refreshAccessToken: refreshAccessToken,
+    ),
+    AlphaXCookieMiddleware(cookieJar),
     AlphaXRetryMiddleware(),
-    AlphaXCacheMiddleware(store: AlphaXMemoryCacheStore()),
+    AlphaXCacheMiddleware(
+      store: AlphaXMemoryCacheStore(maxEntries: 100),
+    ),
     AlphaXResilienceMiddleware(),
   ],
 );
 final dio = Dio()..httpClientAdapter = AlphaXDioAdapter(alphaClient);
 ```
 
-These policies are opt-in. Retries default to replayable idempotent buffered
-requests; the cache is in-memory and applies to buffered GET/HEAD responses;
-authentication refresh is application-token based; and resilience is a generic
-circuit breaker. The adapter does not invent a Dio-specific retry, cookie,
-authentication, cache, or vendor resilience policy.
+The defaults are intentionally conservative: retries repeat only replayable
+idempotent buffered requests; authentication uses the token provider supplied
+by your application and refreshes only one replayable buffered challenge;
+cookies and cache entries are in memory; and resilience is a generic circuit
+breaker. Dio's own interceptors still run separately. For a step-by-step guide
+covering custom retry decisions, token headers, persistent stores, proxy setup,
+SPKI pin rotation, and unsupported-provider handling, read the [AlphaX policy
+defaults and customization guide](https://github.com/auvana-ventures/alphax/blob/main/docs/POLICIES.md).
 
 ## Security and compatibility boundaries
 

@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.0-rc.1 - 2026-08-16
+## 1.0.0-rc.1 - 2026-08-17
 
 - Added a deterministic fake AlphaX transport with delayed responses, failures,
   cancellation, request recording, streamed events, and file fixtures.

@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.0-rc.1 - 2026-08-16
+## 1.0.0-rc.1 - 2026-08-17
 
 - Added the platform transport integration boundary.
 - Added the Dart IO fallback transport with HTTP/1.1 request/response

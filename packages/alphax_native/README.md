@@ -139,21 +139,70 @@ If H3 is mandatory, pass
 `protocolRequirement: AlphaXProtocolRequirement.http3`. A preference may
 fall back to H2 or H1; a requirement fails closed when H3 is not negotiated.
 
-## TLS and proxy boundaries
+## Configure TLS and proxy behavior
 
-All adapters keep certificate verification enabled by default. Capabilities
-are provider-dependent and are reported rather than guessed.
+The transport constructors use secure, system-managed defaults:
 
-- Android Cronet uses platform trust and supports provider-backed SPKI pins;
-  custom trust anchors and client identities are rejected by the selected
-  provider.
-- Apple URLSession uses platform trust, supports the documented pinning and
-  proxy policies, and reports unsupported policies explicitly.
-- Dart IO supports platform/additional trust and system/direct/explicit HTTP
-  proxy routing, but SPKI pinning, mTLS, and explicit HTTPS-proxy endpoint
-  parity are unsupported.
-- Never use trust-all configuration in production, and never log proxy
-  credentials. Keep primary and backup pins in secure application config.
+- certificate-chain, hostname, and validity checks are enabled;
+- the system proxy policy is used; and
+- SPKI pinning, explicit proxy routing, and custom trust anchors are off until
+  you configure them.
+
+Configure these controls when the transport is created, before passing it to
+`AlphaXClient`:
+
+```dart
+final transport = await AppleUrlSessionTransport.create(
+  tlsPolicy: AlphaXTlsPolicy(
+    pins: <AlphaXSpkiPin>[
+      AlphaXSpkiPin(
+        host: apiHost,
+        sha256SpkiBase64: primarySpkiSha256Base64,
+        expiresAt: primaryPinExpiry,
+      ),
+      AlphaXSpkiPin(
+        host: apiHost,
+        sha256SpkiBase64: backupSpkiSha256Base64,
+        expiresAt: backupPinExpiry,
+      ),
+    ],
+  ),
+  proxyPolicy: AlphaXProxyPolicy.http(
+    host: proxyHost,
+    port: proxyPort,
+  ),
+);
+final client = AlphaXClient(transport: transport);
+```
+
+The pin variables must come from your secure release configuration. A pin is a
+base64 SHA-256 digest of the certificate's DER SubjectPublicKeyInfo. Keep a
+primary and backup pin, give both an expiry, and rotate before expiry. Pinning
+adds to normal certificate validation; it never makes an expired, untrusted, or
+wrong-host certificate valid.
+
+Check `client.capabilities` before selecting an optional control. If the
+selected provider cannot honor a configured TLS or proxy policy, initialization
+fails with a normalized unsupported-policy error instead of silently changing
+the route or trust behavior.
+
+| Control | Dart IO | Android Cronet | Apple URLSession |
+| --- | --- | --- | --- |
+| Platform trust | Supported by default | Supported by default | Supported by default |
+| SPKI pinning | Unsupported; fails closed | Supported by the selected provider | Supported |
+| Custom trust anchors | Supported where Dart IO can load them | Unsupported by the selected provider | Supported through platform trust APIs |
+| `system()` proxy | Supported | Provider/system managed | Supported |
+| `direct()` proxy | Supported | Unsupported by the selected provider | Supported |
+| Explicit `http(...)` proxy | Supported, including Basic auth | Unsupported by the selected provider | Supported, including HTTPS CONNECT where CFNetwork permits |
+| Explicit `https(...)` proxy endpoint | Unsupported | Unsupported | Unsupported by the shared 1.0 mapping |
+| mTLS/client identity | Unsupported in 1.0 | Unsupported in the selected provider | Unsupported in 1.0 |
+
+An HTTP proxy endpoint can carry an HTTPS destination through CONNECT; that is
+different from configuring an HTTPS proxy endpoint. Never use trust-all
+configuration, log proxy credentials, or put real pin material in examples.
+For retry, authentication, cookies, caching, resilience, protocol preference,
+and custom application policies, follow the [policy defaults and customization
+guide](https://github.com/auvana-ventures/alphax/blob/main/docs/POLICIES.md).
 
 ## What this package does not promise
 

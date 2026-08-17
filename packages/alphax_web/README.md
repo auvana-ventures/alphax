@@ -45,6 +45,49 @@ Future<void> loadHealth() async {
 The target server must allow the browser origin with the appropriate CORS
 headers. AlphaX cannot bypass browser security rules.
 
+## Defaults and optional policies
+
+`WebFetchTransport` follows browser security and has these defaults:
+
+| Behavior | Default in Web |
+| --- | --- |
+| TLS and proxy | Controlled by the browser; AlphaX cannot replace them. |
+| Protocol metadata | `unknown`; Fetch does not expose authoritative H1/H2/H3 to Dart. |
+| Retries | Off until `AlphaXRetryMiddleware` is added. |
+| Authentication | Off until authentication middleware or browser credentials are configured. |
+| Cookies | Browser-managed cookies are off for cross-origin requests until `withCredentials: true`; an AlphaX in-memory jar is separately opt-in. |
+| Cache and resilience | Off until the corresponding AlphaX middleware is added. |
+
+The same AlphaX middleware can be added to Web for policies that do not require
+native controls:
+
+```dart
+final client = AlphaXClient(
+  transport: WebFetchTransport(),
+  middleware: <AlphaXMiddleware>[
+    AlphaXAuthenticationMiddleware(
+      accessToken: currentAccessToken,
+    ),
+    AlphaXRetryMiddleware(),
+    AlphaXCacheMiddleware(store: AlphaXMemoryCacheStore()),
+  ],
+);
+```
+
+Retries still require replayable bodies, cache behavior is in-memory unless you
+provide another store, and browser CORS rules still apply. The Web adapter
+cannot add certificate pins or an explicit proxy because those controls belong
+to the browser. See the [policy defaults and customization guide](https://github.com/auvana-ventures/alphax/blob/main/docs/POLICIES.md)
+for the general policy rules.
+
+Do not combine `AlphaXCacheMiddleware` with
+`WebFetchTransport(withCredentials: true)` unless the application supplies a
+stable, non-secret cache `identityKey` for the browser session and changes it or
+clears the store on logout/account change. Browser-managed cookies are opaque to
+AlphaX, so the cache cannot discover that identity itself. If browser identity
+can change without the application observing it, leave AlphaX caching off for
+those requests.
+
 ## Cookies and browser credentials
 
 For browser-managed cookies, opt in deliberately:
@@ -77,5 +120,11 @@ Use [`alphax_native`](https://github.com/auvana-ventures/alphax/tree/main/packag
 Linux, and Windows transport adapters. Use [`alphax`](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax)
 directly when you provide another transport.
 
-The package is licensed under Apache-2.0 and is prepared as a separate Web
-adapter; it is not silently added to the native RC publication set.
+If a browser limitation is unacceptable, move that operation to a native
+transport and check its reported capabilities before configuring TLS, proxy, or
+protocol requirements. AlphaX will fail closed rather than pretending that the
+browser can enforce a control it cannot observe.
+
+The package is licensed under Apache-2.0 and is included as the separate Web
+adapter in the proposed RC publication set. Publication still requires the
+common maintainer release approval.

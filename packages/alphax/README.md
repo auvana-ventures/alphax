@@ -127,35 +127,42 @@ final result = await client.download(
 print('downloaded ${result.bytesTransferred} bytes');
 ```
 
-### Add the policies your application needs
+### Understand defaults before adding policies
 
-Policies are explicit middleware. They are not enabled by `AlphaXClient` by
-default, so an application can choose its retry, credential, cookie, cache,
-and resilience behavior deliberately.
+`AlphaXClient` does not silently enable application policy. With the default
+empty middleware list:
+
+| Behavior | Default |
+| --- | --- |
+| Retry | Off; failed requests run once. |
+| Authentication | Off; AlphaX does not create or store tokens. |
+| Cookies | Off in the core; browser cookies are separately controlled by Fetch. |
+| Cache | Off; no response is stored. |
+| Resilience | Off; no circuit breaker is active. |
+| TLS | Verified platform trust remains enabled. |
+| Proxy | The selected transport uses its system proxy policy. |
+| H3 | Never guaranteed; inspect completion metadata for the actual protocol. |
+
+Add only what the application needs. For example:
 
 ```dart
 final client = AlphaXClient(
   transport: transport,
   middleware: <AlphaXMiddleware>[
-    AlphaXAuthenticationMiddleware(
-      accessToken: tokenStore.currentAccessToken,
-      refreshAccessToken: tokenStore.refreshAccessToken,
-    ),
-    AlphaXCookieMiddleware(AlphaXCookieJar()),
     AlphaXRetryMiddleware(),
-    AlphaXCacheMiddleware(store: AlphaXMemoryCacheStore()),
-    AlphaXResilienceMiddleware(
-      policy: const AlphaXResiliencePolicy(failureThreshold: 5),
+    AlphaXAuthenticationMiddleware(
+      accessToken: currentAccessToken,
     ),
   ],
 );
 ```
 
-Retries are limited to replayable, idempotent buffered requests by default.
-Cache entries are in memory and cover buffered GET/HEAD responses. Authentication
-refresh is single-flight and occurs once after a configured challenge; token
-storage remains application-owned. Cookies are in memory, and resilience is a
-generic circuit breaker rather than a vendor-specific reliability service.
+The default retry policy only repeats replayable, idempotent buffered requests.
+Authentication refresh, cookies, cache storage, resilience settings, proxy
+routing, and SPKI pinning all have additional configuration and platform
+limits. Follow the [policy defaults and customization guide](https://github.com/auvana-ventures/alphax/blob/main/docs/POLICIES.md)
+for copyable examples, cookie/cache store seams, authenticated-cache identity
+scoping, proxy setup, pin rotation, and failure-closed handling.
 
 ## What this package includes
 
@@ -177,9 +184,15 @@ platform reports negotiation only after the operation completes.
   package; importing `alphax` alone does not make Web available.
 - It does not guarantee H3; provider, server, proxy, and network conditions
   decide the actual protocol.
-- The policy middleware is deliberately bounded: no persistent cookie store,
-  disk cache, unsafe replay, model-specific authentication framework, or
-  vendor-specific resilience policy is included.
+- The policy middleware is deliberately bounded: cookie persistence remains
+  caller-owned through `AlphaXCookieStore`; cache persistence remains
+  caller-owned through `AlphaXCacheStore`; credential-bearing cache reuse is
+  identity-scoped and Set-Cookie responses are excluded; unsafe replay, model-specific
+  authentication frameworks, and vendor-specific resilience policies are not
+  included.
+- To customize a policy, add the relevant middleware to `AlphaXClient`; to
+  customize TLS or proxy routing, configure the selected transport before
+  constructing the client. Unsupported provider controls fail closed.
 - It makes no universal speed, zero-copy, or “fastest client” claim.
 
 ## Continue learning
@@ -189,6 +202,7 @@ platform reports negotiation only after the operation completes.
 - [Browser Fetch transport](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_web)
 - [Dio adapter](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_dio)
 - [Testing helpers](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_test)
+- [Policy defaults and customization](https://github.com/auvana-ventures/alphax/blob/main/docs/POLICIES.md)
 - [Waypoint reference app](https://github.com/auvana-ventures/alphax/tree/main/examples/waypoint)
 - [Migration guide](https://github.com/auvana-ventures/alphax/blob/main/docs/MIGRATION.md)
 

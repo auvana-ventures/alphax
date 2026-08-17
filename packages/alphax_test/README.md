@@ -98,6 +98,47 @@ test('stops a request when its screen closes', () async {
 `FakeAlphaXTransport` also supports configured failures, request recording,
 stream builders, protocol/capability values, and deterministic timing.
 
+## Test optional policies without a network
+
+`alphax_test` does not turn on retries, authentication, cookies, caching, or
+resilience for you. Add the same middleware to the fake-backed client that the
+production client will use, then configure the fake response or failure you
+want to exercise:
+
+```dart
+var attempts = 0;
+final client = AlphaXClient(
+  transport: FakeAlphaXTransport(
+    responseBuilder: (_) {
+      attempts++;
+      return AlphaXResponse(
+        statusCode: attempts == 1 ? 503 : 200,
+        bodyBytes: attempts == 1 ? const <int>[] : const <int>[1, 2, 3],
+      );
+    },
+  ),
+  middleware: <AlphaXMiddleware>[
+    AlphaXRetryMiddleware(
+      policy: AlphaXRetryPolicy(
+        initialDelay: Duration.zero,
+      ),
+    ),
+  ],
+);
+addTearDown(client.close);
+
+final response = await client.get(Uri.https('example.com', '/retry-test'));
+// The fake returns 503 once, then 200; GET is replayable by default.
+print(response.statusCode);
+```
+
+Use request recording to confirm which headers, bodies, and protocol controls
+your custom policy produces. Keep retry tests focused on replayable requests,
+and add separate tests for token refresh, cookie clearing, cache invalidation,
+and circuit-open behavior. The [policy defaults and customization guide](https://github.com/auvana-ventures/alphax/blob/main/docs/POLICIES.md)
+explains the production boundaries; this package lets you verify them without
+real credentials, servers, proxies, or certificates.
+
 ### Test file transfers without files
 
 ```dart

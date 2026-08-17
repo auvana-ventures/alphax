@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.0-rc.1 - 2026-08-16
+## 1.0.0-rc.1 - 2026-08-17
 
 - Added `AlphaXDioAdapter`, a focused Dio 5.x `HttpClientAdapter` backed by an
   injected `AlphaXClient`.
@@ -24,5 +24,6 @@
 - Browser support is provided by the separate `alphax_web` Fetch adapter; this
   Dio bridge does not change browser platform rules.
 - AlphaX policy middleware is opt-in and bounded: retries are replay-aware,
-  cookies/cache are in-memory, authentication state is caller-owned, and
-  resilience is generic rather than vendor-specific.
+  the supplied cookie/cache stores are in-memory while custom persistence
+  remains caller-owned through stable store seams, authentication state is
+  caller-owned, and resilience is generic rather than vendor-specific.

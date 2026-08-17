@@ -155,7 +155,7 @@ void main() {
     final response = await client.get(uri);
 
     expect(response.statusCode, 200);
-    expect(jar.cookieHeaderFor(uri), 'session=abc');
+    expect(await jar.cookieHeaderFor(uri), 'session=abc');
   });
 
   test('cache middleware serves a fresh buffered response without transport work', () async {
