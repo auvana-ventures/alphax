@@ -77,9 +77,11 @@ boundary, not a release defect.
 
 Repository-controlled fixes are implemented and pushed in `df26226`. All five
 RC3 packages were published successfully in dependency order after clean
-zero-warning dry-runs. Pub.dev currently reports `[pending analysis]` and
-`0/0` for all five score endpoints; final score verification remains pending
-external Pana processing.
+zero-warning dry-runs. Pub.dev has finalized `alphax` at 160/160,
+`alphax_test` at 160/160, and `alphax_native` at 150/160; the native deduction
+is the accepted 3-of-6 platform-support boundary. `alphax_web` and `alphax_dio`
+remain `[pending analysis]` with `0/0`, which is not a completed score and is
+still awaiting external Pana processing.
 
 ## References
 
@@ -98,3 +100,6 @@ external Pana processing.
   repository-controlled losses were missing examples, one short description,
   and one undocumented implicit constructor; native platform deductions remain
   intentional.
+- 2026-08-17: RC3 score verification finalized three packages: `alphax`
+  160/160, `alphax_test` 160/160, and `alphax_native` 150/160. `alphax_web`
+  and `alphax_dio` are still pending pub.dev analysis.
