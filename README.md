@@ -1,8 +1,42 @@
 # AlphaX
 
-AlphaX is a transport-independent HTTP client API for Dart and Flutter. It
-provides one request/response, streaming, file-transfer, cancellation,
-capability, protocol, and error model over platform transports.
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/branding/alphax-logo-light.svg">
+    <img src="assets/branding/alphax-logo-dark.svg" alt="AlphaX" width="340">
+  </picture>
+</p>
+
+<p align="center"><strong>Transport-independent HTTP for Dart and Flutter.</strong><br>
+One request, response, streaming, file-transfer, cancellation, policy, and
+protocol model across the transports that each platform can actually provide.</p>
+
+<p align="center">
+  <a href="docs/ALPHAX_1_0_SCOPE.md">1.0 scope</a> ·
+  <a href="examples/waypoint/README.md">Waypoint example</a> ·
+  <a href="docs/MIGRATION.md">Migration guide</a> ·
+  <a href="LICENSE">Apache-2.0</a>
+</p>
+
+## At a glance
+
+| Area | AlphaX 1.0 RC |
+| --- | --- |
+| API | One typed, transport-neutral client for requests, responses, streams, files, cancellation, timeouts, redirects, and normalized errors |
+| Transports | Dart IO fallback, Android Cronet/HttpEngine, Apple URLSession, and a separate browser Fetch adapter |
+| Protocols | H1/H2/H3 where the Android or Apple provider negotiates them; H1 on Dart IO; browser protocol remains unknown to Dart |
+| Policies | Opt-in authentication, replay-aware retries, cookies, private HTTP caching, and a generic circuit breaker |
+| Security | Verified TLS defaults, platform-scoped SPKI pinning, proxy policy, capability checks, and fail-closed unsupported controls |
+
+## Why AlphaX?
+
+- Keep application request code independent of a particular transport engine.
+- Inspect completion-time protocol metadata instead of assuming that a preferred
+  protocol was negotiated.
+- Compose application policies explicitly, with conservative defaults for
+  retries, authentication, cookies, caching, and resilience.
+- Stream response and file-transfer work with cancellation and bounded delivery
+  where the selected platform transport supports it.
 
 ## Status
 
@@ -12,7 +46,27 @@ clearance and maintainer approval after the RC review.
 
 AlphaX makes no universal H3, speed, zero-copy, or “fastest client” claim.
 
-## Installation during RC review
+## Install
+
+When the RC is published, start with the packages for your target:
+
+```sh
+# Android, iOS, macOS, Linux, or Windows
+flutter pub add alphax alphax_native
+
+# Browser Fetch
+flutter pub add alphax alphax_web
+
+# Existing Dio application
+flutter pub add dio alphax alphax_native alphax_dio
+```
+
+`alphax` has no Flutter SDK dependency. A pure-Dart application can use it with
+its own `AlphaXTransport`; Flutter applications normally pair it with
+`alphax_native`. Add `alphax_test` as a development dependency when you want
+deterministic transport tests.
+
+### Use the RC before publication
 
 Until package naming clearance and publication approval are complete, consume
 the candidate packages from the public repository:
@@ -58,7 +112,20 @@ New Flutter applications normally use `alphax` with `alphax_native`. Existing
 Dio applications can add `alphax_dio` instead of rewriting their request
 layer. `alphax_test` is a development dependency, not a runtime transport.
 
-## Basic request
+## Choose a starting point
+
+| If your goal is… | Start here |
+| --- | --- |
+| Send a normal request | [Quick start](#quick-start) |
+| Stream or cancel work | [Streaming and cancellation](#streaming-and-cancellation) |
+| Upload or download a file | [Upload and download](#upload-and-download) |
+| Prefer H3 and see what completed | [Capabilities and protocol reporting](#capabilities-and-protocol-reporting) |
+| Add retries, tokens, cookies, cache, or resilience | [Policy guide](docs/POLICIES.md) |
+| Configure TLS, pins, or proxies | [Native transport guide](packages/alphax_native/README.md#configure-tls-and-proxy-behavior) |
+| Keep an existing Dio application | [`alphax_dio`](packages/alphax_dio/README.md) |
+| Test without a network | [`alphax_test`](packages/alphax_test/README.md) |
+
+## Quick start
 
 ```dart
 import 'package:alphax/alphax.dart';
@@ -81,8 +148,10 @@ Future<void> main() async {
 
 On Android, create `AndroidCronetTransport`; on iOS/macOS, create
 `AppleUrlSessionTransport`. The request and response API remains unchanged.
+Create one configured client for an API or session and reuse it; the client
+owns its transport and middleware state. Close it when that scope ends.
 
-## What is enabled by default?
+## Defaults are explicit
 
 AlphaX keeps application policy explicit:
 
@@ -210,11 +279,11 @@ cannot authoritatively report H2/H3 and therefore does not advertise them.
 
 | Package | Purpose | 1.0 status |
 | --- | --- | --- |
-| [`alphax`](packages/alphax) | Pure-Dart transport-neutral contracts | Required core |
-| [`alphax_native`](packages/alphax_native) | Dart IO, Cronet, and URLSession adapters | Required platform boundary |
-| [`alphax_test`](packages/alphax_test) | Fakes and shared conformance helpers | Required test support |
-| [`alphax_dio`](packages/alphax_dio) | Focused Dio 5.x `HttpClientAdapter` boundary | Optional RC package; not full Dio compatibility |
-| [`alphax_web`](packages/alphax_web) | Browser Fetch transport adapter | Optional separate Web package; publication requires maintainer approval |
+| [`alphax`](packages/alphax) | Pure-Dart transport-neutral contracts | PUBLISH_RC; core package |
+| [`alphax_native`](packages/alphax_native) | Dart IO, Cronet, and URLSession adapters | PUBLISH_RC; platform boundary |
+| [`alphax_test`](packages/alphax_test) | Fakes and shared conformance helpers | PUBLISH_RC; test support |
+| [`alphax_dio`](packages/alphax_dio) | Focused Dio 5.x `HttpClientAdapter` boundary | PUBLISH_RC; not full Dio compatibility |
+| [`alphax_web`](packages/alphax_web) | Browser Fetch transport adapter | PUBLISH_RC; separate browser package |
 
 There is no AlphaX-owned C++ engine, production Rust transport, libcurl
 dependency, telemetry SDK, GraphQL layer, REST generator, or WebSocket/SSE API

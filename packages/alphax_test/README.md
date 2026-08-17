@@ -1,5 +1,38 @@
 # alphax_test
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/branding/alphax-logo-light.svg">
+    <img src="assets/branding/alphax-logo-dark.svg" alt="AlphaX" width="300">
+  </picture>
+</p>
+
+<p align="center"><strong>Deterministic tests for AlphaX clients and transports.</strong><br>
+Exercise requests, streams, failures, policies, and file transfers without a live network.</p>
+
+<p align="center">
+  <a href="https://github.com/auvana-ventures/alphax/tree/main/packages/alphax">Core API</a> ·
+  <a href="https://github.com/auvana-ventures/alphax/tree/main/examples/waypoint">Waypoint example</a> ·
+  <a href="https://github.com/auvana-ventures/alphax/blob/main/LICENSE">Apache-2.0</a>
+</p>
+
+## At a glance
+
+| Test concern | What you can control |
+| --- | --- |
+| Requests | Methods, headers, bodies, protocol preferences, and recorded calls |
+| Responses | Status, headers, bytes, streams, delays, cancellation, and failures |
+| Files | In-memory upload sources and download targets |
+| Adapters | Shared transport-conformance helpers for package-level validation |
+| Runtime | Development dependency only; it never replaces a production transport |
+
+## Start here
+
+1. Add `alphax_test` as a development dependency.
+2. Replace the production transport with `FakeAlphaXTransport`.
+3. Assert the response, failure, stream, request, or file behavior you need.
+4. Use the conformance helpers when validating a transport package.
+
 `alphax_test` lets you test AlphaX applications and transports without a live
 server, network connection, native device, or real file system. Replace the
 transport with a deterministic fake, describe the response or failure you

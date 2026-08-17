@@ -1,5 +1,38 @@
 # alphax_web
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/branding/alphax-logo-light.svg">
+    <img src="assets/branding/alphax-logo-dark.svg" alt="AlphaX" width="300">
+  </picture>
+</p>
+
+<p align="center"><strong>Run AlphaX through browser Fetch.</strong><br>
+Keep the request API while respecting the browser's security and networking controls.</p>
+
+<p align="center">
+  <a href="https://github.com/auvana-ventures/alphax/tree/main/packages/alphax">Core API</a> ·
+  <a href="https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_native">Native transports</a> ·
+  <a href="https://github.com/auvana-ventures/alphax/blob/main/LICENSE">Apache-2.0</a>
+</p>
+
+## At a glance
+
+| Browser concern | `alphax_web` behavior |
+| --- | --- |
+| Transport | Fetch, exposed as an AlphaX transport |
+| Protocol metadata | `unknown`; Fetch does not expose authoritative H1/H2/H3 information to Dart |
+| Browser controls | CORS, TLS, proxy routing, connection reuse, redirects, and cookie credentials remain browser-owned |
+| AlphaX policies | Authentication, replay-aware retries, in-memory cookies/cache, and generic resilience remain opt-in |
+| Native controls | File paths, SPKI pinning, custom trust anchors, mTLS, explicit proxies, and upload progress are unavailable here |
+
+## Start here
+
+1. Add `alphax` and `alphax_web`.
+2. Create `WebFetchTransport` and an `AlphaXClient`.
+3. Configure CORS and browser credentials on the server/application boundary.
+4. Treat protocol metadata as `unknown`; browser controls remain browser-owned.
+
 `alphax_web` adds a browser Fetch transport for AlphaX. Use it when the same
 transport-independent request code must run in a Flutter Web application or a
 Dart application compiled for the browser.

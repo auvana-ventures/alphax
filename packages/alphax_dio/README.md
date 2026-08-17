@@ -1,5 +1,37 @@
 # alphax_dio
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/branding/alphax-logo-light.svg">
+    <img src="assets/branding/alphax-logo-dark.svg" alt="AlphaX" width="300">
+  </picture>
+</p>
+
+<p align="center"><strong>Keep Dio. Change the transport boundary.</strong><br>
+Use AlphaX transports and policies underneath an existing Dio application.</p>
+
+<p align="center">
+  <a href="https://github.com/auvana-ventures/alphax/blob/main/docs/MIGRATION.md">Migration guide</a> ·
+  <a href="https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_native">Native transports</a> ·
+  <a href="https://github.com/auvana-ventures/alphax/blob/main/LICENSE">Apache-2.0</a>
+</p>
+
+## At a glance
+
+| Existing Dio app | AlphaX adds at the adapter boundary |
+| --- | --- |
+| Keep | Dio methods, interceptors, transformers, `FormData`, `CancelToken`, progress callbacks, and response handling |
+| Add | An injected `AlphaXClient` backed by Dart IO, Cronet/HttpEngine, or URLSession |
+| Inspect | Actual completion-time protocol metadata and normalized transport/security behavior |
+| Boundary | Focused Dio 5.x `HttpClientAdapter`; not full Dio source/API compatibility |
+
+## Start here
+
+1. Add `dio`, `alphax`, `alphax_native`, and `alphax_dio`.
+2. Follow [replace the transport](#replace-the-transport-keep-dio).
+3. Keep using Dio methods, interceptors, and response handling.
+4. Add AlphaX policies to the injected client only when you need them.
+
 `alphax_dio` lets an existing Dio application keep its Dio request code while
 using an AlphaX transport underneath. You continue to use Dio methods,
 interceptors, `FormData`, transformers, `CancelToken`, and progress callbacks;

@@ -1,5 +1,39 @@
 # alphax
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/branding/alphax-logo-light.svg">
+    <img src="assets/branding/alphax-logo-dark.svg" alt="AlphaX" width="300">
+  </picture>
+</p>
+
+<p align="center"><strong>The transport-neutral AlphaX API.</strong><br>
+Write request code once and choose the transport at the application boundary.</p>
+
+<p align="center">
+  <a href="https://github.com/auvana-ventures/alphax/blob/main/docs/ALPHAX_1_0_SCOPE.md">1.0 scope</a> ·
+  <a href="https://github.com/auvana-ventures/alphax/tree/main/examples/waypoint">Waypoint example</a> ·
+  <a href="https://github.com/auvana-ventures/alphax/blob/main/LICENSE">Apache-2.0</a>
+</p>
+
+## At a glance
+
+| You need | `alphax` provides |
+| --- | --- |
+| Request code | Transport-neutral requests, responses, headers, bodies, streams, files, cancellation, timeouts, redirects, and normalized errors |
+| Protocol control | Preference, fail-closed requirement, capabilities, completion-time protocol metadata, and fallback information |
+| Application policy | Opt-in authentication, replay-aware retry, cookies, private HTTP cache, and generic circuit-breaker middleware |
+| Storage | In-memory cookie/cache implementations plus stable caller-owned store seams for persistence |
+| Transport | Contracts only; add `alphax_native`, `alphax_web`, or another `AlphaXTransport` implementation |
+
+## Start here
+
+1. Install `alphax` with the transport package for your target.
+2. Run [your first request](#your-first-request).
+3. Choose a task from [common jobs](#common-jobs).
+4. Add policies only after reading the [defaults](#understand-defaults-before-adding-policies)
+   and [policy guide](https://github.com/auvana-ventures/alphax/blob/main/docs/POLICIES.md).
+
 `alphax` is the transport-independent HTTP client foundation for Dart and
 Flutter. Write request code once, then run it with Dart IO, Android Cronet,
 Apple URLSession, or a separate browser adapter without changing your request,

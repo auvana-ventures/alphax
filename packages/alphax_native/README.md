@@ -1,8 +1,41 @@
 # alphax_native
 
-`alphax_native` gives an AlphaX application the best transport available on
-each supported platform while keeping the same Dart request code everywhere.
-It supplies Dart IO, Android Cronet/HttpEngine, and Apple URLSession adapters
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/branding/alphax-logo-light.svg">
+    <img src="assets/branding/alphax-logo-dark.svg" alt="AlphaX" width="300">
+  </picture>
+</p>
+
+<p align="center"><strong>Platform transports for the AlphaX API.</strong><br>
+Use the platform networking stack where it is supported, with a truthful Dart IO fallback.</p>
+
+<p align="center">
+  <a href="https://github.com/auvana-ventures/alphax/blob/main/docs/ALPHAX_1_0_RELEASE_GATE.md">Platform matrix</a> ·
+  <a href="https://github.com/auvana-ventures/alphax/tree/main/examples/waypoint">Waypoint example</a> ·
+  <a href="https://github.com/auvana-ventures/alphax/blob/main/LICENSE">Apache-2.0</a>
+</p>
+
+## At a glance
+
+| Target | Transport supplied |
+| --- | --- |
+| Android API 24+ | Cronet/HttpEngine provider with H1/H2/H3 capability where the provider and network permit it |
+| iOS 15+ / macOS 12+ | URLSession with platform-negotiated H1/H2/H3 and completion-time metadata |
+| Linux / Windows | Dart IO fallback with H1 support and no authoritative H2/H3 reporting |
+| Web | Not supplied here; use the separate `alphax_web` Fetch adapter |
+
+## Start here
+
+1. Add `alphax` and `alphax_native` to the application.
+2. Follow [choose a transport](#choose-a-transport) for the platform branch.
+3. Keep the request code shared across platforms.
+4. Read [TLS and proxy behavior](#configure-tls-and-proxy-behavior) before
+   enabling optional security or routing controls.
+
+`alphax_native` gives an AlphaX application the platform transport selected for
+each supported target while keeping the same Dart request code everywhere. It
+supplies Dart IO, Android Cronet/HttpEngine, and Apple URLSession adapters
 behind the transport-neutral [`alphax`](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax) API.
 
 ## Why use it?
