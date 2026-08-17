@@ -69,14 +69,11 @@ dependency.
 
 ## Install
 
-After the RC is published:
+The current RC is published on pub.dev:
 
 ```sh
 flutter pub add alphax alphax_native
 ```
-
-While this RC is unpublished, use the repository dependencies shown in the
-[root README](https://github.com/auvana-ventures/alphax#readme).
 
 `alphax` itself has no Flutter SDK dependency and can be used from pure Dart.
 The examples below use the Dart IO fallback supplied by `alphax_native`.
@@ -240,5 +237,5 @@ platform reports negotiation only after the operation completes.
 - [Waypoint reference app](https://github.com/auvana-ventures/alphax/tree/main/examples/waypoint)
 - [Migration guide](https://github.com/auvana-ventures/alphax/blob/main/docs/MIGRATION.md)
 
-The `1.0.0-rc.1` candidate is prepared for maintainer review and is not
-published until naming clearance and release approval are complete.
+The current `1.0.0-rc.3` candidate is published on pub.dev. The public AlphaX
+1.0 API remains frozen; later changes to these contracts may be breaking.

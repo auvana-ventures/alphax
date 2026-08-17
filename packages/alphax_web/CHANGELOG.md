@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.0-rc.3 - 2026-08-17
+
+- Added a browser Fetch example showing a request, response body, and the
+  intentionally unknown browser protocol metadata.
+- Expanded package metadata to describe the adapter's supported use case.
+
 ## 1.0.0-rc.2 - 2026-08-17
 
 - Corrected the theme-aware README logo URLs to absolute repository assets so

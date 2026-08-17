@@ -63,15 +63,13 @@ development dependency for deterministic tests.
 
 ## Install
 
-After the RC is published:
+The current RC is published on pub.dev:
 
 ```sh
 flutter pub add dio alphax alphax_native alphax_dio
 ```
 
-While this RC is unpublished, use the repository dependency block in the
-[root README](https://github.com/auvana-ventures/alphax#readme) and add
-`dio: ^5.9.2` to the same application.
+Add `dio: ^5.9.2` to the same application.
 
 ## Replace the transport, keep Dio
 
@@ -263,5 +261,5 @@ Known 1.0 boundaries:
 - [Waypoint reference app](https://github.com/auvana-ventures/alphax/tree/main/examples/waypoint)
 - [Dio and package:http migration guide](https://github.com/auvana-ventures/alphax/blob/main/docs/MIGRATION.md)
 
-The `1.0.0-rc.1` candidate is prepared for maintainer review and is not
-published until naming clearance and release approval are complete.
+The current `1.0.0-rc.3` candidate is published on pub.dev. This remains a
+focused Dio 5.x adapter, not full Dio source/API compatibility.

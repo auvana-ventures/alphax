@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.0-rc.3 - 2026-08-17
+
+- Added a runnable example showing Dio requests routed through
+  `AlphaXDioAdapter` and a deterministic AlphaX transport.
+
 ## 1.0.0-rc.2 - 2026-08-17
 
 - Corrected the theme-aware README logo URLs to absolute repository assets so

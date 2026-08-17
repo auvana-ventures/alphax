@@ -63,14 +63,11 @@ already uses Dio.
 
 ## Install
 
-After the RC is published:
+The current RC is published on pub.dev:
 
 ```sh
 flutter pub add alphax alphax_native
 ```
-
-While this RC is unpublished, use the repository dependency block in the
-[root README](https://github.com/auvana-ventures/alphax#readme).
 
 The Android provider is resolved through Gradle and Apple packaging uses
 CocoaPods. No copied Cronet binary is bundled in the pub package. Swift
@@ -261,5 +258,6 @@ policies automatically.
 - [Migration guide](https://github.com/auvana-ventures/alphax/blob/main/docs/MIGRATION.md)
 - [1.0 platform and protocol matrix](https://github.com/auvana-ventures/alphax/blob/main/docs/ALPHAX_1_0_RELEASE_GATE.md)
 
-The `1.0.0-rc.1` candidate is prepared for maintainer review and is not
-published until naming clearance and release approval are complete.
+The current `1.0.0-rc.3` candidate is published on pub.dev. Android, iOS, and
+macOS support remains provider/platform dependent; Dart IO is the truthful
+fallback on Linux and Windows.

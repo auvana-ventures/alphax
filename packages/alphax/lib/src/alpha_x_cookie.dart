@@ -122,6 +122,9 @@ abstract interface class AlphaXCookieStore {
 /// [AlphaXCookieStore]. Updates are serialized so concurrent responses cannot
 /// lose a replacement or deletion.
 final class AlphaXCookieJar implements AlphaXCookieStore {
+  /// Creates an empty in-memory cookie jar.
+  AlphaXCookieJar();
+
   final List<AlphaXCookie> _cookies = <AlphaXCookie>[];
   Future<void> _writeTail = Future<void>.value();
 

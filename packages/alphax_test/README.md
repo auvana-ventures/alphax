@@ -57,19 +57,10 @@ not required in a production dependency list.
 
 ## Install
 
-After the RC is published:
+The current RC is published on pub.dev:
 
 ```sh
 dart pub add --dev alphax_test
-```
-
-While this RC is unpublished, add the repository path from a package in this
-workspace:
-
-```yaml
-dev_dependencies:
-  alphax_test:
-    path: ../alphax_test
 ```
 
 ## Your first fake response
@@ -220,5 +211,5 @@ pattern.
 - [Waypoint reference app](https://github.com/auvana-ventures/alphax/tree/main/examples/waypoint)
 - [1.0 testing and conformance scope](https://github.com/auvana-ventures/alphax/blob/main/docs/ALPHAX_1_0_SCOPE.md)
 
-The `1.0.0-rc.1` candidate is prepared for maintainer review and is not
-published until naming clearance and release approval are complete.
+The current `1.0.0-rc.3` candidate is published on pub.dev. The package is a
+development dependency only and does not provide a production transport.

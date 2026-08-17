@@ -40,15 +40,14 @@ protocol model across the transports that each platform can actually provide.</p
 
 ## Status
 
-**`1.0.0-rc.1` is prepared for maintainer review.** AlphaX remains a release
-candidate and is not published to pub.dev. Publication requires naming
-clearance and maintainer approval after the RC review.
+**`1.0.0-rc.3` is published on pub.dev.** AlphaX remains a release candidate
+with its 1.0 public API frozen; later contract changes may be breaking.
 
 AlphaX makes no universal H3, speed, zero-copy, or “fastest client” claim.
 
 ## Install
 
-When the RC is published, start with the packages for your target:
+Start with the published RC packages for your target:
 
 ```sh
 # Android, iOS, macOS, Linux, or Windows
@@ -66,29 +65,17 @@ its own `AlphaXTransport`; Flutter applications normally pair it with
 `alphax_native`. Add `alphax_test` as a development dependency when you want
 deterministic transport tests.
 
-### Use the RC before publication
+### Pin the published RC explicitly
 
-Until package naming clearance and publication approval are complete, consume
-the candidate packages from the public repository:
+If you want every package to resolve to the same candidate, pin the published
+versions in `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  alphax:
-    git:
-      url: https://github.com/auvana-ventures/alphax.git
-      path: packages/alphax
-  alphax_native:
-    git:
-      url: https://github.com/auvana-ventures/alphax.git
-      path: packages/alphax_native
-  alphax_dio:
-    git:
-      url: https://github.com/auvana-ventures/alphax.git
-      path: packages/alphax_dio
-  alphax_web:
-    git:
-      url: https://github.com/auvana-ventures/alphax.git
-      path: packages/alphax_web
+  alphax: ^1.0.0-rc.3
+  alphax_native: ^1.0.0-rc.3
+  alphax_dio: ^1.0.0-rc.3
+  alphax_web: ^1.0.0-rc.3
 ```
 
 `alphax` has no Flutter SDK dependency. `alphax_native` is the Flutter plugin

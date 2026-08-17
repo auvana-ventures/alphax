@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.0-rc.3 - 2026-08-17
+
+- Added a runnable package-local example showing a custom transport, request,
+  response body, streaming events, and completion protocol metadata.
+- Documented the in-memory cookie-jar constructor for complete API reference
+  coverage.
+
 ## 1.0.0-rc.2 - 2026-08-17
 
 - Corrected the theme-aware README logo URLs to absolute repository assets so

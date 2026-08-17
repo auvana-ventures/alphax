@@ -158,6 +158,5 @@ transport and check its reported capabilities before configuring TLS, proxy, or
 protocol requirements. AlphaX will fail closed rather than pretending that the
 browser can enforce a control it cannot observe.
 
-The package is licensed under Apache-2.0 and is included as the separate Web
-adapter in the proposed RC publication set. Publication still requires the
-common maintainer release approval.
+The package is licensed under Apache-2.0 and is published as the separate Web
+adapter in the current `1.0.0-rc.3` release candidate.
