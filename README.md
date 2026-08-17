@@ -50,7 +50,7 @@ Choose the package by the job you are doing:
 | --- | --- | --- |
 | [`alphax`](packages/alphax/README.md) | write request code once | transport-independent requests, responses, streams, files, cancellation, timeouts, errors, and protocol metadata |
 | [`alphax_native`](packages/alphax_native/README.md) | run the same client on Flutter platforms | Dart IO on Linux/Windows, Cronet on Android, and URLSession on iOS/macOS |
-| [`alphax_web`](packages/alphax_web/README.md) | run the same client in a browser | Fetch-based Web requests with truthful browser capability boundaries |
+| [`alphax_web`](packages/alphax_web/README.md) | run the same client in a browser | RC Fetch adapter for Web requests with truthful browser capability boundaries |
 | [`alphax_dio`](packages/alphax_dio/README.md) | keep an existing Dio application | a Dio `HttpClientAdapter` backed by an injected AlphaX client and its configured transport/security policies |
 | [`alphax_test`](packages/alphax_test/README.md) | test without a live server or device | deterministic fake transports, streams, failures, cancellation, files, and conformance helpers |
 
@@ -81,6 +81,25 @@ Future<void> main() async {
 
 On Android, create `AndroidCronetTransport`; on iOS/macOS, create
 `AppleUrlSessionTransport`. The request and response API remains unchanged.
+
+## What is enabled by default?
+
+AlphaX keeps application policy explicit:
+
+| Behavior | Default |
+| --- | --- |
+| Transport | You inject one; `AlphaXClient` does not choose one automatically. |
+| Retry, authentication, cookies, cache, resilience | Off until middleware is added. |
+| TLS | Verified platform trust. |
+| Proxy | System-managed routing on the selected transport. |
+| Protocol | Provider/server/proxy/network negotiation; H3 is not guaranteed. |
+
+When you need one of these behaviors, add the corresponding middleware or
+configure the selected transport before creating the client. The [policy
+defaults and customization guide](docs/POLICIES.md) provides beginner-friendly
+steps and examples for retries, token refresh, cookie/cache store seams,
+authenticated-cache identity scoping, circuit breaking, protocol requirements,
+proxy routing, and SPKI pin rotation.
 
 ## Streaming and cancellation
 
@@ -229,9 +248,12 @@ metadata being unavailable, unimplemented mTLS, unavailable explicit HTTPS-
 proxy endpoint parity, Android custom trust anchors being unsupported by the
 selected provider, Dart IO and browser SPKI pinning being unsupported, and
 Swift Package Manager packaging being deferred; CocoaPods is the Apple
-packaging path. Policy middleware uses in-memory cookie/cache state, limits
-automatic retries to safe replayable buffered operations, and leaves token
-storage/application-specific authentication to the caller.
+packaging path. Policy middleware uses a queued in-memory cookie store and a
+private bounded in-memory cache by default; credential-bearing cache reuse is
+opt-in by identity scope and responses that set cookies are not cached;
+caller-owned stores may provide persistence, automatic retries remain limited to safe replayable buffered
+operations, and token storage/application-specific authentication remains
+caller-owned.
 
 The Apple adapter strips `Authorization`, `Proxy-Authorization`, and `Cookie`
 on cross-origin redirects. Android rejects a sensitive cross-origin redirect

@@ -9,7 +9,9 @@ release claims; adapter evidence is recorded in the Phase 1B, Phase 1C, Phase
 **Review status: FROZEN FOR 1.0.0-RC.1.** The core transport-neutral
 API has no accidental native exports. Protocol requirements, TLS/proxy policy,
 normalized policy errors, completion-time protocol semantics, and the opt-in
-policy modules are part of the frozen public boundary. Focused provider/device
+policy modules are part of the frozen public boundary. The asynchronous cookie
+store and variant-aware private cache contracts are included in the policy
+surface. Focused provider/device
 validation remains tracked in `docs/ALPHAX_1_0_REQUIREMENTS_AUDIT.md`. Task 18
 deliberately adds the optional `AlphaXDioAdapter` to the separate
 `alphax_dio` package, and task 24 deliberately adds the pure-Dart policy
@@ -87,9 +89,9 @@ API change is a potential 1.0 breaking change.
 | `AlphaXRetryDelay` / `AlphaXRetryDecider` | Custom retry delay and final-decision hooks. |
 | `AlphaXAccessTokenProvider` / `AlphaXAccessTokenRefresher` | Caller-owned access-token and refresh callbacks. |
 | `AlphaXAuthenticationMiddleware` | Token injection plus one single-flight challenge refresh for replayable buffered requests. |
-| `AlphaXCookie` / `AlphaXCookieJar` / `AlphaXCookieMiddleware` | In-memory host/path/secure/expiry cookie storage and request/response integration. |
-| `AlphaXCacheStore` / `AlphaXCacheEntry` / `AlphaXMemoryCacheStore` | Bounded in-memory response cache storage. |
-| `AlphaXCachePolicy` / `AlphaXCacheMiddleware` | Buffered GET/HEAD freshness, conditional revalidation, and mutation invalidation. |
+| `AlphaXCookie` / `AlphaXCookieStore` / `AlphaXCookieJar` / `AlphaXCookieMiddleware` | Asynchronous transport-neutral cookie storage seam with atomic updates; in-memory host/path/secure/expiry/HttpOnly/host-only matching and request/response integration. Persistence remains caller-owned. |
+| `AlphaXCacheScope` / `AlphaXCacheKey` / `AlphaXCacheStore` / `AlphaXCacheEntry` / `AlphaXMemoryCacheStore` | Private/shared scope model, method/URI/request-variant/identity keys, response metadata, and bounded replaceable cache storage. |
+| `AlphaXCachePolicy` / `AlphaXCacheMiddleware` | Buffered GET/HEAD HTTP-aware freshness, Vary selection, credential isolation, Set-Cookie exclusion, conditional revalidation, 304 metadata merging, and mutation invalidation. |
 | `AlphaXCircuitState` / `AlphaXResiliencePolicy` / `AlphaXResilienceMiddleware` | Generic in-memory circuit-breaker state and optional retry composition. |
 
 ## Lifecycle, files, redirects, and errors
@@ -162,9 +164,10 @@ platform implements every protocol. The following statements are part of the
   a requirement fails closed unless the exact protocol is authoritatively
   observed.
 - The 1.0 interface provides opt-in replay-aware retries, caller-owned token
-  authentication, in-memory cookies/cache, and a generic circuit breaker. It
-  does not provide persistent stores, unsafe replay, model-specific OAuth, or a
-  vendor-specific resilience policy.
+  authentication, an asynchronous cookie-store seam with an in-memory default,
+  a private variant-aware HTTP cache with a bounded in-memory default, and a
+  generic circuit breaker. It does not provide persistence implementations,
+  unsafe replay, model-specific OAuth, or a vendor-specific resilience policy.
 - AlphaX makes no universal speed, zero-copy, or “fastest client” claim. Any
   transfer or performance description must stay scoped to the adapter and
   evidence that support it.

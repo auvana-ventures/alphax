@@ -54,5 +54,6 @@ leak implementation types into `alphax`.
 Phase 0 and Phase 1A are complete. Phase 1B provides the Dart IO fallback,
 Phase 1C provides the validated Android Cronet adapter, and Phase 1D provides
 the shared Apple URLSession adapter with macOS and signed-iPhone correctness
-evidence. Cross-transport release checks are the current Phase 1E scope; Phase
-1F has not started.
+evidence. Phase 1E cross-transport release checks and Phase 1F API hardening,
+documentation, and release validation are complete for RC review. Retained
+focused platform evidence remains authoritative and is not rewritten.

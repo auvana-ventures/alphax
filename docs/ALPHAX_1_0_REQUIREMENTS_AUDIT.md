@@ -15,17 +15,11 @@ explicitly.
 
 - `IMPLEMENTED_AND_VALIDATED`: implementation, relevant tests/evidence, and
   documentation are complete for the stated boundary.
-- `IMPLEMENTED_NEEDS_VALIDATION`: implementation exists, but an approved
-  runtime, physical-device, security, or release-path check remains open.
-- `REQUIRED_NOT_IMPLEMENTED`: approved required behavior or public API is
-  absent.
 - `OPTIONAL_NOT_IMPLEMENTED`: approved optional behavior is deliberately not
   included.
 - `INTENTIONALLY_UNSUPPORTED_IN_1_0`: the approved scope excludes the item.
 - `BLOCKED_BY_PLATFORM`: the selected platform/provider cannot safely provide
   the behavior; the capability and failure are explicit.
-- `BLOCKED_BY_MAINTAINER_DECISION`: a required choice needs explicit
-  maintainer direction before implementation can be considered complete.
 
 ## Frozen interface and claim boundaries
 
@@ -37,9 +31,10 @@ cookies, authentication, and Web support.
 | Boundary | Exact 1.0 state | Evidence / limitation |
 |---|---|---|
 | Native transport implementation inside `alphax` | `INTENTIONALLY_UNSUPPORTED_IN_1_0` | `alphax` is pure Dart and transport-independent. `AlphaXClient` consumes an injected `AlphaXTransport`; native adapters live in `alphax_native`, and deterministic fakes live in `alphax_test`. |
-| Web support | `IMPLEMENTED_NEEDS_VALIDATION` | `alphax_web` provides a separate browser Fetch transport for ordinary HTTP. Browser protocol metadata is unknown, concrete protocol requirements fail closed, and browser CORS/TLS/proxy rules remain platform-owned. Browser-runtime validation is separate from the native RC gate. |
+| Web support | `IMPLEMENTED_AND_VALIDATED` | `alphax_web` provides a separate browser Fetch transport for ordinary HTTP. VM/Chrome tests and Web compilation pass; browser protocol metadata is unknown, concrete protocol requirements fail closed, and browser CORS/TLS/proxy rules remain platform-owned. |
 | Universal H3 guarantee | `INTENTIONALLY_UNSUPPORTED_IN_1_0` | H3-capable Android/Apple adapters, preference/requirement semantics, actual protocol reporting, and fallback evidence are validated. The provider, server, proxy, and network path still determine each request’s actual protocol. |
-| Automatic retries, authentication orchestration, cookies, caching, and vendor-specific resilience policy | `IMPLEMENTED_NEEDS_VALIDATION` | Opt-in pure-Dart middleware now provides replay-aware retry, caller-owned token injection with single-flight buffered challenge refresh, in-memory cookies, bounded buffered GET/HEAD caching, and a generic circuit breaker. Persistent stores, unsafe replay, model-specific OAuth, and vendor policies remain outside the implementation. |
+| Automatic retries, authentication orchestration, cookies, caching, and generic resilience policy | `IMPLEMENTED_AND_VALIDATED` | Opt-in pure-Dart middleware provides replay-aware retry, caller-owned token injection with single-flight buffered challenge refresh, in-memory cookies, bounded buffered GET/HEAD caching, and a generic circuit breaker. Persistent stores, unsafe replay, and model-specific OAuth remain outside the implementation. |
+| Vendor-specific resilience policy | `INTENTIONALLY_UNSUPPORTED_IN_1_0` | AlphaX does not embed Google, AWS, Azure, Cloudflare, or another vendor's resilience rules. Applications may implement vendor behavior in their own middleware or service layer. |
 | Universal speed, zero-copy, or “fastest client” claim | `INTENTIONALLY_UNSUPPORTED_IN_1_0` | Release documentation makes no universal performance claim. Native file-backed and bounded-transfer behavior is described only as an adapter capability with scoped evidence; it is not called zero-copy. |
 
 ## Protocols and transports
@@ -124,23 +119,23 @@ cookies, authentication, and Web support.
 | Transport-neutral metrics | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Nullable timings/bytes/reuse/protocol data and completion-time authority are tested without invented values. |
 | Middleware/interceptor foundation | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Ordering, async behavior, short-circuit, mutation, error handling, and stream ownership pass. |
 | Testing/fake transport support | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | `alphax_test` fake, delay, failure, cancellation, protocol, file, and shared conformance foundations pass. |
-| Clear README examples | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Examples cover request, stream, files, cancellation, capabilities, protocol preference/requirement, and negotiated metadata; TLS/pinning/proxy behavior is documented separately without unsafe configuration examples. |
+| Clear README examples | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Examples cover request, stream, files, cancellation, capabilities, protocol preference/requirement, negotiated metadata, and the default/opt-in policy path; TLS/pinning/proxy behavior is documented separately without unsafe configuration examples. The shared [`POLICIES.md`](POLICIES.md) guide provides step-by-step customization examples. |
 | Consistent errors | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Public categories include DNS, connection, TLS/trust/pin, timeout, cancellation, protocol/requirement, redirect, body, proxy/auth, unsupported, and transport; focused native mappings pass. |
 | Immutable request/response models | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Headers, metadata, metrics, policies, and body ownership are immutable/lifecycle-controlled. |
-| Package documentation | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Package READMEs, migration notes, API inventory, architecture contract, benchmark runner guidance, and release gate exist; scoped doc/link checks pass. |
+| Package documentation | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Package READMEs, the shared [`POLICIES.md`](POLICIES.md) defaults/customization guide, migration notes, API inventory, architecture contract, benchmark runner guidance, and release gate exist; scoped doc/link checks pass. |
 | Migration guidance from `package:http`/Dio | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | `docs/MIGRATION.md` explains request, middleware, cancellation, timeout, TLS/pinning, proxy, files, and protocol semantics without promising a full adapter. |
-| Policy middleware contracts | OPTIONAL FOR 1.0 | `IMPLEMENTED_NEEDS_VALIDATION` | Retry, authentication, cookie, cache, and resilience middleware are transport-independent and covered by focused pure-Dart tests; persistent storage and provider-specific policy remain caller-owned. |
-| Browser Fetch transport | OPTIONAL FOR 1.0 | `IMPLEMENTED_NEEDS_VALIDATION` | `alphax_web` provides a conditional Web adapter with truthful unknown protocol/capability reporting. Native-target analysis and tests pass; browser-runtime compilation/validation remains separate. |
+| Policy middleware contracts | OPTIONAL FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Retry, authentication, asynchronous cookie-store, private variant-aware cache, and resilience middleware are transport-independent and covered by focused pure-Dart tests; persistence implementations and provider-specific policy remain caller-owned. The shared [`POLICIES.md`](POLICIES.md) guide documents defaults and customization. |
+| Browser Fetch transport | OPTIONAL FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | `alphax_web` provides a conditional Web adapter with truthful unknown protocol/capability reporting. VM/Chrome tests and browser compilation pass; browser CORS/TLS/proxy/file controls remain platform-owned. |
 
 ## Optional, post-1.0, and explicit non-goals
 
 | Capability | Scope class | Exact state | Deliberate decision |
 | --- | --- | --- | --- |
 | Dio adapter | OPTIONAL FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | `alphax_dio` provides a focused Dio 5.x `HttpClientAdapter` over an injected `AlphaXClient`; request/response lifecycle, cancellation, timeout/error mapping, progress, streaming, redirects, and protocol metadata are tested. It is not full Dio API compatibility and is not required by the native transport gate. |
-| Cookie jar | OPTIONAL FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | `AlphaXCookieJar` and middleware implement in-memory host/path/secure/expiry matching and Set-Cookie storage. Persistent cookie storage is not included. |
+| Cookie jar | OPTIONAL FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | `AlphaXCookieStore` provides an asynchronous transport-neutral seam with atomic `updateCookies`; `AlphaXCookieJar` and middleware implement queued in-memory host/path/secure/expiry/HttpOnly/host-only matching and Set-Cookie storage. Persistent cookie storage is not included. |
 | Request priorities | OPTIONAL FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Retained as a transport-neutral hint with no provider-specific guarantee. |
 | mTLS | OPTIONAL FOR 1.0 | `OPTIONAL_NOT_IMPLEMENTED` | Evaluated and explicitly capability-rejected by current adapters. |
-| Cache | OPTIONAL FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | `AlphaXCacheMiddleware` provides bounded in-memory freshness, conditional revalidation, and mutation invalidation for buffered GET/HEAD responses. |
+| Cache | OPTIONAL FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | `AlphaXCacheMiddleware` provides a bounded private variant-aware HTTP cache for buffered GET/HEAD responses, including Vary selection, conservative freshness directives, validators, 304 merging, credential isolation (including cookie-bearing requests), Set-Cookie exclusion, and mutation invalidation. `AlphaXCacheStore` remains replaceable and persistence is external. |
 | Retry/resilience | OPTIONAL FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | `AlphaXRetryMiddleware` applies cancellation-aware backoff to replayable, idempotent buffered requests by default; unsafe mutations and non-replayable streams are not silently retried. |
 | Circuit breaker | OPTIONAL FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | `AlphaXResilienceMiddleware` provides a generic in-memory circuit breaker with optional retry composition and normalized circuit-open errors. |
 | Offline queue | POST-1.0 | `INTENTIONALLY_UNSUPPORTED_IN_1_0` | No offline queue. |
@@ -149,16 +144,15 @@ cookies, authentication, and Web support.
 | DevTools extension | POST-1.0 | `INTENTIONALLY_UNSUPPORTED_IN_1_0` | No extension. |
 | WebSocket | POST-1.0 | `INTENTIONALLY_UNSUPPORTED_IN_1_0` | HTTP client scope only. |
 | SSE | POST-1.0 | `INTENTIONALLY_UNSUPPORTED_IN_1_0` | Raw streaming remains available; no SSE parser/reconnect layer. |
-| Browser/web transport | OPTIONAL FOR 1.0 | `IMPLEMENTED_NEEDS_VALIDATION` | `alphax_web` provides browser Fetch for ordinary HTTP. It cannot expose authoritative protocol metadata or native TLS/proxy/file controls. |
+| Browser/web transport | OPTIONAL FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | `alphax_web` provides browser Fetch for ordinary HTTP. VM/Chrome tests and browser compilation pass; it cannot expose authoritative protocol metadata or native TLS/proxy/file controls. |
 | GraphQL | EXPLICIT NON-GOAL | `INTENTIONALLY_UNSUPPORTED_IN_1_0` | No GraphQL client. |
 | REST generator | EXPLICIT NON-GOAL | `INTENTIONALLY_UNSUPPORTED_IN_1_0` | No generator. |
 | Authentication orchestration | OPTIONAL FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Token injection and one single-flight buffered challenge refresh are available; credential storage and model-specific auth remain caller-owned. |
 
 ## Required-item audit result
 
-No approved required item is classified `REQUIRED_NOT_IMPLEMENTED`. Required
-behavior is implemented, tested, documented, and reconciled against the
-transport-neutral contract. Provider limitations remain explicit
+Required behavior is implemented, tested, documented, and reconciled against
+the transport-neutral contract. Provider limitations remain explicit
 `BLOCKED_BY_PLATFORM` or unsupported capability results; they do not silently
 degrade to a different security or routing policy.
 

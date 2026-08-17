@@ -52,13 +52,19 @@ release notes, and migration guidance:
 | Core transport seam | `alphax` remains pure Dart and transport-independent. `AlphaXClient` uses an injected `AlphaXTransport`; the `alphax` package does not include a native transport implementation by itself. Native adapters are separate package responsibilities, primarily `alphax_native`, and test fakes remain in `alphax_test`. |
 | Web | The pure `alphax` package does not contain a browser transport. The separate `alphax_web` package provides browser Fetch support for ordinary HTTP; browser protocol metadata remains unknown and no Web H1/H2/H3 parity claim is made. |
 | H3 negotiation | AlphaX does not guarantee H3 for every request or network. The selected provider, server, proxy, and network path determine the actual protocol. A protocol preference permits fallback; a protocol requirement fails closed unless the required protocol is authoritatively observed. |
-| Policy layers | AlphaX provides opt-in pure-Dart retry, authentication, cookie, cache, and generic resilience middleware. Defaults are replay-safe and bounded: cookies/cache are in memory, token storage is caller-owned, buffered GET/HEAD caching is explicit, and no vendor-specific policy is implied. |
+| Policy layers | AlphaX provides opt-in pure-Dart retry, authentication, asynchronous cookie-store, private variant-aware cache, and generic resilience middleware. Defaults are replay-safe and bounded: the cookie/cache implementations are in memory, caller-owned stores may provide persistence, authenticated cache reuse requires an explicit identity key, token storage is caller-owned, and no vendor-specific policy is implied. |
 | Performance language | AlphaX makes no universal speed, zero-copy, or “fastest client” claim. Native file-backed or bounded-transfer behavior must be described only with the precise capability and evidence available for the selected adapter. |
 
 These boundaries do not remove the required protocol, capability, metrics,
 streaming, file, cancellation, timeout, middleware, TLS, proxy, and normalized
 error contracts. They define what those contracts do not promise and which
 optional policy/transport modules must be selected explicitly.
+
+The user-facing setup path is standardized in
+[`POLICIES.md`](POLICIES.md): it defines the defaults, shows one policy at a
+time, and explains how applications add custom stores or middleware while
+handling provider limitations. Package READMEs link to that guide so the
+default/opt-in distinction stays consistent across the workspace.
 
 ## Capability classification matrix
 
@@ -254,7 +260,7 @@ the contract applies independently to every named capability.
 | Capability | Classification | 1.0 decision and boundary |
 |---|---|---|
 | Dio adapter | `OPTIONAL FOR 1.0` | `alphax_dio` provides a focused Dio 5.x `HttpClientAdapter` over an injected `AlphaXClient`; it is optional to the native transport gate, must not expand `alphax`’s API, and does not promise full Dio compatibility. |
-| Cache | `OPTIONAL FOR 1.0` | `AlphaXCacheMiddleware` provides bounded in-memory freshness, conditional revalidation, and mutation invalidation for buffered GET/HEAD responses. Persistent/offline cache storage remains outside the package. |
+| Cache | `OPTIONAL FOR 1.0` | `AlphaXCacheMiddleware` provides an HTTP-aware private variant-aware cache for buffered GET/HEAD responses, including Vary selection, conservative Cache-Control/Date/Age/Expires freshness, validators, 304 merging, credential isolation, Set-Cookie exclusion, bounds, and mutation invalidation. `AlphaXCacheStore` remains replaceable; persistent/offline storage remains outside the package. |
 | Retry/resilience | `OPTIONAL FOR 1.0` | `AlphaXRetryMiddleware` provides cancellation-aware exponential backoff for replayable requests, with idempotency-safe defaults. Stream/file automatic replay is intentionally conservative. |
 | Circuit breaker | `OPTIONAL FOR 1.0` | `AlphaXResilienceMiddleware` provides a generic in-memory circuit breaker and optional retry composition; it is not a vendor resilience policy or offline queue. |
 | Offline queue | `POST-1.0` | No durable queue, replay, resumable metadata, or offline mutation storage in 1.0. |
@@ -266,7 +272,7 @@ the contract applies independently to every named capability.
 | WebSocket | `POST-1.0` | No WebSocket abstraction in the 1.0 HTTP client contract. |
 | SSE | `POST-1.0` | No SSE-specific reconnect/event parser in 1.0; raw streaming remains available. |
 | Browser/web transport | `OPTIONAL FOR 1.0` | `alphax_web` provides browser Fetch for ordinary HTTP. It reports protocol as unknown, rejects concrete protocol requirements, and does not provide native file/TLS/proxy controls. |
-| Cookie jar | `OPTIONAL FOR 1.0` | `AlphaXCookieJar` and middleware provide in-memory host/path/secure/expiry handling. Persistent storage and browser-managed credentials remain caller/browser responsibilities. |
+| Cookie jar | `OPTIONAL FOR 1.0` | `AlphaXCookieStore` is the asynchronous transport-neutral seam with atomic updates; `AlphaXCookieJar` remains the queued in-memory implementation with host/path/secure/expiry/HttpOnly/host-only handling. Persistent storage and browser-managed credentials remain caller/browser responsibilities. |
 | Authentication orchestration | `OPTIONAL FOR 1.0` | `AlphaXAuthenticationMiddleware` injects caller-provided tokens and coordinates one single-flight refresh after a challenge for replayable buffered requests; it is not an OAuth/credential-store framework. |
 | Request priorities | `OPTIONAL FOR 1.0` | Provider priority may be reported or exposed only where semantics are stable; it is not required for release. |
 
@@ -278,7 +284,7 @@ the contract applies independently to every named capability.
 | `packages/alphax_native` | Become the platform integration boundary for Cronet/HttpEngine and URLSession adapters, provider diagnostics, lifecycle bridging, and native file paths. It must not export native provider types. Its Flutter/platform dependencies are introduced only when the implementation is approved. |
 | `packages/alphax_test` | Add deterministic fake transports, protocol/fallback fixtures, bounded streams, file fixtures, cancellation/timeouts, and shared contract tests. |
 | `packages/alphax_dio` | Publish the isolated focused Dio 5.x adapter for the RC when its lifecycle, stream, cancellation, error, progress, and protocol metadata tests pass. Keep transport/TLS/proxy policy in the injected AlphaX client and do not expand `alphax`’s API. |
-| `packages/alphax_web` | Provide the separate browser Fetch adapter for ordinary Web HTTP, with unknown browser protocol metadata and fail-closed concrete protocol requirements. Keep it optional to the approved native RC publication set. |
+| `packages/alphax_web` | Provide the separate browser Fetch adapter for ordinary Web HTTP, with unknown browser protocol metadata and fail-closed concrete protocol requirements. It is proposed for RC publication as a separate browser adapter; browser-owned controls remain explicit limitations. |
 | `alphax_flutter` | No package is required by this scope. Create one only if a concrete Flutter-only lifecycle/platform integration cannot remain isolated in `alphax_native`, with a separate package-boundary review. |
 | Android/iOS/macOS build areas | Add platform build files, provider setup, signing/device test configuration, and release artifacts only during the corresponding Phase 1 transport phases. No native source is added by this scope document. |
 | Documentation/CI | Replace conflicting capability status tables with links to this document, add protocol/provider matrices, device/platform validation, security/build instructions, examples, and release checks. |

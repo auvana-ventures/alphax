@@ -31,10 +31,13 @@ naming clearance and maintainer release approval are complete.
 The initial packages are:
 
 - `alphax`: pure Dart, Flutter-independent contracts and client facade.
-- `alphax_native`: experimental native transport boundary.
+- `alphax_native`: platform transport boundary for Dart IO, Cronet, and
+  URLSession.
 - `alphax_dio`: optional focused Dio 5.x `HttpClientAdapter` boundary backed by
   an injected AlphaX client; it does not promise full Dio compatibility.
 - `alphax_test`: deterministic transport and stream testing helpers.
+- `alphax_web`: separate browser Fetch transport adapter with browser-owned
+  protocol, CORS, TLS, proxy, and file-control limits.
 
 Future packages must remain independently publishable, avoid circular dependencies,
 and must not become mandatory dependencies of `alphax`. Do not create

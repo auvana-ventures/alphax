@@ -25,8 +25,10 @@ package, or create a release tag.
 - `AlphaXTlsPolicy`, `AlphaXTrustAnchor`, `AlphaXSpkiPin`,
   `AlphaXClientIdentity`, `AlphaXProxyPolicy`, and proxy credentials;
 - opt-in `AlphaXRetryMiddleware`, `AlphaXAuthenticationMiddleware`,
-  `AlphaXCookieMiddleware`, `AlphaXCacheMiddleware`, and
-  `AlphaXResilienceMiddleware` policy contracts;
+  `AlphaXCookieStore`, `AlphaXCookieJar`, `AlphaXCookieMiddleware`,
+  `AlphaXCacheScope`, `AlphaXCacheKey`, `AlphaXCacheStore`,
+  `AlphaXCacheEntry`, `AlphaXMemoryCacheStore`, `AlphaXCachePolicy`,
+  `AlphaXCacheMiddleware`, and `AlphaXResilienceMiddleware` policy contracts;
 - normalized AlphaX exceptions, including protocol requirement, TLS/pin,
   proxy, proxy-authentication, unsupported-policy, body, cancellation, and
   resilience/transport errors.
@@ -34,9 +36,10 @@ package, or create a release tag.
 `alphax` has no Flutter SDK dependency and exports no Cronet, URLSession,
 Foundation, Rust, libcurl, C++, FFI handle, socket, certificate-object, or
 native error type. `alphax_native` exports only Dart IO, Android Cronet, and
-Apple URLSession adapters. `alphax_test` exports fakes and conformance
-fixtures. `alphax_dio` exports only the focused `AlphaXDioAdapter`; it is an
-optional Dio compatibility boundary and does not add a transport.
+Apple URLSession adapters. `alphax_web` exports only the browser Fetch adapter.
+`alphax_test` exports fakes and conformance fixtures. `alphax_dio` exports only
+the focused `AlphaXDioAdapter`; it is an optional Dio compatibility boundary
+and does not add a transport.
 
 ### Frozen interface guarantees and non-guarantees
 
@@ -53,9 +56,10 @@ The 1.0 API freeze also fixes these negative guarantees:
   path determine the actual protocol. Preferences may fall back, while
   requirements fail closed unless the required protocol is observed.
 - AlphaX provides opt-in replay-aware retry, caller-owned token authentication,
-  in-memory cookies/cache, and a generic circuit breaker. It does not include
-  persistent stores, unsafe replay, model-specific OAuth, or a vendor-specific
-  resilience policy.
+  an asynchronous cookie-store seam with an in-memory default, a private
+  variant-aware HTTP cache with a bounded in-memory default, and a generic
+  circuit breaker. It does not include persistence implementations, unsafe
+  replay, model-specific OAuth, or a vendor-specific resilience policy.
 - AlphaX makes no universal speed, zero-copy, or “fastest client” claim.
   Native file-transfer terminology remains capability- and evidence-scoped.
 
@@ -130,7 +134,33 @@ proxy failure, and system/direct behavior. A local custom-CA tunnel failed
 closed with a normalized TLS error and is not claimed as a supported combined
 policy path.
 
-## 7. mTLS decision and matrix
+## 7. Policy API contract correction
+
+The pre-freeze policy audit identified two public-contract risks. Both are now
+resolved without adding a storage dependency or changing a transport:
+
+- `AlphaXCookieStore` is an asynchronous parsed-cookie storage seam with an
+  atomic `updateCookies` operation. The
+  middleware owns Cookie-header production and Set-Cookie parsing; the bundled
+  `AlphaXCookieJar` is queued, in-memory, and non-persistent. Custom stores
+  load/save parsed cookies and own durability, encryption, access control, and
+  failure handling.
+- `AlphaXCacheKey` includes method, URI, request-variant headers, and optional
+  identity scope. `AlphaXCacheEntry` retains response Vary/freshness/validator
+  metadata. The default cache is private and bounded in memory; credential-
+  bearing requests bypass it unless explicitly identity-scoped, proxy-
+  authenticated requests always bypass, and Set-Cookie responses are not
+  stored. Cache selection honors Vary, Cache-Control, Date, Age, Expires,
+  validators, 304 merging, and POST/PUT/PATCH/DELETE invalidation. `Vary: *`
+  is never reused.
+
+Request coalescing, stale-while-revalidate, persistent storage implementations,
+OAuth orchestration, vendor resilience, and other deferred features remain
+outside the 1.0 contract. The focused deterministic policy suite is in
+`packages/alphax/test/policy_contract_test.dart`; the decisions are recorded
+in ADR 0009 and ADR 0010.
+
+## 8. mTLS decision and matrix
 
 `AlphaXClientIdentity.platformReference` is an opaque security-boundary model;
 raw private-key strings are not part of the API. The current adapters do not
@@ -145,7 +175,7 @@ resolve platform identity references.
 mTLS is optional in the approved scope and is not a release-gate completion
 criterion. It must not be enabled by passing private key material through Dart.
 
-## 8. Protocol preference and requirement semantics
+## 9. Protocol preference and requirement semantics
 
 - `protocolPreference` is caller intent. It permits fallback.
 - `protocolRequirement` is fail-closed intent. The final actual protocol must
@@ -163,7 +193,7 @@ ADR 0006 records this distinction. ADR 0005 is accepted: response metrics are
 best-known snapshots, completion metrics are authoritative, and `unknown` is
 neither H1 nor fallback.
 
-## 9. Redirect security result
+## 10. Redirect security result
 
 For cross-origin redirects, `Authorization`, `Proxy-Authorization`, and
 `Cookie` are protected:
@@ -182,7 +212,7 @@ when the path cannot negotiate H3.
 Streamed request bodies are never silently replayed. File bodies are replayed
 only when their source declares replayability and the adapter can reset it.
 
-## 10. Android physical acceptance
+## 11. Android physical acceptance
 
 Historical accepted evidence is preserved:
 
@@ -251,7 +281,7 @@ saving `alphax-phase1f-h3-release.json` in the app documents directory. The
 runner does not add a production QUIC hint or force a protocol; the report can
 be retrieved after the device is reachable over network tooling.
 
-## 11. iPhone physical acceptance
+## 12. iPhone physical acceptance
 
 The signed iPhone XR profile runner attached successfully on iOS 18.7.9
 (arm64e). The focused release/security run passed:
@@ -274,7 +304,7 @@ evaluating a protocol requirement. The focused result is preserved in
 The earlier `osascript: -2` retry and prior unreachable-fixture attempt remain
 historical environment evidence and are not rewritten.
 
-## 12. macOS acceptance
+## 13. macOS acceptance
 
 macOS URLSession validation is `IMPLEMENTED_AND_VALIDATED` for H1/H2/H3,
 completion-time protocol reporting, H3 preference fallback, streaming and
@@ -288,7 +318,7 @@ trusted HTTPS CONNECT, Basic authentication, wrong-credential rejection, and
 unreachable-proxy failure. The machine-readable evidence is retained in
 `benchmarks/mobile_gate/fixtures/phase1f_macos_security_policy.json`.
 
-## 13. Dart IO fallback status
+## 14. Dart IO fallback status
 
 Dart IO is `IMPLEMENTED_AND_VALIDATED` for its H1 fallback surface, methods,
 bodies, multipart, progressive streams, pause/resume, file paths, progress,
@@ -297,7 +327,7 @@ system/direct/HTTP proxy mapping, client reuse, and normalized errors. It
 reports H2/H3 and negotiated protocol as unsupported/unknown rather than
 claiming capabilities it cannot prove.
 
-## 14. Dependency graph and packaging
+## 15. Dependency graph and packaging
 
 ```text
 alphax (pure Dart)
@@ -331,18 +361,19 @@ claims.
 
 ## RC package boundary
 
-The proposed first release candidate is `1.0.0-rc.1`. The intended publication
-set is `alphax`, `alphax_test`, `alphax_dio`, and `alphax_native`. The exact
-dependency order is `alphax`, then `alphax_test`, followed by the independent
-`alphax_dio` and `alphax_native` branches. The proposed linear order is
-`alphax` → `alphax_test` → `alphax_dio` → `alphax_native`; `alphax_dio` also
-requires external Dio 5.x, while `alphax_native` consumes `alphax` at runtime
-and `alphax_test` as a development dependency. `alphax_web` is prepared as a
-separate optional adapter and is not added to this previously approved native
-RC publication set without maintainer approval. No package is published by
-this release-gate change.
+The proposed first release candidate is `1.0.0-rc.1`. The exact publication
+set is `alphax`, `alphax_test`, `alphax_native`, `alphax_web`, and
+`alphax_dio`; all five contain useful released functionality and none is a
+name-reservation skeleton. The dependency graph is `alphax` → `alphax_test`,
+with `alphax_native`, `alphax_web`, and `alphax_dio` as independent runtime
+branches on `alphax`. The recommended deterministic publication order is
+`alphax` → `alphax_test` → `alphax_native` → `alphax_web` → `alphax_dio`.
+`alphax_dio` also requires external Dio 5.x; `alphax_native` and
+`alphax_dio` use `alphax_test` only for development tests. Every package
+already uses `1.0.0-rc.1` and prerelease-compatible internal constraints. No
+package is published by this release-gate change.
 
-## 15. Security review
+## 16. Security review
 
 | Assertion | State |
 | --- | --- |
@@ -357,7 +388,7 @@ this release-gate change.
 | File/temp cleanup | IMPLEMENTED_AND_VALIDATED in existing transfer suites |
 | Diagnostic QUIC hint absent from production | IMPLEMENTED_AND_VALIDATED |
 
-## 16. Documentation status
+## 17. Documentation status
 
 Present and updated:
 
@@ -367,9 +398,11 @@ Present and updated:
 - `docs/architecture/transport_contract.md`;
 - `docs/phase1a-public-api-inventory.md`;
 - `docs/MIGRATION.md`;
+- `docs/POLICIES.md` with beginner-facing defaults, opt-in steps, samples, and
+  customization/failure-closed guidance;
 - `SECURITY.md` and `CHANGELOG.md`;
 - package READMEs;
-- ADRs 0004–0008;
+- ADRs 0004–0010;
 - retained Phase 0/Phase 1 historical reports.
 
 The older Phase 1F report remains historical evidence and is not rewritten to
@@ -377,7 +410,7 @@ erase the pre-closure gap it recorded. The public API inventory is frozen for
 `1.0.0-rc.1`; the core `alphax` exports remain unchanged, while task 18
 deliberately adds and freezes the optional `AlphaXDioAdapter` package boundary.
 
-## 17. Required 1.0 item states
+## 18. Required 1.0 item states
 
 The authoritative per-capability list is in
 [`ALPHAX_1_0_REQUIREMENTS_AUDIT.md`](ALPHAX_1_0_REQUIREMENTS_AUDIT.md). No
@@ -390,7 +423,7 @@ RC review. The following evidence boundary is retained explicitly:
 | Android protocol requirement failure, pinning, redirect, file, cancellation, and lifecycle checks | `IMPLEMENTED_AND_VALIDATED` | Focused profile/release-equivalent physical-device runs passed; evidence is retained in `phase1f_android_final_release_focused.json` |
 | Final repository/package/security validation | `IMPLEMENTED_AND_VALIDATED` | Consolidated repository, package, security, dependency, build, and documentation checks passed |
 
-## 18. Non-gating follow-ups
+## 19. Non-gating follow-ups
 
 There are no remaining RC blockers. As a non-gating follow-up, run the
 self-contained Android H3 runner on a path known to permit outbound UDP/443 if
@@ -398,7 +431,7 @@ additional live H3 evidence is desired. The runner now performs its own
 bounded Alt-Svc discovery retry; no additional device/network matrix is
 required, and a diagnostic QUIC hint must not be added to production.
 
-## 19. Final conclusion
+## 20. Final conclusion
 
 ## UNBLOCKED FOR 1.0 RC REVIEW
 
