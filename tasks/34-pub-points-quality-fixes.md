@@ -44,16 +44,16 @@ Maintainer-authorized Codex execution.
 
 ## Work Items
 
-- [ ] Create the task record and capture the score breakdown for all packages.
-- [ ] Add package-specific examples for `alphax`, `alphax_test`,
+- [x] Create the task record and capture the score breakdown for all packages.
+- [x] Add package-specific examples for `alphax`, `alphax_test`,
   `alphax_native`, `alphax_web`, and `alphax_dio`.
-- [ ] Add the missing `AlphaXCookieJar` constructor documentation.
-- [ ] Expand the `alphax_web` description to meet pub.dev guidance.
-- [ ] Update RC3 changelogs, versions, and internal constraints.
-- [ ] Run formatting, analysis, tests, dry-runs, and example checks.
-- [ ] Publish all five RC3 packages in dependency order.
-- [ ] Verify score reports and document accepted remaining deductions.
-- [ ] Commit/push the source and publication records.
+- [x] Add the missing `AlphaXCookieJar` constructor documentation.
+- [x] Expand the `alphax_web` description to meet pub.dev guidance.
+- [x] Update RC3 changelogs, versions, and internal constraints.
+- [x] Run formatting, analysis, tests, dry-runs, and example checks.
+- [x] Publish all five RC3 packages in dependency order.
+- [*] Verify score reports and document accepted remaining deductions.
+- [x] Commit/push the source and publication records.
 
 ## Validation
 
@@ -65,8 +65,8 @@ Maintainer-authorized Codex execution.
 
 ## Next Action
 
-Add the examples and documentation/metadata corrections, then validate the
-coordinated RC3 archives.
+Wait for pub.dev Pana analysis to finish, then record the final scores and the
+accepted `alphax_native` platform deduction.
 
 ## Blockers
 
@@ -75,7 +75,11 @@ boundary, not a release defect.
 
 ## Outcome
 
-Pending implementation and publication.
+Repository-controlled fixes are implemented and pushed in `df26226`. All five
+RC3 packages were published successfully in dependency order after clean
+zero-warning dry-runs. Pub.dev currently reports `[pending analysis]` and
+`0/0` for all five score endpoints; final score verification remains pending
+external Pana processing.
 
 ## References
 
