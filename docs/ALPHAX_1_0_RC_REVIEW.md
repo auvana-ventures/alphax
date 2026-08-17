@@ -3,17 +3,17 @@
 Review date: 2026-08-17
 Proposed version: `1.0.0-rc.1`
 Review scope: final release-candidate preparation after the frozen policy API.
-No transport architecture change, benchmark rerun, publication, tag, or
-post-1.0 feature work is included.
+No transport architecture change, benchmark rerun, tag, or post-1.0 feature
+work is included; the publication outcome is recorded below.
 
 ## 1. Commit and HEAD
 
 The policy-freeze source, tests, ADRs, and package documentation are committed
-in `c9a750d` (`feat: freeze AlphaX 1.0 policy contracts`). The current pushed
-`origin/main` HEAD is `13eb4a8` (`docs: refresh AlphaX READMEs and branding`),
-which includes the final README, package-local logo assets, and onboarding
-documentation refresh. Historical release and audit commits are preserved and
-are not rewritten.
+in `c9a750d` (`feat: freeze AlphaX 1.0 policy contracts`). The publication was
+run from the clean pushed `af36265` (`docs: refresh AlphaX RC publication
+record`), which includes the final README, package-local logo assets, and
+onboarding documentation refresh. Historical release and audit commits are
+preserved and are not rewritten.
 
 ## 2. Proposed RC and package publication set
 
@@ -33,9 +33,19 @@ cancellation, timeouts, redirects, progress, errors, and AlphaX completion
 metadata. `alphax_web` is not a name-reservation skeleton: its Fetch adapter
 has VM/Chrome tests and browser compilation coverage.
 
-No package is published by this review. No package is intentionally withheld
-from the first RC publication set; maintainer naming clearance and approval
-remain required.
+All five packages were published successfully on 2026-08-17 as
+`1.0.0-rc.1`. Pub.dev now reports the version for each package:
+
+| Package | Published version | Archive from final dry-run | Package page |
+| --- | --- | ---: | --- |
+| `alphax` | `1.0.0-rc.1` | 52 KB | [pub.dev/packages/alphax](https://pub.dev/packages/alphax) |
+| `alphax_test` | `1.0.0-rc.1` | 12 KB | [pub.dev/packages/alphax_test](https://pub.dev/packages/alphax_test) |
+| `alphax_native` | `1.0.0-rc.1` | 75 KB | [pub.dev/packages/alphax_native](https://pub.dev/packages/alphax_native) |
+| `alphax_web` | `1.0.0-rc.1` | 11 KB | [pub.dev/packages/alphax_web](https://pub.dev/packages/alphax_web) |
+| `alphax_dio` | `1.0.0-rc.1` | 14 KB | [pub.dev/packages/alphax_dio](https://pub.dev/packages/alphax_dio) |
+
+No package was withheld from the approved RC set. No git tag or GitHub release
+was created.
 
 ## 3. Publication order and dependency graph
 
@@ -280,10 +290,17 @@ provider-specific proxy/TLS expansion, SPM packaging, background-transfer
 integration, and separately scoped application/framework features. These are
 not RC blockers and are not part of this task.
 
-## 17. Remaining RC blockers
+## 17. Publication outcome
 
-None identified. Publication, naming clearance, and maintainer approval remain
-external release actions, not implementation blockers.
+The interactive `dart pub publish` command completed successfully in the
+approved order: `alphax`, `alphax_test`, `alphax_native`, `alphax_web`, then
+`alphax_dio`. The pub.dev package API returned HTTP 200 and
+`latest.version = 1.0.0-rc.1` for all five package names after upload.
+
+## 18. Remaining RC blockers
+
+None identified. The approved RC package set is published and the repository
+remains ready for maintainer review of the public packages.
 
 ## Final verdict
 
