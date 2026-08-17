@@ -1,6 +1,6 @@
 name: alphax_native
 description: Platform transport adapters for AlphaX using Dart IO, Cronet, and URLSession.
-version: 1.0.0-rc.1
+version: 1.0.0-rc.2
 homepage: https://github.com/auvana-ventures/alphax
 repository: https://github.com/auvana-ventures/alphax
 issue_tracker: https://github.com/auvana-ventures/alphax/issues
@@ -16,12 +16,12 @@ environment:
   flutter: ">=3.22.0"
 
 dependencies:
-  alphax: ^1.0.0-rc.1
+  alphax: ^1.0.0-rc.2
   flutter:
     sdk: flutter
 
 dev_dependencies:
-  alphax_test: ^1.0.0-rc.1
+  alphax_test: ^1.0.0-rc.2
   flutter_test:
     sdk: flutter
   lints: ^5.1.1

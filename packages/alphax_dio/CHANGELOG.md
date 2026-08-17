@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.0-rc.2 - 2026-08-17
+
+- Corrected the theme-aware README logo URLs to absolute repository assets so
+  pub.dev and other Markdown renderers load both SVG variants.
+
 ## 1.0.0-rc.1 - 2026-08-17
 
 - Added `AlphaXDioAdapter`, a focused Dio 5.x `HttpClientAdapter` backed by an

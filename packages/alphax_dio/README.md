@@ -2,8 +2,8 @@
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/branding/alphax-logo-light.svg">
-    <img src="assets/branding/alphax-logo-dark.svg" alt="AlphaX" width="300">
+    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/auvana-ventures/alphax/raw/main/packages/alphax_dio/assets/branding/alphax-logo-light.svg">
+    <img src="https://github.com/auvana-ventures/alphax/raw/main/packages/alphax_dio/assets/branding/alphax-logo-dark.svg" alt="AlphaX" width="300">
   </picture>
 </p>
 
