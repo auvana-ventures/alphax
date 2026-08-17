@@ -9,10 +9,11 @@ post-1.0 feature work is included.
 ## 1. Commit and HEAD
 
 The policy-freeze source, tests, ADRs, and package documentation are committed
-in `c9a750d` (`feat: freeze AlphaX 1.0 policy contracts`). The final release-gate
-documentation commit and pushed `origin/main` HEAD are recorded in the final
-task outcome and maintainer handoff after validation. Historical release and
-audit commits are preserved and are not rewritten.
+in `c9a750d` (`feat: freeze AlphaX 1.0 policy contracts`). The current pushed
+`origin/main` HEAD is `13eb4a8` (`docs: refresh AlphaX READMEs and branding`),
+which includes the final README, package-local logo assets, and onboarding
+documentation refresh. Historical release and audit commits are preserved and
+are not rewritten.
 
 ## 2. Proposed RC and package publication set
 
@@ -209,11 +210,11 @@ table below:
 
 | Package | Dry-run | Compressed archive | Warnings/errors |
 | --- | --- | ---: | --- |
-| `alphax` | `dart pub publish --dry-run` | 50 KB | 0 warnings |
-| `alphax_test` | `dart pub publish --dry-run` | 10 KB | 0 warnings |
-| `alphax_native` | `flutter pub publish --dry-run` | 73 KB | 0 warnings |
-| `alphax_web` | `dart pub publish --dry-run` | 9 KB | 0 warnings |
-| `alphax_dio` | `dart pub publish --dry-run` | 12 KB | 0 warnings |
+| `alphax` | `dart pub publish --dry-run` | 52 KB | 0 warnings |
+| `alphax_test` | `dart pub publish --dry-run` | 12 KB | 0 warnings |
+| `alphax_native` | `dart pub publish --dry-run` | 75 KB | 0 warnings |
+| `alphax_web` | `dart pub publish --dry-run` | 11 KB | 0 warnings |
+| `alphax_dio` | `dart pub publish --dry-run` | 14 KB | 0 warnings |
 
 The archives must contain no benchmark results, local device fixtures,
 generated native output, signing configuration, development certificates,
