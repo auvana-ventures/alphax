@@ -1,6 +1,6 @@
 # AlphaX 1.0 Requirements Audit
 
-Audit date: 2026-08-16
+Audit date: 2026-08-17
 Audit basis: `docs/ALPHAX_1_0_SCOPE.md`, the Phase 1A public API inventory,
 the Phase 1E and Phase 1F reports, ADRs 0004 and 0005, ADRs 0006–0008, and
 the public networking/security APIs in `alphax`, `alphax_native`, and
@@ -26,6 +26,21 @@ explicitly.
   the behavior; the capability and failure are explicit.
 - `BLOCKED_BY_MAINTAINER_DECISION`: a required choice needs explicit
   maintainer direction before implementation can be considered complete.
+
+## Frozen interface and claim boundaries
+
+The following are deliberate 1.0 contract boundaries. They are not missing
+required implementations, and the detailed capability rows below remain the
+source of truth for the individual scope classification of retries, caching,
+cookies, authentication, and Web support.
+
+| Boundary | Exact 1.0 state | Evidence / limitation |
+|---|---|---|
+| Native transport implementation inside `alphax` | `INTENTIONALLY_UNSUPPORTED_IN_1_0` | `alphax` is pure Dart and transport-independent. `AlphaXClient` consumes an injected `AlphaXTransport`; native adapters live in `alphax_native`, and deterministic fakes live in `alphax_test`. |
+| Web support | `IMPLEMENTED_NEEDS_VALIDATION` | `alphax_web` provides a separate browser Fetch transport for ordinary HTTP. Browser protocol metadata is unknown, concrete protocol requirements fail closed, and browser CORS/TLS/proxy rules remain platform-owned. Browser-runtime validation is separate from the native RC gate. |
+| Universal H3 guarantee | `INTENTIONALLY_UNSUPPORTED_IN_1_0` | H3-capable Android/Apple adapters, preference/requirement semantics, actual protocol reporting, and fallback evidence are validated. The provider, server, proxy, and network path still determine each request’s actual protocol. |
+| Automatic retries, authentication orchestration, cookies, caching, and vendor-specific resilience policy | `IMPLEMENTED_NEEDS_VALIDATION` | Opt-in pure-Dart middleware now provides replay-aware retry, caller-owned token injection with single-flight buffered challenge refresh, in-memory cookies, bounded buffered GET/HEAD caching, and a generic circuit breaker. Persistent stores, unsafe replay, model-specific OAuth, and vendor policies remain outside the implementation. |
+| Universal speed, zero-copy, or “fastest client” claim | `INTENTIONALLY_UNSUPPORTED_IN_1_0` | Release documentation makes no universal performance claim. Native file-backed and bounded-transfer behavior is described only as an adapter capability with scoped evidence; it is not called zero-copy. |
 
 ## Protocols and transports
 
@@ -114,28 +129,30 @@ explicitly.
 | Immutable request/response models | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Headers, metadata, metrics, policies, and body ownership are immutable/lifecycle-controlled. |
 | Package documentation | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Package READMEs, migration notes, API inventory, architecture contract, benchmark runner guidance, and release gate exist; scoped doc/link checks pass. |
 | Migration guidance from `package:http`/Dio | REQUIRED FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | `docs/MIGRATION.md` explains request, middleware, cancellation, timeout, TLS/pinning, proxy, files, and protocol semantics without promising a full adapter. |
+| Policy middleware contracts | OPTIONAL FOR 1.0 | `IMPLEMENTED_NEEDS_VALIDATION` | Retry, authentication, cookie, cache, and resilience middleware are transport-independent and covered by focused pure-Dart tests; persistent storage and provider-specific policy remain caller-owned. |
+| Browser Fetch transport | OPTIONAL FOR 1.0 | `IMPLEMENTED_NEEDS_VALIDATION` | `alphax_web` provides a conditional Web adapter with truthful unknown protocol/capability reporting. Native-target analysis and tests pass; browser-runtime compilation/validation remains separate. |
 
 ## Optional, post-1.0, and explicit non-goals
 
 | Capability | Scope class | Exact state | Deliberate decision |
 | --- | --- | --- | --- |
 | Dio adapter | OPTIONAL FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | `alphax_dio` provides a focused Dio 5.x `HttpClientAdapter` over an injected `AlphaXClient`; request/response lifecycle, cancellation, timeout/error mapping, progress, streaming, redirects, and protocol metadata are tested. It is not full Dio API compatibility and is not required by the native transport gate. |
-| Cookie jar | OPTIONAL FOR 1.0 | `OPTIONAL_NOT_IMPLEMENTED` | No cross-platform persistent cookie store is included. |
+| Cookie jar | OPTIONAL FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | `AlphaXCookieJar` and middleware implement in-memory host/path/secure/expiry matching and Set-Cookie storage. Persistent cookie storage is not included. |
 | Request priorities | OPTIONAL FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Retained as a transport-neutral hint with no provider-specific guarantee. |
 | mTLS | OPTIONAL FOR 1.0 | `OPTIONAL_NOT_IMPLEMENTED` | Evaluated and explicitly capability-rejected by current adapters. |
-| Cache | POST-1.0 | `INTENTIONALLY_UNSUPPORTED_IN_1_0` | No cache implementation or public cache contract. |
-| Retry/resilience | POST-1.0 | `INTENTIONALLY_UNSUPPORTED_IN_1_0` | No retry or resilience middleware. |
-| Circuit breaker | POST-1.0 | `INTENTIONALLY_UNSUPPORTED_IN_1_0` | No circuit-breaker behavior. |
+| Cache | OPTIONAL FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | `AlphaXCacheMiddleware` provides bounded in-memory freshness, conditional revalidation, and mutation invalidation for buffered GET/HEAD responses. |
+| Retry/resilience | OPTIONAL FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | `AlphaXRetryMiddleware` applies cancellation-aware backoff to replayable, idempotent buffered requests by default; unsafe mutations and non-replayable streams are not silently retried. |
+| Circuit breaker | OPTIONAL FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | `AlphaXResilienceMiddleware` provides a generic in-memory circuit breaker with optional retry composition and normalized circuit-open errors. |
 | Offline queue | POST-1.0 | `INTENTIONALLY_UNSUPPORTED_IN_1_0` | No offline queue. |
 | OpenTelemetry | POST-1.0 | `INTENTIONALLY_UNSUPPORTED_IN_1_0` | No telemetry SDK integration. |
 | Sentry/Firebase Performance | EXPLICIT NON-GOAL | `INTENTIONALLY_UNSUPPORTED_IN_1_0` | No vendor observability integration. |
 | DevTools extension | POST-1.0 | `INTENTIONALLY_UNSUPPORTED_IN_1_0` | No extension. |
 | WebSocket | POST-1.0 | `INTENTIONALLY_UNSUPPORTED_IN_1_0` | HTTP client scope only. |
 | SSE | POST-1.0 | `INTENTIONALLY_UNSUPPORTED_IN_1_0` | Raw streaming remains available; no SSE parser/reconnect layer. |
-| Browser/web transport | POST-1.0 | `INTENTIONALLY_UNSUPPORTED_IN_1_0` | Web is unsupported in 1.0. |
+| Browser/web transport | OPTIONAL FOR 1.0 | `IMPLEMENTED_NEEDS_VALIDATION` | `alphax_web` provides browser Fetch for ordinary HTTP. It cannot expose authoritative protocol metadata or native TLS/proxy/file controls. |
 | GraphQL | EXPLICIT NON-GOAL | `INTENTIONALLY_UNSUPPORTED_IN_1_0` | No GraphQL client. |
 | REST generator | EXPLICIT NON-GOAL | `INTENTIONALLY_UNSUPPORTED_IN_1_0` | No generator. |
-| Authentication framework | EXPLICIT NON-GOAL | `INTENTIONALLY_UNSUPPORTED_IN_1_0` | Headers and middleware are the boundary; no token orchestration. |
+| Authentication orchestration | OPTIONAL FOR 1.0 | `IMPLEMENTED_AND_VALIDATED` | Token injection and one single-flight buffered challenge refresh are available; credential storage and model-specific auth remain caller-owned. |
 
 ## Required-item audit result
 
@@ -172,4 +189,5 @@ contract for maintainer RC review. H3 remains path-dependent by design:
 responses report the actual protocol, preferences permit fallback, and
 requirements fail closed. No universal Android H3 network claim is made.
 Provider-limited policies are documented as fail-closed capability boundaries,
-not as unresolved decisions.
+not as unresolved decisions. The explicit non-guarantees above are deliberate
+scope decisions and do not block the 1.0 RC review.

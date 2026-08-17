@@ -7,6 +7,9 @@
   protocol, metrics, and normalized-error contracts.
 - Added protocol preference/requirement, truthful fallback, TLS/trust/pinning,
   proxy, and opaque client-identity policy models.
+- Added opt-in replay-aware retries, token authentication with single-flight
+  challenge refresh, in-memory cookies, buffered HTTP caching, and generic
+  circuit-breaker resilience middleware.
 - Documented completion-time protocol metadata and intentional provider
   limitations.
 

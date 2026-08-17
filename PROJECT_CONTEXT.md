@@ -70,13 +70,15 @@ not change architecture based solely on preference.
 
 ## Explicit non-goals
 
-Phase 1A did not implement a cache, offline queue, circuit breaker, telemetry
-exporter, complete DevTools extension, full Dio API compatibility, GraphQL
-integration, REST generation, custom QUIC/TLS, or a full authentication
-framework. The focused `alphax_dio` adapter is an optional 1.0 boundary; full
-Dio parity and deferred features remain out of scope. The Cronet and URLSession
-adapters are implemented in their approved phases; cross-transport release
-validation remains the current scope.
+The current RC does not include an offline queue, telemetry exporter, complete
+DevTools extension, full Dio API compatibility, GraphQL integration, REST
+generation, custom QUIC/TLS, or a full model-specific authentication framework.
+The pure-Dart core now includes opt-in replay-aware retry, caller-owned token
+authentication, in-memory cookies/cache, and a generic circuit breaker. The
+separate `alphax_web` package provides browser Fetch support with unknown
+protocol metadata; it does not change the native transport architecture. The
+focused `alphax_dio` adapter is an optional 1.0 boundary and full Dio parity
+remains out of scope.
 
 ## Source documents
 

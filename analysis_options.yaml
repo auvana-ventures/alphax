@@ -3,6 +3,10 @@ include: package:lints/recommended.yaml
 analyzer:
   exclude:
     - build/**
+    # The mobile gate is a standalone Flutter application. It is analyzed and
+    # built from its own package root so Flutter SDK and benchmark path
+    # dependencies resolve through its package_config.json.
+    - benchmarks/mobile_gate/**
     - android/**
     - ios/**
     - web/**

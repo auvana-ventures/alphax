@@ -10,7 +10,9 @@ constraint. The 1.0 platform strategy is:
 - iOS 15+ and macOS 12+: Foundation URLSession, H1/H2/H3 where the OS and
   network path support them;
 - Linux and Windows: Dart IO H1 fallback;
-- Web: unsupported in the 1.0 scope.
+- Web: use the separate `alphax_web` Browser Fetch adapter. Ordinary HTTP is
+  supported, but browser protocol metadata is unknown and concrete protocol
+  requirements fail closed.
 
 Protocol capability, request preference, actual negotiated protocol, and
 fallback are separate values. H3 preference does not guarantee H3 use.

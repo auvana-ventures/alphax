@@ -75,9 +75,34 @@ bytes and does not invent progress for unsupported transports.
 Replace `package:http` wrappers or Dio interceptors with ordered
 `AlphaXMiddleware`. Middleware can mutate a request through `copyWith`,
 short-circuit, handle errors, and participate in streamed/file operations. The
-chain is per operation. AlphaX 1.0 does not add automatic retries, auth
-refresh, caching, or resilience policy, and unsafe mutations are never silently
-retried.
+chain is per operation. AlphaX also provides opt-in replay-aware retries,
+caller-owned token authentication, in-memory cookies/cache, and a generic
+circuit breaker. Unsafe or non-replayable operations are never silently
+retried; persistent stores and model-specific authentication remain application
+responsibilities.
+
+For a starting policy set:
+
+```dart
+final client = AlphaXClient(
+  transport: transport,
+  middleware: <AlphaXMiddleware>[
+    AlphaXAuthenticationMiddleware(accessToken: readAccessToken),
+    AlphaXCookieMiddleware(AlphaXCookieJar()),
+    AlphaXRetryMiddleware(),
+    AlphaXCacheMiddleware(store: AlphaXMemoryCacheStore()),
+    AlphaXResilienceMiddleware(),
+  ],
+);
+```
+
+The default retry policy covers replayable idempotent buffered requests and
+honors bounded backoff/`Retry-After`; it does not replay a single-use stream or
+an unsafe mutation silently. Authentication injects a caller-owned token and
+can perform one single-flight refresh after a buffered challenge. Cookie and
+cache state are in memory unless the application supplies its own store. The
+resilience middleware is a generic circuit breaker, not an offline queue or
+vendor-specific retry service.
 
 ## Dio mapping
 
@@ -142,8 +167,9 @@ proxy policy on the injected AlphaX client. Unsupported provider controls fail
 closed according to the AlphaX contract.
 
 `alphax_dio` is a focused Dio 5.x compatibility boundary, not full Dio source
-or API compatibility. It intentionally does not add automatic retries, a
-cookie jar, auth orchestration, caching, resilience policy, or Web support.
+or API compatibility. Configure AlphaX retry, cookie, authentication, cache,
+and resilience middleware on the injected client when those policies are
+needed. Browser support is provided by the separate `alphax_web` adapter.
 
 ## Protocol preference, requirement, and actual reporting
 
@@ -193,5 +219,5 @@ remain diagnostic causes only.
 AlphaX 1.0 intentionally differs from both source clients: response bodies are
 explicitly consumed, streamed bodies have ownership/replay rules, protocol
 metadata may complete later, capability limitations are visible, unsupported
-security/routing controls fail closed, and automatic retry/auth/cache behavior
-is not included.
+security/routing controls fail closed, and policy behavior is explicit
+middleware rather than an implicit vendor-specific default.

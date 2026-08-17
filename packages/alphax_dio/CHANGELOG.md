@@ -8,6 +8,8 @@
   redirects, progress, response streams, and normalized AlphaX errors.
 - Exposed actual and completion-time protocol/metrics metadata through typed
   adapter keys and Dio's standard HTTP-version extra.
+- Documented composition with AlphaX retry, authentication, cookie, cache, and
+  resilience middleware configured on the injected client.
 - Added deterministic adapter lifecycle, response-stream, cancellation,
   timeout, redirect, progress, and protocol tests.
 
@@ -19,7 +21,8 @@
 - TLS, trust anchors, SPKI pins, proxy policy, and middleware are configured on
   the injected `AlphaXClient`; the adapter does not invent per-request native
   policy controls.
-- AlphaX 1.0 supports no Web transport, so this adapter does not make Web
-  support available.
-- No automatic retries, cookie jar, auth orchestration, cache, or resilience
-  policy is included.
+- Browser support is provided by the separate `alphax_web` Fetch adapter; this
+  Dio bridge does not change browser platform rules.
+- AlphaX policy middleware is opt-in and bounded: retries are replay-aware,
+  cookies/cache are in-memory, authentication state is caller-owned, and
+  resilience is generic rather than vendor-specific.

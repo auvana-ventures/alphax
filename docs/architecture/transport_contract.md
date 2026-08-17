@@ -171,8 +171,12 @@ order for response or error handling. It can asynchronously mutate a request by
 passing `copyWith`, short-circuit, or transform an error in `try`/`catch`.
 Streaming and file operations have corresponding next handlers. Middleware must
 not invoke a single-use body twice, and the chain is per operation so concurrent
-requests do not share mutable request state. Retry, authentication, cache,
-telemetry, and resilience behavior are not implemented by this foundation.
+requests do not share mutable request state. The core ships opt-in policy
+modules for replay-aware retry, caller-owned token authentication, in-memory
+cookies/cache, and a generic circuit breaker. Retry/cache/refresh behavior is
+conservative for streamed and file operations because replaying partial or
+non-replayable work is unsafe; persistent stores and vendor policy remain
+outside the foundation.
 
 ## Metrics
 

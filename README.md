@@ -10,7 +10,7 @@ capability, protocol, and error model over platform transports.
 candidate and is not published to pub.dev. Publication requires naming
 clearance and maintainer approval after the RC review.
 
-AlphaX makes no universal H3, zero-copy, or unsupported performance claim.
+AlphaX makes no universal H3, speed, zero-copy, or “fastest client” claim.
 
 ## Installation during RC review
 
@@ -31,10 +31,32 @@ dependencies:
     git:
       url: https://github.com/auvana-ventures/alphax.git
       path: packages/alphax_dio
+  alphax_web:
+    git:
+      url: https://github.com/auvana-ventures/alphax.git
+      path: packages/alphax_web
 ```
 
 `alphax` has no Flutter SDK dependency. `alphax_native` is the Flutter plugin
 that supplies Dart IO, Android Cronet/HttpEngine, and Apple URLSession adapters.
+`alphax_web` supplies the browser Fetch adapter; browser protocol metadata is
+intentionally unknown.
+
+## Which package do I need?
+
+Choose the package by the job you are doing:
+
+| Package | Use it when you want to… | What you get |
+| --- | --- | --- |
+| [`alphax`](packages/alphax/README.md) | write request code once | transport-independent requests, responses, streams, files, cancellation, timeouts, errors, and protocol metadata |
+| [`alphax_native`](packages/alphax_native/README.md) | run the same client on Flutter platforms | Dart IO on Linux/Windows, Cronet on Android, and URLSession on iOS/macOS |
+| [`alphax_web`](packages/alphax_web/README.md) | run the same client in a browser | Fetch-based Web requests with truthful browser capability boundaries |
+| [`alphax_dio`](packages/alphax_dio/README.md) | keep an existing Dio application | a Dio `HttpClientAdapter` backed by an injected AlphaX client and its configured transport/security policies |
+| [`alphax_test`](packages/alphax_test/README.md) | test without a live server or device | deterministic fake transports, streams, failures, cancellation, files, and conformance helpers |
+
+New Flutter applications normally use `alphax` with `alphax_native`. Existing
+Dio applications can add `alphax_dio` instead of rewriting their request
+layer. `alphax_test` is a development dependency, not a runtime transport.
 
 ## Basic request
 
@@ -158,7 +180,7 @@ final response = await client.send(
 | macOS 12+ | URLSession | H1/H2/H3; the OS, provider, server, and network determine the negotiated protocol |
 | Linux | Dart IO fallback | H1 only |
 | Windows | Dart IO fallback | H1 only |
-| Web | No AlphaX 1.0 transport | Unsupported in 1.0 |
+| Web | `alphax_web` Browser Fetch transport | H1/H2/H3 may be used by the browser, but Dart cannot authoritatively report the negotiated protocol; H3 requirements fail closed |
 
 H3 preference may legitimately negotiate H2 or H1. The actual protocol and
 fallback metadata must be inspected for each completed request. A protocol
@@ -173,10 +195,13 @@ cannot authoritatively report H2/H3 and therefore does not advertise them.
 | [`alphax_native`](packages/alphax_native) | Dart IO, Cronet, and URLSession adapters | Required platform boundary |
 | [`alphax_test`](packages/alphax_test) | Fakes and shared conformance helpers | Required test support |
 | [`alphax_dio`](packages/alphax_dio) | Focused Dio 5.x `HttpClientAdapter` boundary | Optional RC package; not full Dio compatibility |
+| [`alphax_web`](packages/alphax_web) | Browser Fetch transport adapter | Optional separate Web package; publication requires maintainer approval |
 
 There is no AlphaX-owned C++ engine, production Rust transport, libcurl
-dependency, cache, retry/resilience module, telemetry SDK, GraphQL layer, REST
-generator, WebSocket/SSE API, or browser transport in the 1.0 architecture.
+dependency, telemetry SDK, GraphQL layer, REST generator, or WebSocket/SSE API
+in the 1.0 architecture. Retry, authentication, cookie, cache, and generic
+resilience policies are opt-in pure-Dart middleware. Browser support is a
+separate `alphax_web` Fetch adapter rather than a native transport in the core.
 
 ## Capability boundaries and known limitations
 
@@ -199,11 +224,14 @@ URLSession/CFNetwork proxy configuration and rejects explicit HTTPS-proxy
 configuration. `AlphaXClientIdentity` is an opaque security-reference model;
 mTLS is not implemented by the 1.0 adapters.
 
-Known 1.0 limitations are Linux/Windows H1-only fallback, unsupported Web,
-unimplemented mTLS, unavailable explicit HTTPS-proxy endpoint parity, Android
-custom trust anchors being unsupported by the selected provider, Dart IO SPKI
-pinning being unsupported, and Swift Package Manager packaging being deferred;
-CocoaPods is the Apple packaging path.
+Known 1.0 limitations are Linux/Windows H1-only fallback, browser protocol
+metadata being unavailable, unimplemented mTLS, unavailable explicit HTTPS-
+proxy endpoint parity, Android custom trust anchors being unsupported by the
+selected provider, Dart IO and browser SPKI pinning being unsupported, and
+Swift Package Manager packaging being deferred; CocoaPods is the Apple
+packaging path. Policy middleware uses in-memory cookie/cache state, limits
+automatic retries to safe replayable buffered operations, and leaves token
+storage/application-specific authentication to the caller.
 
 The Apple adapter strips `Authorization`, `Proxy-Authorization`, and `Cookie`
 on cross-origin redirects. Android rejects a sensitive cross-origin redirect
@@ -221,7 +249,9 @@ the API does not promise portable DNS/TCP/TLS phase precision.
 ## Migration and examples
 
 See [migration guidance](docs/MIGRATION.md) for `package:http` and Dio mapping.
-The small example source and test are in
+The beginner-friendly [Waypoint reference app](examples/waypoint/README.md)
+demonstrates the packages in a travel-planning interface. The minimal smoke
+test remains
 [`examples/basic`](examples/basic/README.md) and its source is in
 [`examples/basic/lib/main.dart`](examples/basic/lib/main.dart).
 
@@ -238,7 +268,8 @@ alphax (pure-Dart contracts)
       │
       ├── Dart IO fallback
       ├── Android Cronet/HttpEngine
-      └── iOS/macOS URLSession
+      ├── iOS/macOS URLSession
+      └── alphax_web Browser Fetch (separate package)
 ```
 
 See the [1.0 scope](docs/ALPHAX_1_0_SCOPE.md),
@@ -246,7 +277,9 @@ See the [1.0 scope](docs/ALPHAX_1_0_SCOPE.md),
 the [1.0 requirements audit](docs/ALPHAX_1_0_REQUIREMENTS_AUDIT.md),
 and [Phase 1E validation report](docs/phase1e-cross-transport-validation.md).
 Historical Phase 0 benchmark results remain evidence for measured HTTP/1.1
-workloads and were not rewritten as H2/H3 performance claims.
+workloads; see the [historical benchmark documentation](docs/benchmarks.md) and
+its linked result summaries. They were not rewritten as H2/H3 performance
+claims.
 
 ## Contributing and license
 

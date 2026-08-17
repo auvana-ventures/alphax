@@ -1,6 +1,6 @@
 # AlphaX 1.0 Release Gate
 
-Gate date: 2026-08-16
+Gate date: 2026-08-17
 Architecture: Android Cronet/HttpEngine; iOS/macOS URLSession; Dart IO
 fallback; pure-Dart transport-independent `alphax` API.
 
@@ -24,9 +24,12 @@ package, or create a release tag.
 - `AlphaXRequestMetrics` with best-known and completion-time semantics;
 - `AlphaXTlsPolicy`, `AlphaXTrustAnchor`, `AlphaXSpkiPin`,
   `AlphaXClientIdentity`, `AlphaXProxyPolicy`, and proxy credentials;
+- opt-in `AlphaXRetryMiddleware`, `AlphaXAuthenticationMiddleware`,
+  `AlphaXCookieMiddleware`, `AlphaXCacheMiddleware`, and
+  `AlphaXResilienceMiddleware` policy contracts;
 - normalized AlphaX exceptions, including protocol requirement, TLS/pin,
   proxy, proxy-authentication, unsupported-policy, body, cancellation, and
-  transport errors.
+  resilience/transport errors.
 
 `alphax` has no Flutter SDK dependency and exports no Cronet, URLSession,
 Foundation, Rust, libcurl, C++, FFI handle, socket, certificate-object, or
@@ -34,6 +37,27 @@ native error type. `alphax_native` exports only Dart IO, Android Cronet, and
 Apple URLSession adapters. `alphax_test` exports fakes and conformance
 fixtures. `alphax_dio` exports only the focused `AlphaXDioAdapter`; it is an
 optional Dio compatibility boundary and does not add a transport.
+
+### Frozen interface guarantees and non-guarantees
+
+The 1.0 API freeze also fixes these negative guarantees:
+
+- `alphax` does not include a native transport implementation by itself.
+  Callers select an adapter through the `AlphaXTransport` seam; native
+  implementations are separate package responsibilities.
+- The core `alphax` package does not contain a browser transport. The separate
+  `alphax_web` adapter supports ordinary browser Fetch requests, but it cannot
+  report authoritative H1/H2/H3 metadata and concrete protocol requirements
+  fail closed.
+- H3 is not guaranteed. The selected provider, server, proxy, and network
+  path determine the actual protocol. Preferences may fall back, while
+  requirements fail closed unless the required protocol is observed.
+- AlphaX provides opt-in replay-aware retry, caller-owned token authentication,
+  in-memory cookies/cache, and a generic circuit breaker. It does not include
+  persistent stores, unsafe replay, model-specific OAuth, or a vendor-specific
+  resilience policy.
+- AlphaX makes no universal speed, zero-copy, or “fastest client” claim.
+  Native file-transfer terminology remains capability- and evidence-scoped.
 
 ## 2. Exact platform/protocol matrix
 
@@ -46,7 +70,7 @@ optional Dio compatibility boundary and does not add a transport.
 | macOS URLSession 12+ | SUPPORTED | SUPPORTED | SUPPORTED | SUPPORTED from URLSession task metrics at completion | SUPPORTED from completion metrics |
 | Linux | SUPPORTED through Dart IO | UNSUPPORTED | UNSUPPORTED | Dart IO limitation | UNSUPPORTED |
 | Windows | SUPPORTED through Dart IO | UNSUPPORTED | UNSUPPORTED | Dart IO limitation | UNSUPPORTED |
-| Web | UNSUPPORTED IN 1.0 | UNSUPPORTED IN 1.0 | UNSUPPORTED IN 1.0 | UNSUPPORTED IN 1.0 | UNSUPPORTED IN 1.0 |
+| Web (`alphax_web`) | ORDINARY HTTP SUPPORTED | UNKNOWN | UNKNOWN | UNSUPPORTED; Fetch does not expose authoritative protocol metadata | REQUIREMENT FAILS CLOSED |
 
 The Android H3 fixture and Apple H3/fallback evidence remain preserved in the
 Phase 1C/1D/1E reports. The focused signed iPhone release/security rerun is
@@ -293,6 +317,10 @@ alphax_dio
   ├── alphax
   ├── Dio 5.x
   └── focused `AlphaXDioAdapter` boundary
+
+alphax_web (separate optional Web adapter)
+  ├── alphax
+  └── package:http BrowserClient / Fetch
 ```
 
 Production packages contain no Rust runtime, libcurl, C++ engine, benchmark
@@ -309,8 +337,10 @@ dependency order is `alphax`, then `alphax_test`, followed by the independent
 `alphax_dio` and `alphax_native` branches. The proposed linear order is
 `alphax` → `alphax_test` → `alphax_dio` → `alphax_native`; `alphax_dio` also
 requires external Dio 5.x, while `alphax_native` consumes `alphax` at runtime
-and `alphax_test` as a development dependency. No package is published by this
-release-gate change.
+and `alphax_test` as a development dependency. `alphax_web` is prepared as a
+separate optional adapter and is not added to this previously approved native
+RC publication set without maintainer approval. No package is published by
+this release-gate change.
 
 ## 15. Security review
 

@@ -8,13 +8,13 @@ release claims; adapter evidence is recorded in the Phase 1B, Phase 1C, Phase
 
 **Review status: FROZEN FOR 1.0.0-RC.1.** The core transport-neutral
 API has no accidental native exports. Protocol requirements, TLS/proxy policy,
-normalized policy errors, and completion-time protocol semantics are now part
-of the frozen public boundary. Focused provider/device validation remains
-tracked in `docs/ALPHAX_1_0_REQUIREMENTS_AUDIT.md`. No public exports were
-added to the core `alphax` boundary during RC preparation. Task 18 deliberately
-adds the optional `AlphaXDioAdapter` to the separate `alphax_dio` package; this
-adapter boundary is now included in the RC inventory. Any later API change is a
-potential 1.0 breaking change.
+normalized policy errors, completion-time protocol semantics, and the opt-in
+policy modules are part of the frozen public boundary. Focused provider/device
+validation remains tracked in `docs/ALPHAX_1_0_REQUIREMENTS_AUDIT.md`. Task 18
+deliberately adds the optional `AlphaXDioAdapter` to the separate
+`alphax_dio` package, and task 24 deliberately adds the pure-Dart policy
+contracts. These boundaries are now included in the RC inventory. Any later
+API change is a potential 1.0 breaking change.
 
 ## Client and transport
 
@@ -79,6 +79,19 @@ potential 1.0 breaking change.
 | `AlphaXTransferDirection` | Upload or download progress direction. |
 | `AlphaXProgress` / `AlphaXProgressCallback` | Optional body-progress reporting. |
 
+## Opt-in policy modules
+
+| Symbol | Responsibility |
+| --- | --- |
+| `AlphaXRetryPolicy` / `AlphaXRetryMiddleware` | Replay-aware, cancellation-aware retry with idempotency-safe defaults and bounded backoff for buffered operations. |
+| `AlphaXRetryDelay` / `AlphaXRetryDecider` | Custom retry delay and final-decision hooks. |
+| `AlphaXAccessTokenProvider` / `AlphaXAccessTokenRefresher` | Caller-owned access-token and refresh callbacks. |
+| `AlphaXAuthenticationMiddleware` | Token injection plus one single-flight challenge refresh for replayable buffered requests. |
+| `AlphaXCookie` / `AlphaXCookieJar` / `AlphaXCookieMiddleware` | In-memory host/path/secure/expiry cookie storage and request/response integration. |
+| `AlphaXCacheStore` / `AlphaXCacheEntry` / `AlphaXMemoryCacheStore` | Bounded in-memory response cache storage. |
+| `AlphaXCachePolicy` / `AlphaXCacheMiddleware` | Buffered GET/HEAD freshness, conditional revalidation, and mutation invalidation. |
+| `AlphaXCircuitState` / `AlphaXResiliencePolicy` / `AlphaXResilienceMiddleware` | Generic in-memory circuit-breaker state and optional retry composition. |
+
 ## Lifecycle, files, redirects, and errors
 
 | Symbol | Responsibility |
@@ -91,8 +104,8 @@ potential 1.0 breaking change.
 | `AlphaXFileTarget` | Download destination abstraction. |
 | `AlphaXFileSink` | Bounded destination write/flush/close/abort lifecycle. |
 | `AlphaXTransferResult` | File-transfer status, headers, actual protocol, fallback, metrics, redirects, and byte counts. |
-| `AlphaXErrorKind` | Normalized error categories, including protocol requirement and proxy failures. |
-| `AlphaXException` and subclasses | DNS, connection, TLS/certificate/pin, timeout, cancellation, protocol/requirement, redirect, proxy, body, unsupported-capability, and transport errors. |
+| `AlphaXErrorKind` | Normalized error categories, including protocol requirement, proxy, and resilience failures. |
+| `AlphaXException` and subclasses | DNS, connection, TLS/certificate/pin, timeout, cancellation, protocol/requirement, redirect, proxy, body, unsupported-capability, resilience, and transport errors. |
 
 ## Compatibility and leak review
 
@@ -128,6 +141,33 @@ recording, file transfer, and close behavior.
 - `alphax_dio` exports the focused `AlphaXDioAdapter` only. It remains an
   optional package boundary, depends on Dio 5.x and `alphax`, and is not a
   second transport or a promise of full Dio API compatibility.
+- `alphax_web` exports `WebFetchTransport` as a separate conditional browser
+  adapter. It is not part of the pure `alphax` barrel and does not expose
+  browser protocol metadata as H1/H2/H3.
+
+### Frozen interface guarantees and non-guarantees
+
+The public inventory is a contract inventory, not a claim that every package or
+platform implements every protocol. The following statements are part of the
+1.0 freeze:
+
+- `AlphaXClient` receives an `AlphaXTransport`; `alphax` itself is pure Dart
+  and does not include a native transport implementation. Native adapters are
+  separate package responsibilities.
+- `alphax` itself does not contain a browser transport. The separate
+  `alphax_web` package provides browser Fetch for ordinary HTTP, but protocol
+  metadata remains unknown and concrete protocol requirements fail closed.
+- H3 is opportunistic, not guaranteed. The selected provider, server, proxy,
+  and network path determine the actual protocol. A preference may fall back;
+  a requirement fails closed unless the exact protocol is authoritatively
+  observed.
+- The 1.0 interface provides opt-in replay-aware retries, caller-owned token
+  authentication, in-memory cookies/cache, and a generic circuit breaker. It
+  does not provide persistent stores, unsafe replay, model-specific OAuth, or a
+  vendor-specific resilience policy.
+- AlphaX makes no universal speed, zero-copy, or “fastest client” claim. Any
+  transfer or performance description must stay scoped to the adapter and
+  evidence that support it.
 
 ## Dio adapter inventory
 

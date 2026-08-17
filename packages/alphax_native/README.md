@@ -1,21 +1,52 @@
 # alphax_native
 
-Platform transport integration boundary for AlphaX, including the Phase 1B
-Dart IO fallback, the Phase 1C Android Cronet adapter, and the Phase 1D Apple
-URLSession adapter.
+`alphax_native` gives an AlphaX application the best transport available on
+each supported platform while keeping the same Dart request code everywhere.
+It supplies Dart IO, Android Cronet/HttpEngine, and Apple URLSession adapters
+behind the transport-neutral [`alphax`](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax) API.
 
-## Start here
+## Why use it?
 
-Install this package together with `alphax`:
+Use `alphax_native` when you want to:
+
+- use Android's supported Cronet provider for H1/H2/H3-capable networking;
+- use Foundation URLSession on iOS and macOS;
+- keep an H1 Dart IO fallback for Linux and Windows;
+- stream responses and file transfers with cancellation and progress;
+- inspect the protocol that actually completed each request;
+- keep TLS, proxy, redirect, and error behavior behind AlphaX contracts.
+
+H3 is opportunistic. The selected provider, server, proxy, and network decide
+whether an individual request uses H3. AlphaX reports the actual result and
+fails closed when an explicit protocol requirement cannot be met.
+
+## When should I choose this package?
+
+Choose `alphax_native` for a new Flutter application or when an existing
+AlphaX application needs the platform transport implementations. Use
+[`alphax`](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax) alone for transport contracts and a custom
+transport, or use [`alphax_dio`](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_dio) if your application
+already uses Dio.
+
+## Install
+
+After the RC is published:
 
 ```sh
 flutter pub add alphax alphax_native
 ```
 
-The RC is not published yet. Until publication, use the repository dependency
-block in the [root README](../../README.md).
+While this RC is unpublished, use the repository dependency block in the
+[root README](https://github.com/auvana-ventures/alphax#readme).
 
-Choose the transport that matches the device:
+The Android provider is resolved through Gradle and Apple packaging uses
+CocoaPods. No copied Cronet binary is bundled in the pub package. Swift
+Package Manager integration is deferred for 1.0.
+
+## Choose a transport
+
+This is the only platform-specific decision in your application setup. The
+rest of your request code can stay the same.
 
 ```dart
 import 'dart:io';
@@ -25,10 +56,10 @@ import 'package:alphax_native/alphax_native.dart';
 
 Future<AlphaXTransport> createTransport() async {
   if (Platform.isAndroid) {
-    return await AndroidCronetTransport.create();
+    return AndroidCronetTransport.create();
   }
   if (Platform.isIOS || Platform.isMacOS) {
-    return await AppleUrlSessionTransport.create();
+    return AppleUrlSessionTransport.create();
   }
   return DartIoTransport();
 }
@@ -44,84 +75,109 @@ Future<void> main() async {
 }
 ```
 
-On Android, the native Cronet provider may negotiate H1, H2, or H3. On iOS and
-macOS, URLSession may negotiate H1, H2, or H3. The server, provider, proxy,
-and network decide the protocol for each request; H3 is not guaranteed.
+## Platform support
 
-On Linux and Windows, `DartIoTransport` is the supported H1-only fallback. Web
-is not supported in AlphaX 1.0.
+| Platform | Adapter | Protocol boundary |
+| --- | --- | --- |
+| Android API 24+ | Cronet/HttpEngine provider | H1/H2/H3 where the selected non-fallback provider and network negotiate it |
+| iOS 15+ | URLSession | H1/H2/H3 where the OS, server, proxy, and network negotiate it |
+| macOS 12+ | URLSession | H1/H2/H3 where the OS, server, proxy, and network negotiate it |
+| Linux | Dart IO | H1 only; H2/H3 are not advertised |
+| Windows | Dart IO | H1 only; H2/H3 are not advertised |
+| Web | Not provided by this native plugin | Add [`alphax_web`](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_web) for browser Fetch |
 
-`DartIoTransport` uses one reusable `dart:io` `HttpClient` and implements the
-transport-neutral AlphaX contract for the HTTP/1.1 fallback path. It provides
-progressive Dart-streamed request/response and file transfers, cancellation,
-timeouts, redirects, normalized errors, and secure platform TLS defaults.
+## Common jobs
 
-The Dart IO adapter does not claim HTTP/2, HTTP/3, or native file-backed
-transfer. Its actual negotiated protocol is unavailable from the Dart IO API
-and is reported as `unknown`; no H2/H3 support is inferred from capability
-metadata. It supports platform-default/additional trust through `SecurityContext`
-and system/direct/explicit HTTP proxy routing, but SPKI pinning, mTLS, and
-explicit HTTPS-proxy routing fail with a normalized unsupported-policy error.
+### Stream and cancel a response
 
-`AndroidCronetTransport.create()` selects one reusable provider-backed engine.
-Google Play Services Cronet is preferred when available; the Android platform
-provider may be selected on supported API levels. If the host application also
-supplies a Java/fallback Cronet provider, it is reported as HTTP/1.1-only. The
-adapter never silently advertises HTTP/2 or HTTP/3 when the selected provider
-cannot provide them. Actual negotiated protocol is reported per response and
-may be lower than the requested preference.
+```dart
+final token = AlphaXCancellationToken();
+final response = await client.get(
+  Uri.https('example.com', '/large-response'),
+  cancellationToken: token,
+);
 
-The Android adapter keeps response delivery behind a four-credit, 64 KiB native
-read window and supports native file-backed upload/download for
-`AlphaXLocalFileSource` and `AlphaXLocalFileTarget`. TLS verification uses
-platform defaults and Cronet SPKI pinning is configured at engine creation;
-custom trust anchors and client identities are rejected by the selected
-provider. System proxy behavior is provider-managed; the selected Cronet API
-does not expose a safe explicit/direct proxy mapping and reports those modes as
-unsupported.
+await for (final chunk in response.stream) {
+  // Process bounded chunks as they arrive.
+}
 
-The Android plugin declares API 24 as its minimum Android API and prefers the
-Google Play Services Cronet provider when available. The Apple plugin targets
-iOS 15+ and macOS 12+. CocoaPods is the supported 1.0 packaging path; Swift
-Package Manager integration is deferred and is not required for the release
-gate.
+// Call token.cancel('screen closed') when the UI no longer needs the response.
+```
 
-The Android plugin resolves Google Play Services Cronet through Gradle; it does
-not bundle a copied Cronet binary in the pub package. Apple uses system
-Foundation/URLSession frameworks through CocoaPods. Upstream dependency and
-system-framework licensing remains with those providers; no third-party source
-or binary is redistributed by this package.
+Native adapters use bounded response delivery. Pausing or cancelling a Dart
+stream does not require the native layer to buffer the entire response.
 
-The Android adapter completed Phase 1C physical-device validation, including
-actual H3 negotiation and truthful H3 fallback reporting. H3 is opportunistic:
-the selected provider and network path determine whether a request negotiates
-it, while `protocolRequirement` remains fail-closed. The disposable release
-runner records both Alt-Svc discovery and fallback without adding a production
-QUIC hint. The Apple adapter is implemented for iOS 15+ and macOS 12+ using
-Foundation URLSession; macOS and signed iPhone correctness evidence covers
-H1/H2/H3, fallback, streaming, cancellation, TLS rejection, progress, and
-native file paths. This package must not leak Cronet, URLSession, FFI, C++,
-libcurl, or Rust types into `alphax`.
+### Download directly to a platform file
 
-Apple `send()` responses expose headers-time metadata. URLSession task metrics
-are authoritative only when the operation completes, so callers must await
-`AlphaXResponse.completionMetrics` and `completionProtocolFallback` instead of
-treating an initial `unknown` protocol as H1 or fallback. `sendStreaming()`
-exposes the same final metrics and fallback metadata in
-`AlphaXResponseCompleted`.
+```dart
+final result = await client.download(
+  Uri.https('example.com', '/archive.bin'),
+  to: AlphaXLocalFileTarget('/tmp/archive.bin'),
+  onDownloadProgress: (progress) {
+    print('${progress.bytesTransferred} bytes received');
+  },
+);
+print('actual protocol: ${result.protocol.name}');
+```
 
-Apple uses `URLSessionConfiguration.default` for system routing and configures
-direct/explicit HTTP proxy policies through the CFNetwork proxy dictionary on
-both iOS and macOS. An explicit HTTP proxy can service an HTTPS destination
-through CONNECT; an explicit HTTPS-proxy endpoint remains unsupported and is
-reported separately. URLSession owns HTTP CONNECT and proxy authentication;
-AlphaX answers supported HTTP Basic proxy challenges without placing
-credentials in origin headers. A proxy may prevent QUIC, in which case final
-task metrics report the negotiated H2/H1 fallback.
+`AlphaXLocalFileSource` and `AlphaXLocalFileTarget` keep platform file paths
+out of the core `alphax` package. The Dart IO fallback remains stream-based
+when native file paths are unavailable.
 
-Apple URLSession removes `Authorization`, `Proxy-Authorization`, and `Cookie`
-before a cross-origin redirect is followed. Cronet rejects a sensitive
-cross-origin redirect because the selected provider API does not let AlphaX
-replace pending redirect headers. Same-origin redirects retain request headers
-subject to platform behavior. The focused Android, iPhone, and macOS redirect
-assertions are covered by the retained release-gate evidence.
+### Inspect the actual protocol
+
+```dart
+final response = await client.get(
+  Uri.https('example.com', '/health'),
+  protocolPreference: AlphaXProtocolPreference.http3,
+);
+final metrics = await response.completionMetrics;
+print('negotiated protocol: ${metrics.negotiatedProtocol.name}');
+```
+
+If H3 is mandatory, pass
+`protocolRequirement: AlphaXProtocolRequirement.http3`. A preference may
+fall back to H2 or H1; a requirement fails closed when H3 is not negotiated.
+
+## TLS and proxy boundaries
+
+All adapters keep certificate verification enabled by default. Capabilities
+are provider-dependent and are reported rather than guessed.
+
+- Android Cronet uses platform trust and supports provider-backed SPKI pins;
+  custom trust anchors and client identities are rejected by the selected
+  provider.
+- Apple URLSession uses platform trust, supports the documented pinning and
+  proxy policies, and reports unsupported policies explicitly.
+- Dart IO supports platform/additional trust and system/direct/explicit HTTP
+  proxy routing, but SPKI pinning, mTLS, and explicit HTTPS-proxy endpoint
+  parity are unsupported.
+- Never use trust-all configuration in production, and never log proxy
+  credentials. Keep primary and backup pins in secure application config.
+
+## What this package does not promise
+
+- It does not guarantee H3 on every request or every network.
+- It does not provide the browser transport; use the separate
+  [`alphax_web`](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_web) package for Web.
+- It does not expose Cronet, URLSession, Flutter channel, FFI, C++, Rust, or
+  libcurl types through the core API.
+- It does not make unsupported TLS or proxy policies silently succeed.
+- It makes no universal performance, zero-copy, or “fastest client” claim.
+
+Authentication, cookies, caching, retries, and generic resilience are opt-in
+pure-Dart middleware from [`alphax`](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax). This package only
+selects and implements native/Dart IO transports; it does not enable those
+policies automatically.
+
+## Continue learning
+
+- [Core AlphaX API](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax)
+- [Dio adapter](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_dio)
+- [Testing helpers](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_test)
+- [Waypoint reference app](https://github.com/auvana-ventures/alphax/tree/main/examples/waypoint)
+- [Migration guide](https://github.com/auvana-ventures/alphax/blob/main/docs/MIGRATION.md)
+- [1.0 platform and protocol matrix](https://github.com/auvana-ventures/alphax/blob/main/docs/ALPHAX_1_0_RELEASE_GATE.md)
+
+The `1.0.0-rc.1` candidate is prepared for maintainer review and is not
+published until naming clearance and release approval are complete.
