@@ -114,3 +114,6 @@ and required build checks pass.
 - 2026-08-17: Added the root-only `benchmarks/mobile_gate/**` analyzer
   exclusion, fixed package README links exposed by dartdoc, completed the
   release validation/build pass, and recorded the result in the RC review.
+- 2026-08-17: Release-preparation commits `534b627`, `25cb525`, and `cd1c550`
+  were created and pushed to `origin/main`; the clean-state package dry-runs
+  passed with zero warnings and zero errors.

@@ -58,6 +58,7 @@ The current release-preparation work is captured in these commits:
 
 - `534b627` — `feat: complete AlphaX 1.0 RC capabilities`
 - `25cb525` — `docs: finalize AlphaX 1.0 RC release gate`
+- `cd1c550` — `docs: record clean AlphaX RC package validation`
 
 No historical release commit is rewritten.
 
