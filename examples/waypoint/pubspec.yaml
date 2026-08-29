@@ -8,15 +8,15 @@ environment:
   flutter: ">=3.22.0"
 
 dependencies:
-  alphax: ^1.0.0-rc.3
-  alphax_dio: ^1.0.0-rc.3
-  alphax_native: ^1.0.0-rc.3
+  alphax: ^1.0.0-rc.4
+  alphax_dio: ^1.0.0-rc.4
+  alphax_native: ^1.0.0-rc.4
   dio: ^5.9.2
   flutter:
     sdk: flutter
 
 dev_dependencies:
-  alphax_test: ^1.0.0-rc.3
+  alphax_test: ^1.0.0-rc.4
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
