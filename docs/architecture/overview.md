@@ -17,6 +17,18 @@ AlphaXTransport
           └── Apple URLSession adapter (Phase 1D)
 ```
 
+Optional caller-side extension:
+
+```text
+alphax_transform
+  buffered bytes + sendable caller transform → one-shot native Isolate.run
+```
+
+`alphax_transform` depends on `alphax` but not on a transport. It is invoked
+explicitly after the caller has buffered a response; it does not alter response
+semantics, transport backpressure, or protocol behavior. Browser builds fail
+closed rather than presenting synchronous browser work as background execution.
+
 The accepted 1.0 architecture does not use a C++ engine or a production Rust
 transport. A future change would require separate evidence plus an accepted ADR.
 
@@ -39,6 +51,15 @@ leak implementation types into `alphax`.
 - DNS, connection setup, TLS, protocol negotiation, pooling, multiplexing,
   streaming, cancellation, proxy transport, file descriptors, and low-level timing.
 - Bounded buffering and direct file transfer where supported.
+
+### Optional transform extension
+
+- `alphax_transform` owns only one-shot native-isolate UTF-8/JSON decoding and a
+  caller-supplied sendable transformation for already-buffered bytes.
+- The package is opt-in and independently publishable. It must not become a
+  dependency of `alphax`, `alphax_native`, or an automatic response middleware.
+- Cancellation after isolate dispatch is result-discard semantics; it does not
+  synchronously terminate the worker.
 
 ## Invariants
 

@@ -58,6 +58,9 @@ flutter pub add alphax alphax_web
 
 # Existing Dio application
 flutter pub add dio alphax alphax_native alphax_dio
+
+# Optional one-shot large-payload JSON transform (after publication)
+dart pub add alphax alphax_transform
 ```
 
 `alphax` has no Flutter SDK dependency. A pure-Dart application can use it with
@@ -81,7 +84,9 @@ dependencies:
 `alphax` has no Flutter SDK dependency. `alphax_native` is the Flutter plugin
 that supplies Dart IO, Android Cronet/HttpEngine, and Apple URLSession adapters.
 `alphax_web` supplies the browser Fetch adapter; browser protocol metadata is
-intentionally unknown.
+intentionally unknown. `alphax_transform` is an optional post-1.0 package in
+this repository and is not part of the published RC set until it is published
+separately.
 
 ## Which package do I need?
 
@@ -94,6 +99,7 @@ Choose the package by the job you are doing:
 | [`alphax_web`](packages/alphax_web/README.md) | run the same client in a browser | RC Fetch adapter for Web requests with truthful browser capability boundaries |
 | [`alphax_dio`](packages/alphax_dio/README.md) | keep an existing Dio application | a Dio `HttpClientAdapter` backed by an injected AlphaX client and its configured transport/security policies |
 | [`alphax_test`](packages/alphax_test/README.md) | test without a live server or device | deterministic fake transports, streams, failures, cancellation, files, and conformance helpers |
+| [`alphax_transform`](packages/alphax_transform/README.md) | explicitly offload a profiled large buffered JSON payload | one-shot native `Isolate.run` decoding with caller-supplied sendable transformation; Web fails closed |
 
 New Flutter applications normally use `alphax` with `alphax_native`. Existing
 Dio applications can add `alphax_dio` instead of rewriting their request
@@ -111,6 +117,7 @@ layer. `alphax_test` is a development dependency, not a runtime transport.
 | Configure TLS, pins, or proxies | [Native transport guide](packages/alphax_native/README.md#configure-tls-and-proxy-behavior) |
 | Keep an existing Dio application | [`alphax_dio`](packages/alphax_dio/README.md) |
 | Test without a network | [`alphax_test`](packages/alphax_test/README.md) |
+| Offload a profiled large JSON transform | [`alphax_transform`](packages/alphax_transform/README.md) |
 
 ## Quick start
 

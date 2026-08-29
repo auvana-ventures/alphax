@@ -13,6 +13,7 @@ workspace:
   - packages/alphax_dio
   - packages/alphax_test
   - packages/alphax_web
+  - packages/alphax_transform
 
 dev_dependencies:
   lints: ^5.1.1

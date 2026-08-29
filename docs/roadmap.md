@@ -11,3 +11,12 @@ scope.
 Historical Phase 0 benchmark evidence remains under
 [`benchmarks/results/summaries`](../benchmarks/results/summaries/). It is not
 rewritten by the 1.0 scope or transport ADR.
+
+## Post-1.0 extension track
+
+The optional `alphax_transform` package provides explicit one-shot native
+isolate JSON transformation for already-buffered payloads. It is independently
+publishable and does not change the 1.0 transport architecture or add automatic
+thresholds, streaming parsing, or persistent workers. Its measured guidance
+and limitations are recorded in
+[`ALPHAX_TRANSFORM_EXTENSION_IMPLEMENTATION.md`](ALPHAX_TRANSFORM_EXTENSION_IMPLEMENTATION.md).
