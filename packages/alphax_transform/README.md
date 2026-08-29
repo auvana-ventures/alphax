@@ -13,6 +13,7 @@ application's responsiveness measurements justify it.</p>
 
 <p align="center">
   <a href="https://github.com/auvana-ventures/alphax/tree/main/packages/alphax">Core API</a> ·
+  <a href="https://github.com/auvana-ventures/alphax/blob/main/docs/USAGE_AND_CUSTOMIZATION.md">Usage and customization</a> ·
   <a href="https://github.com/auvana-ventures/alphax/blob/main/docs/ALPHAX_TRANSFORM_EXTENSION_DESIGN.md">Design</a> ·
   <a href="https://github.com/auvana-ventures/alphax/blob/main/LICENSE">Apache-2.0</a>
 </p>
@@ -80,6 +81,9 @@ If the response API already returns a `Uint8List`, pass it directly. The
 current AlphaX compatibility response API returns `List<int>`, so
 `Uint8List.fromList` in the example is an explicit caller-owned conversion;
 this package does not change that core API or claim that conversion is free.
+
+A compile-tested package-local example is available at
+[`example/main.dart`](example/main.dart).
 
 ## Native execution
 

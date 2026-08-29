@@ -49,7 +49,7 @@ release notes, and migration guidance:
 
 | Boundary | Frozen 1.0 requirement |
 |---|---|
-| Core transport seam | `alphax` remains pure Dart and transport-independent. `AlphaXClient` uses an injected `AlphaXTransport`; the `alphax` package does not include a native transport implementation by itself. Native adapters are separate package responsibilities, primarily `alphax_native`, and test fakes remain in `alphax_test`. |
+| Core transport seam | `alphax` remains pure Dart and transport-independent. `AlphaXClient` uses an injected `AlphaXTransport`; the `alphax` package does not include a native transport implementation by itself. Native adapters are separate package responsibilities, primarily `alphax_native`, and test fakes remain in `alphax_test`. `alphax_native.createAlphaXTransport()` is the optional automatic facade that selects an adapter before injection. |
 | Web | The pure `alphax` package does not contain a browser transport. The separate `alphax_web` package provides browser Fetch support for ordinary HTTP; browser protocol metadata remains unknown and no Web H1/H2/H3 parity claim is made. |
 | H3 negotiation | AlphaX does not guarantee H3 for every request or network. The selected provider, server, proxy, and network path determine the actual protocol. A protocol preference permits fallback; a protocol requirement fails closed unless the required protocol is authoritatively observed. |
 | Policy layers | AlphaX provides opt-in pure-Dart retry, authentication, asynchronous cookie-store, private variant-aware cache, and generic resilience middleware. Defaults are replay-safe and bounded: the cookie/cache implementations are in memory, caller-owned stores may provide persistence, authenticated cache reuse requires an explicit identity key, token storage is caller-owned, and no vendor-specific policy is implied. |
@@ -58,13 +58,14 @@ release notes, and migration guidance:
 These boundaries do not remove the required protocol, capability, metrics,
 streaming, file, cancellation, timeout, middleware, TLS, proxy, and normalized
 error contracts. They define what those contracts do not promise and which
-optional policy/transport modules must be selected explicitly.
+optional policy/transport modules must be selected explicitly or through the
+documented native automatic factory.
 
 The user-facing setup path is standardized in
-[`POLICIES.md`](POLICIES.md): it defines the defaults, shows one policy at a
-time, and explains how applications add custom stores or middleware while
-handling provider limitations. Package READMEs link to that guide so the
-default/opt-in distinction stays consistent across the workspace.
+[`USAGE_AND_CUSTOMIZATION.md`](USAGE_AND_CUSTOMIZATION.md): it defines the
+automatic native selection, explicit/custom transport seam, defaults, policy
+controls, and provider limitations. [`POLICIES.md`](POLICIES.md) remains the
+detailed policy reference.
 
 ## Capability classification matrix
 
@@ -147,7 +148,7 @@ default/opt-in distinction stays consistent across the workspace.
 
 | Capability | Classification | 1.0 boundary |
 |---|---|---|
-| Transport selection/injection | `REQUIRED FOR 1.0` | `AlphaXClient` receives an `AlphaXTransport` explicitly; the core package does not select or bundle a native implementation implicitly. Platform adapters and test fakes remain separate package boundaries. |
+| Transport selection/injection | `REQUIRED FOR 1.0` | `AlphaXClient` receives an `AlphaXTransport` explicitly; the core package does not select or bundle a native implementation implicitly. `alphax_native.createAlphaXTransport()` provides automatic native-platform selection outside core, while concrete adapters and test fakes remain separate package boundaries. |
 | Transport-independent public API | `REQUIRED FOR 1.0` | `alphax` owns requests, responses, policies, streams, errors, capabilities, and metrics without selecting a native library. |
 | No native transport-specific public types | `REQUIRED FOR 1.0` | No public `Curl*`, `Reqwest*`, `Cronet*`, `URLSession*`, Rust, or FFI handle types. |
 | Capability model | `REQUIRED FOR 1.0` | A stable model describes supported protocols and optional behavior such as native files, proxy, TLS, and timeout granularity. |

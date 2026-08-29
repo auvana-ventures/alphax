@@ -207,6 +207,7 @@ pattern.
 ## Continue learning
 
 - [Core AlphaX API](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax)
+- [Usage and customization guide](https://github.com/auvana-ventures/alphax/blob/main/docs/USAGE_AND_CUSTOMIZATION.md)
 - [Native platform transports](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_native)
 - [Dio adapter](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_dio)
 - [Waypoint reference app](https://github.com/auvana-ventures/alphax/tree/main/examples/waypoint)

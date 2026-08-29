@@ -13,32 +13,32 @@ logs.
 
 ## Start with a transport
 
-`AlphaXClient` is intentionally transport-independent. It does not choose a
-native or Dart IO transport for you, so a transport is required when the client
-is created:
+`alphax` remains transport-independent, but applications using
+`alphax_native` can use its automatic factory for the normal native-platform
+choice:
 
 ```dart
 import 'package:alphax/alphax.dart';
 import 'package:alphax_native/alphax_native.dart';
 
-final transport = DartIoTransport();
-final client = AlphaXClient(transport: transport);
+Future<AlphaXClient> createClient() async => AlphaXClient(
+  transport: await createAlphaXTransport(),
+);
 ```
 
-Use `AndroidCronetTransport.create()` on Android,
-`AppleUrlSessionTransport.create()` on iOS/macOS, and `DartIoTransport()` for
-the Dart IO fallback. The [native transport guide](../packages/alphax_native/README.md)
-shows platform selection. The separate `alphax_web` package provides the
-browser Fetch transport.
+The factory selects Android Cronet/HttpEngine, Apple URLSession, or Dart IO by
+the current native platform. For deliberate control, inject
+`DartIoTransport()`, `AndroidCronetTransport.create()`, or
+`AppleUrlSessionTransport.create()` directly. The separate `alphax_web` package
+provides `WebFetchTransport()` for browsers. The [native transport guide](../packages/alphax_native/README.md)
+shows both automatic and explicit selection.
 
 Close the client when the owning feature or application is finished with it:
 
 ```dart
-try {
+Future<void> useClient(AlphaXClient client) async {
   final response = await client.get(Uri.https('api.example.com', '/health'));
   print(await response.readAsString());
-} finally {
-  await client.close();
 }
 ```
 
@@ -49,7 +49,7 @@ AlphaX will not add that behavior unless you add the corresponding middleware.
 
 | Area | Default | What that means |
 | --- | --- | --- |
-| Transport | No client default | You choose and inject an `AlphaXTransport`. |
+| Transport | Native factory or explicit injection | `alphax_native` can select the current native target; core still receives an injected `AlphaXTransport`, and Web uses its separate adapter. |
 | Middleware | None | Requests go through only the transport unless you add middleware. |
 | TLS | Verified platform trust | Certificate chain, hostname, and validity checks remain enabled. |
 | Proxy | System proxy policy | The selected platform/provider manages normal proxy routing. |
@@ -63,8 +63,9 @@ AlphaX will not add that behavior unless you add the corresponding middleware.
 | H3 | Never guaranteed | A preference may fall back; only completion metadata proves what ran. |
 
 The core package does not include a native transport, and `AlphaXClient()`
-without a transport is not a supported construction. This is deliberate: an
-application should know which platform/provider capability it is selecting.
+without a transport is not a supported construction. This keeps provider
+selection outside pure-Dart core while allowing ordinary native applications to
+avoid platform branching through `createAlphaXTransport()`.
 
 ## Add policies deliberately
 

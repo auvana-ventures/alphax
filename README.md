@@ -13,6 +13,7 @@ protocol model across the transports that each platform can actually provide.</p
 
 <p align="center">
   <a href="docs/ALPHAX_1_0_SCOPE.md">1.0 scope</a> ·
+  <a href="docs/USAGE_AND_CUSTOMIZATION.md">Usage and customization</a> ·
   <a href="examples/waypoint/README.md">Waypoint example</a> ·
   <a href="docs/MIGRATION.md">Migration guide</a> ·
   <a href="LICENSE">Apache-2.0</a>
@@ -122,6 +123,7 @@ layer. `alphax_test` is a development dependency, not a runtime transport.
 | Prefer H3 and see what completed | [Capabilities and protocol reporting](#capabilities-and-protocol-reporting) |
 | Add retries, tokens, cookies, cache, or resilience | [Policy guide](docs/POLICIES.md) |
 | Configure TLS, pins, or proxies | [Native transport guide](packages/alphax_native/README.md#configure-tls-and-proxy-behavior) |
+| Understand every configuration boundary | [Usage and customization guide](docs/USAGE_AND_CUSTOMIZATION.md) |
 | Keep an existing Dio application | [`alphax_dio`](packages/alphax_dio/README.md) |
 | Test without a network | [`alphax_test`](packages/alphax_test/README.md) |
 | Offload a profiled large JSON transform | [`alphax_transform`](packages/alphax_transform/README.md) |
@@ -133,7 +135,7 @@ import 'package:alphax/alphax.dart';
 import 'package:alphax_native/alphax_native.dart';
 
 Future<void> main() async {
-  final client = AlphaXClient(transport: DartIoTransport());
+  final client = AlphaXClient(transport: await createAlphaXTransport());
   try {
     final response = await client.get(Uri.https('example.com', '/'));
     print('${response.statusCode}: ${await response.readAsString()}');
@@ -147,10 +149,48 @@ Future<void> main() async {
 }
 ```
 
-On Android, create `AndroidCronetTransport`; on iOS/macOS, create
-`AppleUrlSessionTransport`. The request and response API remains unchanged.
+`createAlphaXTransport()` selects Cronet/HttpEngine on Android, URLSession on
+iOS/macOS, and Dart IO on Linux/Windows. Web is a separate package boundary:
+
+```dart
+import 'package:alphax/alphax.dart';
+import 'package:alphax_web/alphax_web.dart';
+
+final webClient = AlphaXClient(transport: WebFetchTransport());
+```
+
 Create one configured client for an API or session and reuse it; the client
-owns its transport and middleware state. Close it when that scope ends.
+owns its transport and middleware state. Close it when that scope ends. The
+factory does not enable retries, cookies, cache, authentication, resilience,
+or background JSON parsing.
+
+## Choose your level of control
+
+### Start simple
+
+Add `alphax` and `alphax_native`, then use `createAlphaXTransport()`. Normal
+request code does not need platform branching.
+
+### Configure portable policies
+
+Pass `AlphaXMiddleware` to the client and set request-level timeout, redirect,
+cancellation, progress, protocol preference, and protocol requirement values.
+These settings express application intent while the selected provider decides
+which platform operations can honor it.
+
+### Take control of the transport
+
+Inject `DartIoTransport()`, `AndroidCronetTransport.create()`, or
+`AppleUrlSessionTransport.create()` when a deliberate provider choice is useful.
+The browser equivalent is `WebFetchTransport()` from `alphax_web`.
+
+### Bring your own transport
+
+Implement the public `AlphaXTransport` contract and pass it to
+`AlphaXClient(transport: ...)`. The contract keeps provider types out of core;
+custom implementations must preserve cancellation, streaming, completion
+metrics, capability reporting, and close semantics. See the
+[customization guide](docs/USAGE_AND_CUSTOMIZATION.md#bring-your-own-transport).
 
 ## Defaults are explicit
 
@@ -158,7 +198,7 @@ AlphaX keeps application policy explicit:
 
 | Behavior | Default |
 | --- | --- |
-| Transport | You inject one; `AlphaXClient` does not choose one automatically. |
+| Transport | `alphax_native` selects Android Cronet/HttpEngine, Apple URLSession, or Dart IO with `createAlphaXTransport()`; `alphax` core still requires injection and Web uses `WebFetchTransport()`. |
 | Retry, authentication, cookies, cache, resilience | Off until middleware is added. |
 | TLS | Verified platform trust. |
 | Proxy | System-managed routing on the selected transport. |
@@ -170,6 +210,21 @@ defaults and customization guide](docs/POLICIES.md) provides beginner-friendly
 steps and examples for retries, token refresh, cookie/cache store seams,
 authenticated-cache identity scoping, circuit breaking, protocol requirements,
 proxy routing, and SPKI pin rotation.
+
+## What AlphaX controls vs what the platform controls
+
+AlphaX controls the transport contract, request/response/body model, policy
+composition, protocol preference versus fail-closed requirement, capability and
+fallback reporting, normalized errors, bounded streaming, and transport-neutral
+file operations. Its retry, authentication, cookies, cache, and resilience
+policies are opt-in.
+
+Cronet/HttpEngine, URLSession, Dart IO, or the browser control the actual route,
+provider pools, QUIC availability, TLS session resumption, OS/browser proxy and
+cookie behavior, and protocol negotiation. AlphaX reports what the provider
+knows and does not turn capability into proof that one request used H3. See the
+[full customization matrix](docs/USAGE_AND_CUSTOMIZATION.md#10-portable-configuration-matrix)
+for defaults and unsupported behavior.
 
 ## Streaming and cancellation
 
@@ -355,13 +410,12 @@ The public contract stays in `alphax`; platform processing is isolated in
 
 ```text
 Dart application
-      │
-      ▼
-alphax (pure-Dart contracts)
-      │
-      ├── Dart IO fallback
-      ├── Android Cronet/HttpEngine
-      ├── iOS/macOS URLSession
+      ├── alphax (pure-Dart contracts)
+      │     └── AlphaXClient(transport: ...)
+      ├── alphax_native automatic factory
+      │     ├── Dart IO fallback
+      │     ├── Android Cronet/HttpEngine
+      │     └── iOS/macOS URLSession
       └── alphax_web Browser Fetch (separate package)
 ```
 

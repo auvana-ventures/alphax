@@ -12,6 +12,7 @@ Keep the request API while respecting the browser's security and networking cont
 
 <p align="center">
   <a href="https://github.com/auvana-ventures/alphax/tree/main/packages/alphax">Core API</a> ·
+  <a href="https://github.com/auvana-ventures/alphax/blob/main/docs/USAGE_AND_CUSTOMIZATION.md">Usage and customization</a> ·
   <a href="https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_native">Native transports</a> ·
   <a href="https://github.com/auvana-ventures/alphax/blob/main/LICENSE">Apache-2.0</a>
 </p>
@@ -99,7 +100,7 @@ final client = AlphaXClient(
   transport: WebFetchTransport(),
   middleware: <AlphaXMiddleware>[
     AlphaXAuthenticationMiddleware(
-      accessToken: currentAccessToken,
+      accessToken: () async => 'token-from-app',
     ),
     AlphaXRetryMiddleware(),
     AlphaXCacheMiddleware(store: AlphaXMemoryCacheStore()),

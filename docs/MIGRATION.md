@@ -1,19 +1,36 @@
 # Migration guidance
 
-AlphaX 1.0.0-rc.1 exposes transport-neutral HTTP primitives. This guide maps
+AlphaX 1.0.0-rc.4 exposes transport-neutral HTTP primitives. This guide maps
 common `package:http` and Dio concepts; it is not a source-compatible port and
 does not promise a full Dio adapter.
 
 ## Client creation and methods
 
-Choose a transport at the application boundary and pass it to `AlphaXClient`:
+For normal native targets, let `alphax_native` choose the transport and pass it
+to `AlphaXClient`:
 
 ```dart
-final client = AlphaXClient(transport: DartIoTransport());
-final response = await client.get(Uri.https('example.com', '/users'));
-final text = await response.readAsString();
-await client.close();
+import 'package:alphax/alphax.dart';
+import 'package:alphax_native/alphax_native.dart';
+
+Future<void> main() async {
+  final client = AlphaXClient(
+    transport: await createAlphaXTransport(),
+  );
+  try {
+    final response = await client.get(Uri.https('example.com', '/users'));
+    print(await response.readAsString());
+  } finally {
+    await client.close();
+  }
+}
 ```
+
+Use `DartIoTransport()`, `AndroidCronetTransport.create()`, or
+`AppleUrlSessionTransport.create()` for explicit native selection. Use
+`WebFetchTransport()` from `alphax_web` for Web. The [usage and customization
+guide](USAGE_AND_CUSTOMIZATION.md) explains package selection, defaults, and
+the custom `AlphaXTransport` seam.
 
 Use `AlphaXClient.get`, `post`, `put`, `patch`, `delete`, `head`, and `options`
 for convenience, or construct `AlphaXRequest` for complete control. Methods

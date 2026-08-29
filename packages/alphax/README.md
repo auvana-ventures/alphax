@@ -12,6 +12,7 @@ Write request code once and choose the transport at the application boundary.</p
 
 <p align="center">
   <a href="https://github.com/auvana-ventures/alphax/blob/main/docs/ALPHAX_1_0_SCOPE.md">1.0 scope</a> ·
+  <a href="https://github.com/auvana-ventures/alphax/blob/main/docs/USAGE_AND_CUSTOMIZATION.md">Usage and customization</a> ·
   <a href="https://github.com/auvana-ventures/alphax/tree/main/examples/waypoint">Waypoint example</a> ·
   <a href="https://github.com/auvana-ventures/alphax/blob/main/LICENSE">Apache-2.0</a>
 </p>
@@ -58,6 +59,12 @@ and client facade; choose a transport from
 [`alphax_web`](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_web), or provide another
 `AlphaXTransport` implementation.
 
+For the normal native-platform choice, use
+`createAlphaXTransport()` from `alphax_native`. That factory belongs outside
+this pure-Dart package and selects Android Cronet/HttpEngine, Apple URLSession,
+or Dart IO. Web remains an explicit `WebFetchTransport()` choice from
+`alphax_web`; `AlphaXClient()` without a transport is not supported.
+
 ## When should I choose this package?
 
 Choose `alphax` for a new HTTP integration or when you want to keep your
@@ -77,7 +84,8 @@ flutter pub add alphax alphax_native
 ```
 
 `alphax` itself has no Flutter SDK dependency and can be used from pure Dart.
-The examples below use the Dart IO fallback supplied by `alphax_native`.
+The example below uses the automatic factory supplied by `alphax_native`; a
+pure-Dart application may inject its own `AlphaXTransport` instead.
 
 ## Your first request
 
@@ -89,7 +97,7 @@ import 'package:alphax/alphax.dart';
 import 'package:alphax_native/alphax_native.dart';
 
 Future<void> main() async {
-  final client = AlphaXClient(transport: DartIoTransport());
+  final client = AlphaXClient(transport: await createAlphaXTransport());
   try {
     final response = await client.get(Uri.https('example.com', '/'));
     print('${response.statusCode}: ${await response.readAsString()}');
@@ -99,9 +107,12 @@ Future<void> main() async {
 }
 ```
 
-For Android, create `AndroidCronetTransport`; for iOS and macOS, create
-`AppleUrlSessionTransport`. The AlphaX request and response code remains the
-same. See [`alphax_native`](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_native) for platform setup.
+The native factory removes platform branching from normal application setup.
+Inject `DartIoTransport()`, `AndroidCronetTransport.create()`,
+`AppleUrlSessionTransport.create()`, or `WebFetchTransport()` explicitly when
+you need a deliberate provider. See [`alphax_native`](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_native)
+and the [usage guide](https://github.com/auvana-ventures/alphax/blob/main/docs/USAGE_AND_CUSTOMIZATION.md)
+for the selection boundary.
 
 ## Common jobs
 
@@ -124,6 +135,8 @@ If H3 is mandatory, pass
 closed unless H3 is actually negotiated.
 
 ### Stream and cancel work
+
+Using the long-lived `client` from the first-request example:
 
 ```dart
 final token = AlphaXCancellationToken();
@@ -183,7 +196,7 @@ final client = AlphaXClient(
   middleware: <AlphaXMiddleware>[
     AlphaXRetryMiddleware(),
     AlphaXAuthenticationMiddleware(
-      accessToken: currentAccessToken,
+      accessToken: () async => 'token-from-app',
     ),
   ],
 );
@@ -195,6 +208,11 @@ routing, and SPKI pinning all have additional configuration and platform
 limits. Follow the [policy defaults and customization guide](https://github.com/auvana-ventures/alphax/blob/main/docs/POLICIES.md)
 for copyable examples, cookie/cache store seams, authenticated-cache identity
 scoping, proxy setup, pin rotation, and failure-closed handling.
+
+`alphax` is also the custom-transport seam: implement `AlphaXTransport` and
+inject it into `AlphaXClient` when a caller-owned transport is required. The
+transport must report honest capabilities and preserve streaming,
+cancellation, completion, and close semantics.
 
 ## What this package includes
 
@@ -230,6 +248,7 @@ platform reports negotiation only after the operation completes.
 ## Continue learning
 
 - [Choose a package in the root README](https://github.com/auvana-ventures/alphax#which-package-do-i-need)
+- [Usage and customization guide](https://github.com/auvana-ventures/alphax/blob/main/docs/USAGE_AND_CUSTOMIZATION.md)
 - [Native platform transports](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_native)
 - [Browser Fetch transport](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_web)
 - [Dio adapter](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_dio)

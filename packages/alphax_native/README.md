@@ -28,7 +28,8 @@ Use the platform networking stack where it is supported, with a truthful Dart IO
 ## Start here
 
 1. Add `alphax` and `alphax_native` to the application.
-2. Follow [choose a transport](#choose-a-transport) for the platform branch.
+2. Use [`createAlphaXTransport`](#automatic-selection) for the normal platform
+   choice.
 3. Keep the request code shared across platforms.
 4. Read [TLS and proxy behavior](#configure-tls-and-proxy-behavior) before
    enabling optional security or routing controls.
@@ -74,29 +75,17 @@ The Android provider is resolved through Gradle and Apple packaging uses
 CocoaPods. No copied Cronet binary is bundled in the pub package. Swift
 Package Manager integration is deferred for 1.0.
 
-## Choose a transport
+## Automatic selection
 
-This is the only platform-specific decision in your application setup. The
-rest of your request code can stay the same.
+For native Dart VM and Flutter targets, the factory selects the recommended
+AlphaX adapter without application-level `Platform.is...` branching:
 
 ```dart
-import 'dart:io';
-
 import 'package:alphax/alphax.dart';
 import 'package:alphax_native/alphax_native.dart';
 
-Future<AlphaXTransport> createTransport() async {
-  if (Platform.isAndroid) {
-    return AndroidCronetTransport.create();
-  }
-  if (Platform.isIOS || Platform.isMacOS) {
-    return AppleUrlSessionTransport.create();
-  }
-  return DartIoTransport();
-}
-
 Future<void> main() async {
-  final client = AlphaXClient(transport: await createTransport());
+  final client = AlphaXClient(transport: await createAlphaXTransport());
   try {
     final response = await client.get(Uri.https('example.com', '/'));
     print('${response.statusCode}: ${await response.readAsString()}');
@@ -105,6 +94,30 @@ Future<void> main() async {
   }
 }
 ```
+
+The automatic mapping is Android → Cronet/HttpEngine, iOS/macOS → URLSession,
+and Linux/Windows → Dart IO. Web is intentionally separate; use
+`WebFetchTransport` from [`alphax_web`](../alphax_web/README.md). The factory
+only selects and initializes a transport. It does not enable retries, cookies,
+cache, authentication, resilience, or background JSON parsing.
+
+## Explicit selection
+
+Construct a concrete adapter when troubleshooting, testing, or a controlled
+rollout needs a deliberate provider:
+
+```dart
+Future<List<AlphaXTransport>> explicitTransports() async => <AlphaXTransport>[
+  DartIoTransport(),
+  await AndroidCronetTransport.create(),
+  await AppleUrlSessionTransport.create(),
+];
+```
+
+Pass one of these values to `AlphaXClient(transport: ...)`. The request API is
+the same for every adapter. `DartIoTransport` is the supported fallback on
+Linux and Windows; Android and Apple adapters must be initialized on their
+corresponding platforms.
 
 ## Platform support
 
@@ -183,27 +196,37 @@ Configure these controls when the transport is created, before passing it to
 `AlphaXClient`:
 
 ```dart
-final transport = await AppleUrlSessionTransport.create(
-  tlsPolicy: AlphaXTlsPolicy(
-    pins: <AlphaXSpkiPin>[
-      AlphaXSpkiPin(
-        host: apiHost,
-        sha256SpkiBase64: primarySpkiSha256Base64,
-        expiresAt: primaryPinExpiry,
-      ),
-      AlphaXSpkiPin(
-        host: apiHost,
-        sha256SpkiBase64: backupSpkiSha256Base64,
-        expiresAt: backupPinExpiry,
-      ),
-    ],
-  ),
-  proxyPolicy: AlphaXProxyPolicy.http(
-    host: proxyHost,
-    port: proxyPort,
-  ),
-);
-final client = AlphaXClient(transport: transport);
+Future<AlphaXClient> createPinnedAppleClient({
+  required String apiHost,
+  required String primarySpkiSha256Base64,
+  required DateTime primaryPinExpiry,
+  required String backupSpkiSha256Base64,
+  required DateTime backupPinExpiry,
+  required String proxyHost,
+  required int proxyPort,
+}) async {
+  final transport = await AppleUrlSessionTransport.create(
+    tlsPolicy: AlphaXTlsPolicy(
+      pins: <AlphaXSpkiPin>[
+        AlphaXSpkiPin(
+          host: apiHost,
+          sha256SpkiBase64: primarySpkiSha256Base64,
+          expiresAt: primaryPinExpiry,
+        ),
+        AlphaXSpkiPin(
+          host: apiHost,
+          sha256SpkiBase64: backupSpkiSha256Base64,
+          expiresAt: backupPinExpiry,
+        ),
+      ],
+    ),
+    proxyPolicy: AlphaXProxyPolicy.http(
+      host: proxyHost,
+      port: proxyPort,
+    ),
+  );
+  return AlphaXClient(transport: transport);
+}
 ```
 
 The pin variables must come from your secure release configuration. A pin is a
@@ -257,6 +280,7 @@ policies automatically.
 - [Testing helpers](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_test)
 - [Waypoint reference app](https://github.com/auvana-ventures/alphax/tree/main/examples/waypoint)
 - [Migration guide](https://github.com/auvana-ventures/alphax/blob/main/docs/MIGRATION.md)
+- [Usage and customization guide](https://github.com/auvana-ventures/alphax/blob/main/docs/USAGE_AND_CUSTOMIZATION.md)
 - [1.0 platform and protocol matrix](https://github.com/auvana-ventures/alphax/blob/main/docs/ALPHAX_1_0_RELEASE_GATE.md)
 
 The coordinated `1.0.0-rc.4` candidate is prepared for publication; the

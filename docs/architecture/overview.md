@@ -17,6 +17,12 @@ AlphaXTransport
           └── Apple URLSession adapter (Phase 1D)
 ```
 
+`alphax_native` also exports `createAlphaXTransport()`. It is the automatic
+native-platform facade: Android selects Cronet/HttpEngine, iOS/macOS select
+URLSession, and Linux/Windows select Dart IO. The factory is outside `alphax`
+so the core remains pure Dart and transport-neutral. Web remains an explicit
+`WebFetchTransport()` choice from the separate `alphax_web` package.
+
 Optional caller-side extension:
 
 ```text

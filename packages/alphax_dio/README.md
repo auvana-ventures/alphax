@@ -12,6 +12,7 @@ Use AlphaX transports and policies underneath an existing Dio application.</p>
 
 <p align="center">
   <a href="https://github.com/auvana-ventures/alphax/blob/main/docs/MIGRATION.md">Migration guide</a> ·
+  <a href="https://github.com/auvana-ventures/alphax/blob/main/docs/USAGE_AND_CUSTOMIZATION.md">Usage and customization</a> ·
   <a href="https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_native">Native transports</a> ·
   <a href="https://github.com/auvana-ventures/alphax/blob/main/LICENSE">Apache-2.0</a>
 </p>
@@ -77,25 +78,15 @@ Add `dio: ^5.9.2` to the same application.
 Create one AlphaX client, give it to `AlphaXDioAdapter`, and keep using Dio.
 
 ```dart
-import 'dart:io';
-
 import 'package:alphax/alphax.dart';
 import 'package:alphax_dio/alphax_dio.dart';
 import 'package:alphax_native/alphax_native.dart';
 import 'package:dio/dio.dart';
 
-Future<AlphaXTransport> createTransport() async {
-  if (Platform.isAndroid) {
-    return AndroidCronetTransport.create();
-  }
-  if (Platform.isIOS || Platform.isMacOS) {
-    return AppleUrlSessionTransport.create();
-  }
-  return DartIoTransport();
-}
-
 Future<void> main() async {
-  final alphaClient = AlphaXClient(transport: await createTransport());
+  final alphaClient = AlphaXClient(
+    transport: await createAlphaXTransport(),
+  );
   final dio = Dio(
     BaseOptions(baseUrl: 'https://example.com'),
   )..httpClientAdapter = AlphaXDioAdapter(alphaClient);
@@ -209,23 +200,25 @@ configured once on the client passed to the adapter. Nothing in this adapter
 enables retries, authentication, cookies, caching, or resilience automatically:
 
 ```dart
-final cookieJar = AlphaXCookieJar();
-final alphaClient = AlphaXClient(
-  transport: transport,
-  middleware: <AlphaXMiddleware>[
-    AlphaXAuthenticationMiddleware(
-      accessToken: currentAccessToken,
-      refreshAccessToken: refreshAccessToken,
-    ),
-    AlphaXCookieMiddleware(cookieJar),
-    AlphaXRetryMiddleware(),
-    AlphaXCacheMiddleware(
-      store: AlphaXMemoryCacheStore(maxEntries: 100),
-    ),
-    AlphaXResilienceMiddleware(),
-  ],
-);
-final dio = Dio()..httpClientAdapter = AlphaXDioAdapter(alphaClient);
+Future<Dio> createConfiguredDio() async {
+  final cookieJar = AlphaXCookieJar();
+  final alphaClient = AlphaXClient(
+    transport: await createAlphaXTransport(),
+    middleware: <AlphaXMiddleware>[
+      AlphaXAuthenticationMiddleware(
+        accessToken: () async => 'token-from-app',
+        refreshAccessToken: () async => 'refreshed-token-from-app',
+      ),
+      AlphaXCookieMiddleware(cookieJar),
+      AlphaXRetryMiddleware(),
+      AlphaXCacheMiddleware(
+        store: AlphaXMemoryCacheStore(maxEntries: 100),
+      ),
+      AlphaXResilienceMiddleware(),
+    ],
+  );
+  return Dio()..httpClientAdapter = AlphaXDioAdapter(alphaClient);
+}
 ```
 
 The defaults are intentionally conservative: retries repeat only replayable
@@ -259,6 +252,7 @@ Known 1.0 boundaries:
 - [Core AlphaX API](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax)
 - [Native platform transports](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_native)
 - [Testing helpers](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_test)
+- [Usage and customization guide](https://github.com/auvana-ventures/alphax/blob/main/docs/USAGE_AND_CUSTOMIZATION.md)
 - [Waypoint reference app](https://github.com/auvana-ventures/alphax/tree/main/examples/waypoint)
 - [Dio and package:http migration guide](https://github.com/auvana-ventures/alphax/blob/main/docs/MIGRATION.md)
 
