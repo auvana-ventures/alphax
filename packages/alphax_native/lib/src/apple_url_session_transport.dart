@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import 'alpha_x_local_file.dart';
 import 'alpha_x_policy_arguments.dart';
+import 'alpha_x_progress_arguments.dart';
 import 'apple_url_session_protocol.dart';
 
 /// Apple URLSession transport for iOS and macOS.
@@ -321,6 +322,7 @@ final class AppleUrlSessionTransport extends AlphaXTransport {
     'protocolRequirement': request.protocolRequirement?.name,
     'priority': request.priority.name,
     'directDownloadPath': directDownloadPath,
+    ...alphaXProgressInterestArguments(request),
   };
 
   Map<String, Object?> _bodyArguments(AlphaXBody body) {
@@ -712,10 +714,18 @@ final class _AppleOperation {
   }
 
   void _handleProgress(Map<String, Object?> event) {
+    final isUpload = event['direction']?.toString() == 'upload';
+    final currentBody = body;
+    final bodyProgressRequested = currentBody is AlphaXFileBody
+        ? currentBody.onProgress != null
+        : false;
+    final uploadRequested = request.onUploadProgress != null || bodyProgressRequested;
+    final downloadRequested = request.onDownloadProgress != null;
+    if (isUpload ? !uploadRequested : !downloadRequested) {
+      return;
+    }
     final progress = AlphaXProgress(
-      direction: event['direction']?.toString() == 'upload'
-          ? AlphaXTransferDirection.upload
-          : AlphaXTransferDirection.download,
+      direction: isUpload ? AlphaXTransferDirection.upload : AlphaXTransferDirection.download,
       bytesTransferred: (event['bytesTransferred'] as num?)?.toInt() ?? 0,
       totalBytes: (event['totalBytes'] as num?)?.toInt(),
       isComplete: event['isComplete'] == true,

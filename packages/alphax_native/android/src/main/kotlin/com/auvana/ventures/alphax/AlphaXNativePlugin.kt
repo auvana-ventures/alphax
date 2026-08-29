@@ -44,6 +44,10 @@ class AlphaXNativePlugin :
             "grantCredits" -> engine.grantCredits(call.argumentsAsMap(), result)
             "cancel" -> engine.cancel(call.argumentsAsMap(), result)
             "close" -> engine.close(result)
+            // Private, explicitly gated benchmark controls. These are not part
+            // of alphax_native's public Dart API.
+            "debugEnableInstrumentation" -> engine.debugEnableInstrumentation(call.argumentsAsMap(), result)
+            "debugSnapshot" -> engine.debugSnapshot(result)
             else -> result.notImplemented()
         }
     }

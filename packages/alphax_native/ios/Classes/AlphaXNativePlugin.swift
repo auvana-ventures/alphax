@@ -822,6 +822,7 @@ private final class AlphaXURLSessionOperation {
 
     private let chunkSize: Int
     private let maxCredits: Int
+    private let progressInterest: AlphaXProgressInterest
 
     init(
         requestId: String,
@@ -835,6 +836,7 @@ private final class AlphaXURLSessionOperation {
         self.integrationCounters = integrationCounters
         self.chunkSize = integrationCounters.chunkSize(64 * 1024)
         self.maxCredits = integrationCounters.maxCredits(4)
+        self.progressInterest = AlphaXProgressInterest(arguments: arguments)
         self.backpressure = AlphaXURLSessionBackpressure(
             chunkSize: self.chunkSize,
             maxCredits: self.maxCredits
@@ -1001,7 +1003,10 @@ private final class AlphaXURLSessionOperation {
             )
         }
         applyBackpressure(output)
-        emitDownloadProgress()
+        stateLock.lock()
+        let shouldEmitProgress = !terminal
+        stateLock.unlock()
+        if shouldEmitProgress { emitDownloadProgress() }
     }
 
     func newBodyStream() -> InputStream? {
@@ -1131,9 +1136,14 @@ private final class AlphaXURLSessionOperation {
 
     func didSendBodyData(totalBytesSent: Int64, totalBytesExpectedToSend: Int64) {
         stateLock.lock()
+        if terminal {
+            stateLock.unlock()
+            return
+        }
         bytesUploaded = totalBytesSent
         let total = totalBytesExpectedToSend > 0 ? totalBytesExpectedToSend : nil
         stateLock.unlock()
+        guard progressInterest.isRequested(direction: "upload") else { return }
         integrationCounters.progress(requestId)
         engine?.emit([
             "type": "progress",
@@ -1205,6 +1215,12 @@ private final class AlphaXURLSessionOperation {
         totalBytesExpectedToWrite: Int64,
         response downloadResponse: HTTPURLResponse?
     ) {
+        stateLock.lock()
+        if terminal {
+            stateLock.unlock()
+            return
+        }
+        stateLock.unlock()
         if let downloadResponse {
             stateLock.lock()
             let shouldEmitResponse = self.response == nil
@@ -1234,6 +1250,7 @@ private final class AlphaXURLSessionOperation {
         }
         emitStartedIfNeeded(contentLength: totalBytesExpectedToWrite > 0 ? totalBytesExpectedToWrite : nil)
         resetReadTimeout()
+        guard progressInterest.isRequested(direction: "download") else { return }
         integrationCounters.progress(requestId)
         engine?.emit([
             "type": "progress",
@@ -1433,6 +1450,10 @@ private final class AlphaXURLSessionOperation {
 
     private func emitDownloadProgress() {
         stateLock.lock()
+        guard !terminal, progressInterest.isRequested(direction: "download") else {
+            stateLock.unlock()
+            return
+        }
         let transferred = bytesDownloaded
         let total = response?.expectedContentLength ?? -1
         stateLock.unlock()

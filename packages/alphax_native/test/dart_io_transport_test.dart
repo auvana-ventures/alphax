@@ -168,8 +168,13 @@ void main() {
       'bytes': payload.length,
       'hash': _fnv1a64(payload),
     });
+    expect(
+      _isNonDecreasing(uploadProgress.map((value) => value.bytesTransferred)),
+      isTrue,
+    );
     expect(uploadProgress.last.bytesTransferred, payload.length);
     expect(uploadProgress.last.totalBytes, payload.length);
+    expect(uploadProgress.last.isComplete, isTrue);
 
     final downloadProgress = <AlphaXProgress>[];
     final downloadResponse = await transport.send(
@@ -180,8 +185,28 @@ void main() {
       ),
     );
     expect(await downloadResponse.readAsBytes(), hasLength(payload.length));
+    expect(
+      _isNonDecreasing(downloadProgress.map((value) => value.bytesTransferred)),
+      isTrue,
+    );
     expect(downloadProgress.last.bytesTransferred, payload.length);
     expect(downloadProgress.last.isComplete, isTrue);
+
+    final unknownTotalProgress = <AlphaXProgress>[];
+    final unknownTotalResponse = await transport.send(
+      AlphaXRequest(
+        method: HttpMethod.get,
+        uri: baseUri.resolve('/stream/2/8'),
+        onDownloadProgress: unknownTotalProgress.add,
+      ),
+    );
+    expect(await unknownTotalResponse.readAsBytes(), hasLength(16));
+    expect(unknownTotalProgress, isNotEmpty);
+    expect(
+      unknownTotalProgress.every((value) => value.totalBytes == null),
+      isTrue,
+    );
+    expect(unknownTotalProgress.last.bytesTransferred, 16);
   });
 
   test('preserves request headers and exposes honest response metrics', () async {
@@ -699,6 +724,15 @@ String _fnv1a64(Iterable<int> bytes) {
     hash = ((hash ^ byte) * 0x100000001b3) & 0xffffffffffffffff;
   }
   return hash.toUnsigned(64).toRadixString(16).padLeft(16, '0');
+}
+
+bool _isNonDecreasing(Iterable<int> values) {
+  var previous = 0;
+  for (final value in values) {
+    if (value < previous) return false;
+    previous = value;
+  }
+  return true;
 }
 
 final class _MemoryFileSource implements AlphaXFileSource {

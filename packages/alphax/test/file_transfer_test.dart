@@ -21,6 +21,24 @@ final class _MemorySource implements AlphaXFileSource {
   Stream<List<int>> openRead() => Stream<List<int>>.value(bytes);
 }
 
+final class _UnknownLengthSource implements AlphaXFileSource {
+  _UnknownLengthSource(this.bytes);
+
+  final List<int> bytes;
+
+  @override
+  String? get name => 'unknown-length.bin';
+
+  @override
+  int? get length => null;
+
+  @override
+  bool get isReplayable => true;
+
+  @override
+  Stream<List<int>> openRead() => Stream<List<int>>.value(bytes);
+}
+
 final class _MemorySink implements AlphaXFileSink {
   final bytes = <int>[];
 
@@ -50,9 +68,10 @@ final class _MemoryTarget implements AlphaXFileTarget {
 }
 
 final class _TransferTransport extends AlphaXTransport {
-  _TransferTransport(this.downloadBytes);
+  _TransferTransport(this.downloadBytes, {this.reportUploadedBytes = true});
 
   final List<int> downloadBytes;
+  final bool reportUploadedBytes;
 
   @override
   AlphaXCapabilities get capabilities => const AlphaXCapabilities(
@@ -69,7 +88,9 @@ final class _TransferTransport extends AlphaXTransport {
     }
     return AlphaXResponse(
       statusCode: 200,
-      metrics: AlphaXRequestMetrics(uploadedBytes: uploaded),
+      metrics: AlphaXRequestMetrics(
+        uploadedBytes: reportUploadedBytes ? uploaded : null,
+      ),
     );
   }
 
@@ -111,5 +132,20 @@ void main() {
     expect(downloadProgress.last.isComplete, isTrue);
     expect(upload.bytesTransferred, 4);
     expect(uploadProgress.last.direction, AlphaXTransferDirection.upload);
+  });
+
+  test('unused progress still preserves unknown-length upload accounting', () async {
+    final transport = _TransferTransport(
+      <int>[],
+      reportUploadedBytes: false,
+    );
+    final client = AlphaXClient(transport: transport);
+
+    final upload = await client.upload(
+      Uri.parse('https://example.com/file'),
+      from: _UnknownLengthSource(<int>[1, 2, 3, 4]),
+    );
+
+    expect(upload.bytesTransferred, 4);
   });
 }

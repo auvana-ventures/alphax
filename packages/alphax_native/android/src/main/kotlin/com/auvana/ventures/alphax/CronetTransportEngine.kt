@@ -32,6 +32,7 @@ internal class CronetTransportEngine(
         namedThreadFactory("alphax-cronet-timer"),
     )
     private val operations = mutableMapOf<String, CronetRequestOperation>()
+    private val integrationCounters = AlphaXIntegrationCounters()
     private val lock = Any()
     private var engine: CronetEngine? = null
     private var providerName: String = "uninitialized"
@@ -112,6 +113,7 @@ internal class CronetTransportEngine(
                 timerExecutor = timerExecutor,
                 methodChannel = methodChannel,
                 mainHandler = mainHandler,
+                integrationCounters = integrationCounters,
                 emit = ::emit,
                 onFinished = ::removeOperation,
             )
@@ -129,6 +131,7 @@ internal class CronetTransportEngine(
     fun grantCredits(arguments: Map<String, Any?>, result: MethodChannel.Result) {
         val requestId = arguments["requestId"]?.toString()
         val credits = (arguments["credits"] as? Number)?.toInt() ?: 0
+        requestId?.let { integrationCounters.credit(it, credits) }
         val operation = requestId?.let { synchronized(lock) { operations[it] } }
         if (operation == null) {
             result.error("unknown_request", "No active request for the supplied requestId", null)
@@ -136,6 +139,19 @@ internal class CronetTransportEngine(
         }
         operation.grantCredits(credits)
         result.success(null)
+    }
+
+    fun debugEnableInstrumentation(arguments: Map<String, Any?>, result: MethodChannel.Result) {
+        integrationCounters.configure(
+            value = arguments["enabled"] as? Boolean ?: true,
+            chunkSize = (arguments["chunkSize"] as? Number)?.toInt(),
+            maxCredits = (arguments["maxCredits"] as? Number)?.toInt(),
+        )
+        result.success(null)
+    }
+
+    fun debugSnapshot(result: MethodChannel.Result) {
+        result.success(integrationCounters.snapshot())
     }
 
     fun cancel(arguments: Map<String, Any?>, result: MethodChannel.Result) {

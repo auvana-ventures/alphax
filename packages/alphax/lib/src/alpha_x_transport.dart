@@ -46,6 +46,7 @@ abstract class AlphaXTransport {
     AlphaXResponseCompleted? completed;
     AlphaXFileSink? sink;
     var bytesTransferred = 0;
+    final onDownloadProgress = request.onDownloadProgress;
 
     try {
       await for (final event in sendStreaming(request)) {
@@ -62,13 +63,15 @@ abstract class AlphaXTransport {
             }
             activeSink.add(bytes);
             bytesTransferred += bytes.length;
-            request.onDownloadProgress?.call(
-              AlphaXProgress(
-                direction: AlphaXTransferDirection.download,
-                bytesTransferred: bytesTransferred,
-                totalBytes: _contentLength(started?.headers),
-              ),
-            );
+            if (onDownloadProgress != null) {
+              onDownloadProgress(
+                AlphaXProgress(
+                  direction: AlphaXTransferDirection.download,
+                  bytesTransferred: bytesTransferred,
+                  totalBytes: _contentLength(started?.headers),
+                ),
+              );
+            }
           case AlphaXResponseCompleted():
             completed = event;
         }
@@ -84,14 +87,16 @@ abstract class AlphaXTransport {
       }
       await activeSink.flush();
       await activeSink.close();
-      request.onDownloadProgress?.call(
-        AlphaXProgress(
-          direction: AlphaXTransferDirection.download,
-          bytesTransferred: bytesTransferred,
-          totalBytes: _contentLength(responseStarted.headers),
-          isComplete: true,
-        ),
-      );
+      if (onDownloadProgress != null) {
+        onDownloadProgress(
+          AlphaXProgress(
+            direction: AlphaXTransferDirection.download,
+            bytesTransferred: bytesTransferred,
+            totalBytes: _contentLength(responseStarted.headers),
+            isComplete: true,
+          ),
+        );
+      }
       return AlphaXTransferResult(
         statusCode: responseStarted.statusCode,
         headers: responseStarted.headers,
@@ -119,12 +124,15 @@ abstract class AlphaXTransport {
     AlphaXFileSource source,
   ) async {
     var bytesTransferred = 0;
-    final body = AlphaXFileBody(
+    final onUploadProgress = request.onUploadProgress;
+    final countedSource = _CountingFileSource(
       source,
-      onProgress: (progress) {
-        bytesTransferred = progress.bytesTransferred;
-        request.onUploadProgress?.call(progress);
-      },
+      onOpen: () => bytesTransferred = 0,
+      onBytes: (bytes) => bytesTransferred += bytes,
+    );
+    final body = AlphaXFileBody(
+      countedSource,
+      onProgress: onUploadProgress,
     );
     final response = await send(request.copyWith(body: body));
     return AlphaXTransferResult(
@@ -149,5 +157,35 @@ abstract class AlphaXTransport {
   static int? _contentLength(AlphaXHeaders? headers) {
     final value = headers?['content-length'];
     return value == null ? null : int.tryParse(value);
+  }
+}
+
+final class _CountingFileSource implements AlphaXFileSource {
+  _CountingFileSource(
+    this._source, {
+    required this.onOpen,
+    required this.onBytes,
+  });
+
+  final AlphaXFileSource _source;
+  final void Function() onOpen;
+  final void Function(int bytes) onBytes;
+
+  @override
+  String? get name => _source.name;
+
+  @override
+  int? get length => _source.length;
+
+  @override
+  bool get isReplayable => _source.isReplayable;
+
+  @override
+  Stream<List<int>> openRead() async* {
+    onOpen();
+    await for (final chunk in _source.openRead()) {
+      onBytes(chunk.length);
+      yield chunk;
+    }
   }
 }

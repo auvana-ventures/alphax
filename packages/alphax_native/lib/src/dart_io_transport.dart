@@ -182,13 +182,11 @@ final class DartIoTransport extends AlphaXTransport {
     AlphaXRequest request,
     AlphaXFileSource source,
   ) async {
-    var uploadedBytes = 0;
     final body = AlphaXFileBody(
       source,
-      onProgress: (progress) {
-        uploadedBytes = progress.bytesTransferred;
-        request.onUploadProgress?.call(progress);
-      },
+      onProgress: request.onUploadProgress == null
+          ? null
+          : (progress) => request.onUploadProgress!(progress),
     );
     try {
       final response = await send(request.copyWith(body: body));
@@ -196,6 +194,8 @@ final class DartIoTransport extends AlphaXTransport {
       // Drain the body so the reusable HttpClient can release/reuse the socket
       // without buffering the server response in memory.
       await response.stream.drain<void>();
+      final completionMetrics = await response.completionMetrics;
+      final uploadedBytes = completionMetrics.uploadedBytes ?? source.length ?? 0;
       return AlphaXTransferResult(
         statusCode: response.statusCode,
         headers: response.headers,
@@ -203,7 +203,7 @@ final class DartIoTransport extends AlphaXTransport {
         requestedProtocol: response.requestedProtocol,
         requiredProtocol: response.requiredProtocol,
         protocolFallback: response.protocolFallback,
-        metrics: response.metrics.copyWith(uploadedBytes: uploadedBytes),
+        metrics: completionMetrics,
         redirects: response.redirects,
         bytesTransferred: uploadedBytes,
         totalBytes: source.length,
@@ -367,8 +367,9 @@ final class DartIoTransport extends AlphaXTransport {
       await for (final chunk in source) {
         operation.alphaRequest.cancellationToken?.throwIfCancelled();
         operation.uploadedBytes += chunk.length;
-        if (!bodyReportsProgress) {
-          operation.alphaRequest.onUploadProgress?.call(
+        final onUploadProgress = operation.alphaRequest.onUploadProgress;
+        if (!bodyReportsProgress && onUploadProgress != null) {
+          onUploadProgress(
             AlphaXProgress(
               direction: AlphaXTransferDirection.upload,
               bytesTransferred: operation.uploadedBytes,
@@ -533,29 +534,35 @@ final class DartIoTransport extends AlphaXTransport {
               return;
             }
             operation.downloadedBytes += chunk.length;
-            operation.alphaRequest.onDownloadProgress?.call(
-              AlphaXProgress(
-                direction: AlphaXTransferDirection.download,
-                bytesTransferred: operation.downloadedBytes,
-                totalBytes: response.contentLength < 0 ? null : response.contentLength,
-                isComplete:
-                    response.contentLength >= 0 &&
-                    operation.downloadedBytes >= response.contentLength,
-              ),
-            );
+            final onDownloadProgress = operation.alphaRequest.onDownloadProgress;
+            if (onDownloadProgress != null) {
+              onDownloadProgress(
+                AlphaXProgress(
+                  direction: AlphaXTransferDirection.download,
+                  bytesTransferred: operation.downloadedBytes,
+                  totalBytes: response.contentLength < 0 ? null : response.contentLength,
+                  isComplete:
+                      response.contentLength >= 0 &&
+                      operation.downloadedBytes >= response.contentLength,
+                ),
+              );
+            }
             armReadTimer();
             controller.add(List<int>.unmodifiable(chunk));
           },
           onError: (Object error, StackTrace stackTrace) => fail(error, stackTrace),
           onDone: () {
-            operation.alphaRequest.onDownloadProgress?.call(
-              AlphaXProgress(
-                direction: AlphaXTransferDirection.download,
-                bytesTransferred: operation.downloadedBytes,
-                totalBytes: response.contentLength < 0 ? null : response.contentLength,
-                isComplete: true,
-              ),
-            );
+            final onDownloadProgress = operation.alphaRequest.onDownloadProgress;
+            if (onDownloadProgress != null) {
+              onDownloadProgress(
+                AlphaXProgress(
+                  direction: AlphaXTransferDirection.download,
+                  bytesTransferred: operation.downloadedBytes,
+                  totalBytes: response.contentLength < 0 ? null : response.contentLength,
+                  isComplete: true,
+                ),
+              );
+            }
             complete();
           },
           cancelOnError: false,

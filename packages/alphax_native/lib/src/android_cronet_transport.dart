@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'android_cronet_protocol.dart';
 import 'alpha_x_local_file.dart';
 import 'alpha_x_policy_arguments.dart';
+import 'alpha_x_progress_arguments.dart';
 
 /// Android transport backed by one provider-selected Cronet/HttpEngine engine.
 ///
@@ -316,6 +317,7 @@ final class AndroidCronetTransport extends AlphaXTransport {
     'protocolRequirement': request.protocolRequirement?.name,
     'priority': request.priority.name,
     'directDownloadPath': directDownloadPath,
+    ...alphaXProgressInterestArguments(request),
   };
 
   Map<String, List<String>> _headersArguments(AlphaXRequest request) {
@@ -772,6 +774,15 @@ final class _AndroidOperation {
 
   void _handleProgress(Map<String, Object?> event) {
     final direction = event['direction']?.toString();
+    final currentBody = body;
+    final bodyProgressRequested = currentBody is AlphaXFileBody
+        ? currentBody.onProgress != null
+        : false;
+    final uploadRequested = request.onUploadProgress != null || bodyProgressRequested;
+    final downloadRequested = request.onDownloadProgress != null;
+    if (direction == 'upload' ? !uploadRequested : !downloadRequested) {
+      return;
+    }
     final bytes = (event['bytesTransferred'] as num?)?.toInt() ?? 0;
     final total = (event['totalBytes'] as num?)?.toInt();
     final progress = AlphaXProgress(

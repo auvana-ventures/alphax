@@ -28,9 +28,12 @@ internal class CronetRequestOperation(
     private val timerExecutor: ScheduledExecutorService,
     private val methodChannel: MethodChannel,
     private val mainHandler: Handler,
+    private val integrationCounters: AlphaXIntegrationCounters,
     private val emit: (Map<String, Any?>) -> Unit,
     private val onFinished: (String) -> Unit,
 ) : UrlRequest.Callback() {
+    private val configuredChunkSize = integrationCounters.chunkSize(CHUNK_SIZE)
+    private val configuredMaxCredits = integrationCounters.maxCredits(MAX_CREDITS)
     private val body = map(arguments["body"])
     private val redirect = map(arguments["redirect"])
     private val timeouts = map(arguments["timeouts"])
@@ -38,6 +41,7 @@ internal class CronetRequestOperation(
     private val directDownloadPath = arguments["directDownloadPath"]?.toString()
     private val protocolPreference = arguments["protocol"]?.toString() ?: "auto"
     private val protocolRequirement = arguments["protocolRequirement"]?.toString()
+    private val progressInterest = AlphaXProgressInterest.from(arguments)
 
     @Volatile
     private var request: UrlRequest? = null
@@ -63,6 +67,14 @@ internal class CronetRequestOperation(
     private var overallTimeout: ScheduledFuture<*>? = null
 
     fun start() {
+        integrationCounters.register(
+            requestId = requestId,
+            nativeFileMode = when {
+                directDownloadPath != null -> "download"
+                body["kind"]?.toString() == "file" -> "upload"
+                else -> "none"
+            },
+        )
         val builder = cronetEngine.newUrlRequestBuilder(
             originalUri,
             this,
@@ -89,7 +101,7 @@ internal class CronetRequestOperation(
         if (value <= 0 || terminal || directDownloadPath != null) {
             return
         }
-        credits = (credits + value).coerceAtMost(MAX_CREDITS)
+        credits = (credits + value).coerceAtMost(configuredMaxCredits)
         pumpRead()
     }
 
@@ -201,6 +213,9 @@ internal class CronetRequestOperation(
         }
         val bytes = ByteArray(size)
         byteBuffer.get(bytes)
+        integrationCounters.nativeRead(requestId, size)
+        integrationCounters.observableBuffer(requestId, size)
+        integrationCounters.androidBufferCopy(requestId, size)
         bytesDownloaded += size
         if (firstByteAtNanos == null) {
             firstByteAtNanos = System.nanoTime()
@@ -209,10 +224,12 @@ internal class CronetRequestOperation(
         try {
             if (directDownloadPath != null) {
                 output?.write(bytes)
+                integrationCounters.nativeFileWrite(requestId, size)
                 emitProgress("download", bytesDownloaded, contentLength(info))
                 pumpRead()
             } else {
                 credits = (credits - 1).coerceAtLeast(0)
+                integrationCounters.chunk(requestId, size)
                 emit(
                     mapOf(
                         "type" to "chunk",
@@ -355,7 +372,7 @@ internal class CronetRequestOperation(
         if (terminal || readInFlight || !responseStarted) return
         if (directDownloadPath == null && credits <= 0) return
         readInFlight = true
-        val buffer = ByteBuffer.allocateDirect(CHUNK_SIZE)
+        val buffer = ByteBuffer.allocateDirect(configuredChunkSize)
         try {
             activeRequest.read(buffer)
             scheduleReadTimeout()
@@ -385,6 +402,7 @@ internal class CronetRequestOperation(
                 channel = methodChannel,
                 mainHandler = mainHandler,
                 onBytes = ::onUploadBytes,
+                onDemand = { integrationCounters.uploadDemand(requestId) },
             )
             else -> null
         }
@@ -399,6 +417,10 @@ internal class CronetRequestOperation(
     private fun isReplayableBody(): Boolean = body["replayable"] != false
 
     private fun emitProgress(direction: String, bytes: Long, total: Long?) {
+        if (terminal || !progressInterest.isRequested(direction)) {
+            return
+        }
+        integrationCounters.progress(requestId)
         emit(
             mapOf(
                 "type" to "progress",
@@ -655,10 +677,12 @@ private class DartUploadProvider(
     private val channel: MethodChannel,
     private val mainHandler: Handler,
     private val onBytes: (Int) -> Unit,
+    private val onDemand: () -> Unit,
 ) : UploadDataProvider() {
     override fun getLength(): Long = length
 
     override fun read(uploadDataSink: UploadDataSink, byteBuffer: ByteBuffer) {
+        onDemand()
         mainHandler.post {
             channel.invokeMethod(
                 "uploadDemand",
