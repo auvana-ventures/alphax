@@ -64,6 +64,218 @@ public final class AlphaXNativePlugin: NSObject, FlutterPlugin, FlutterStreamHan
 #endif
 }
 
+/// Explicitly gated counters used by the post-1.0 integration-cost spike.
+///
+/// This remains private to the native implementation. It is empty/disabled
+/// unless a benchmark process invokes the private debug method on the
+/// transport channel and does not alter request scheduling.
+private final class AlphaXIntegrationCounters {
+    private let lock = NSLock()
+    private var enabled = false
+    private var configuredChunkSize: Int?
+    private var configuredMaxCredits: Int?
+    private var requests: [String: RequestCounters] = [:]
+
+    func configure(_ value: Bool, chunkSize: Int? = nil, maxCredits: Int? = nil) {
+        lock.lock()
+        enabled = value
+        configuredChunkSize = chunkSize.flatMap { $0 > 0 ? $0 : nil }
+        configuredMaxCredits = maxCredits.flatMap { $0 > 0 ? $0 : nil }
+        requests.removeAll()
+        lock.unlock()
+    }
+
+    func chunkSize(_ defaultValue: Int) -> Int {
+        lock.lock()
+        let value = configuredChunkSize ?? defaultValue
+        lock.unlock()
+        return value
+    }
+
+    func maxCredits(_ defaultValue: Int) -> Int {
+        lock.lock()
+        let value = configuredMaxCredits ?? defaultValue
+        lock.unlock()
+        return value
+    }
+
+    func register(_ requestId: String, nativeFileMode: String) {
+        lock.lock()
+        if enabled {
+            requests[requestId] = RequestCounters(nativeFileMode: nativeFileMode)
+        }
+        lock.unlock()
+    }
+
+    func credit(_ requestId: String, amount: Int) {
+        update(requestId) {
+            $0.creditMessageCount += 1
+            $0.creditUnits += Int64(max(0, amount))
+        }
+    }
+
+    func chunk(_ requestId: String, bytes: Int) {
+        update(requestId) {
+            $0.responseChunkCount += 1
+            $0.responseBodyBytes += Int64(max(0, bytes))
+        }
+    }
+
+    func nativeRead(_ requestId: String, bytes: Int) {
+        update(requestId) {
+            $0.nativeReadCount += 1
+            $0.nativeReadBytes += Int64(max(0, bytes))
+        }
+    }
+
+    func nativeFileWrite(_ requestId: String, bytes: Int) {
+        update(requestId) {
+            let count = Int64(max(0, bytes))
+            $0.nativeFileWriteCount += 1
+            $0.nativeFileWriteBytes += count
+            $0.responseBodyBytes += count
+        }
+    }
+
+    func progress(_ requestId: String) {
+        update(requestId) { $0.progressEventCount += 1 }
+    }
+
+    func uploadDemand(_ requestId: String) {
+        update(requestId) { $0.uploadDemandCount += 1 }
+    }
+
+    func observableBuffer(_ requestId: String, bytes: Int) {
+        update(requestId) {
+            $0.peakObservableBufferBytes = max(
+                $0.peakObservableBufferBytes,
+                Int64(max(0, bytes))
+            )
+        }
+    }
+
+    func appleDataSplit(_ requestId: String, sourceBytes: Int, copiedBytes: Int) {
+        update(requestId) {
+            $0.appleDataSplitCount += 1
+            $0.appleDataSplitSourceBytes += Int64(max(0, sourceBytes))
+            $0.appleDataSplitCopiedBytes += Int64(max(0, copiedBytes))
+        }
+    }
+
+    func taskSuspend(_ requestId: String) {
+        update(requestId) { $0.taskSuspendCount += 1 }
+    }
+
+    func taskResume(_ requestId: String) {
+        update(requestId) { $0.taskResumeCount += 1 }
+    }
+
+    func backpressureState(
+        _ requestId: String,
+        snapshot: AlphaXURLSessionBackpressure.Snapshot
+    ) {
+        update(requestId) {
+            $0.currentCredits = Int64(snapshot.credits)
+            $0.currentPendingChunkCount = Int64(snapshot.pendingChunkCount)
+            $0.currentPendingBytes = Int64(snapshot.pendingBytes)
+            $0.currentDeferredBytes = Int64(snapshot.deferredBytes)
+            $0.currentRetainedBytes = Int64(snapshot.retainedBytes)
+            $0.taskSuspended = snapshot.suspended
+            $0.completionRequested = snapshot.completionRequested
+            $0.peakPendingBytes = max(
+                $0.peakPendingBytes,
+                Int64(max(0, snapshot.pendingBytes))
+            )
+            $0.peakRetainedBytes = max(
+                $0.peakRetainedBytes,
+                Int64(max(0, snapshot.retainedBytes))
+            )
+            $0.redundantSuspendChecks = Int64(snapshot.redundantSuspendChecks)
+        }
+    }
+
+    func snapshot() -> [String: Any] {
+        lock.lock()
+        let result: [String: Any] = [
+            "enabled": enabled,
+            "platform": "apple",
+            "requests": requests.map { requestId, value in
+                [
+                    "requestId": requestId,
+                    "nativeFileMode": value.nativeFileMode,
+                    "responseChunkCount": value.responseChunkCount,
+                    "responseBodyBytes": value.responseBodyBytes,
+                    "nativeReadCount": value.nativeReadCount,
+                    "nativeReadBytes": value.nativeReadBytes,
+                    "nativeFileWriteCount": value.nativeFileWriteCount,
+                    "nativeFileWriteBytes": value.nativeFileWriteBytes,
+                    "progressEventCount": value.progressEventCount,
+                    "creditMessageCount": value.creditMessageCount,
+                    "creditUnits": value.creditUnits,
+                    "uploadDemandCount": value.uploadDemandCount,
+                    "peakObservableBufferBytes": value.peakObservableBufferBytes,
+                    "appleDataSplitCount": value.appleDataSplitCount,
+                    "appleDataSplitSourceBytes": value.appleDataSplitSourceBytes,
+                    "appleDataSplitCopiedBytes": value.appleDataSplitCopiedBytes,
+                    "taskSuspendCount": value.taskSuspendCount,
+                    "taskResumeCount": value.taskResumeCount,
+                    "currentCredits": value.currentCredits,
+                    "currentPendingChunkCount": value.currentPendingChunkCount,
+                    "currentPendingBytes": value.currentPendingBytes,
+                    "currentDeferredBytes": value.currentDeferredBytes,
+                    "currentRetainedBytes": value.currentRetainedBytes,
+                    "peakPendingBytes": value.peakPendingBytes,
+                    "peakRetainedBytes": value.peakRetainedBytes,
+                    "taskSuspended": value.taskSuspended,
+                    "completionRequested": value.completionRequested,
+                    "redundantSuspendChecks": value.redundantSuspendChecks,
+                ]
+            },
+        ]
+        lock.unlock()
+        return result
+    }
+
+    private func update(_ requestId: String, _ action: (inout RequestCounters) -> Void) {
+        lock.lock()
+        if enabled, var value = requests[requestId] {
+            action(&value)
+            requests[requestId] = value
+        }
+        lock.unlock()
+    }
+
+    private struct RequestCounters {
+        let nativeFileMode: String
+        var responseChunkCount: Int64 = 0
+        var responseBodyBytes: Int64 = 0
+        var nativeReadCount: Int64 = 0
+        var nativeReadBytes: Int64 = 0
+        var nativeFileWriteCount: Int64 = 0
+        var nativeFileWriteBytes: Int64 = 0
+        var progressEventCount: Int64 = 0
+        var creditMessageCount: Int64 = 0
+        var creditUnits: Int64 = 0
+        var uploadDemandCount: Int64 = 0
+        var peakObservableBufferBytes: Int64 = 0
+        var appleDataSplitCount: Int64 = 0
+        var appleDataSplitSourceBytes: Int64 = 0
+        var appleDataSplitCopiedBytes: Int64 = 0
+        var taskSuspendCount: Int64 = 0
+        var taskResumeCount: Int64 = 0
+        var currentCredits: Int64 = 0
+        var currentPendingChunkCount: Int64 = 0
+        var currentPendingBytes: Int64 = 0
+        var currentDeferredBytes: Int64 = 0
+        var currentRetainedBytes: Int64 = 0
+        var peakPendingBytes: Int64 = 0
+        var peakRetainedBytes: Int64 = 0
+        var taskSuspended = false
+        var completionRequested = false
+        var redundantSuspendChecks: Int64 = 0
+    }
+}
+
 private final class AlphaXURLSessionEngine: NSObject, URLSessionDataDelegate, URLSessionDownloadDelegate, URLSessionTaskDelegate {
     weak var methodChannel: FlutterMethodChannel?
 
@@ -76,6 +288,7 @@ private final class AlphaXURLSessionEngine: NSObject, URLSessionDataDelegate, UR
     private var session: URLSession?
     private var tlsPolicy: [String: Any] = [:]
     private var proxyPolicy: [String: Any] = [:]
+    private let integrationCounters = AlphaXIntegrationCounters()
 
     private let delegateQueue: OperationQueue = {
         let queue = OperationQueue()
@@ -129,6 +342,7 @@ private final class AlphaXURLSessionEngine: NSObject, URLSessionDataDelegate, UR
                 result(FlutterError(code: "unknown_request", message: "Unknown Apple request", details: nil))
                 return
             }
+            integrationCounters.credit(requestId, amount: credits)
             operation.grantCredits(credits)
             result(nil)
         case "cancel":
@@ -142,6 +356,16 @@ private final class AlphaXURLSessionEngine: NSObject, URLSessionDataDelegate, UR
             result(nil)
         case "close":
             close(result: result)
+        case "debugEnableInstrumentation":
+            let arguments = dictionary(call.arguments) ?? [:]
+            integrationCounters.configure(
+                arguments["enabled"] as? Bool ?? true,
+                chunkSize: integer(arguments["chunkSize"]),
+                maxCredits: integer(arguments["maxCredits"])
+            )
+            result(nil)
+        case "debugSnapshot":
+            result(integrationCounters.snapshot())
         default:
             result(FlutterMethodNotImplemented)
         }
@@ -162,7 +386,8 @@ private final class AlphaXURLSessionEngine: NSObject, URLSessionDataDelegate, UR
         let operation = AlphaXURLSessionOperation(
             requestId: requestId,
             arguments: arguments,
-            engine: self
+            engine: self,
+            integrationCounters: integrationCounters
         )
         operation.start(session: sessionInstance())
         if operation.taskIdentifier >= 0 {
@@ -574,6 +799,7 @@ private final class AlphaXURLSessionOperation {
     let requestId: String
     private let arguments: [String: Any]
     private weak var engine: AlphaXURLSessionEngine?
+    private let integrationCounters: AlphaXIntegrationCounters
     private let stateLock = NSLock()
     private var task: URLSessionTask?
     private var terminal = false
@@ -581,11 +807,8 @@ private final class AlphaXURLSessionOperation {
     private var response: HTTPURLResponse?
     private var redirects: [[String: Any]] = []
     private var metrics: [String: Any] = [:]
-    private var pendingChunks: [Data] = []
-    private var pendingBytes = 0
-    private var credits = 0
-    private var suspended = false
     private var completionPending = false
+    private let backpressure: AlphaXURLSessionBackpressure
     private var bytesDownloaded: Int64 = 0
     private var bytesUploaded: Int64 = 0
     private var firstByteDate: Date?
@@ -597,14 +820,25 @@ private final class AlphaXURLSessionOperation {
     private var taskCompleted = false
     private var metricsCollected = false
 
-    private let maxCredits = 4
-    private let maxQueuedBytes = 256 * 1024
-    private let chunkSize = 64 * 1024
+    private let chunkSize: Int
+    private let maxCredits: Int
 
-    init(requestId: String, arguments: [String: Any], engine: AlphaXURLSessionEngine) {
+    init(
+        requestId: String,
+        arguments: [String: Any],
+        engine: AlphaXURLSessionEngine,
+        integrationCounters: AlphaXIntegrationCounters
+    ) {
         self.requestId = requestId
         self.arguments = arguments
         self.engine = engine
+        self.integrationCounters = integrationCounters
+        self.chunkSize = integrationCounters.chunkSize(64 * 1024)
+        self.maxCredits = integrationCounters.maxCredits(4)
+        self.backpressure = AlphaXURLSessionBackpressure(
+            chunkSize: self.chunkSize,
+            maxCredits: self.maxCredits
+        )
     }
 
     var taskIdentifier: Int {
@@ -618,8 +852,14 @@ private final class AlphaXURLSessionOperation {
             var request = try makeRequest()
             let body = dictionary(arguments["body"])
             let kind = body?["kind"] as? String ?? "empty"
+            let directPath = arguments["directDownloadPath"] as? String
+            integrationCounters.register(
+                requestId,
+                nativeFileMode: directPath?.isEmpty == false ? "download" :
+                    (kind == "file" ? "upload" : "none")
+            )
             let created: URLSessionTask
-            if let path = arguments["directDownloadPath"] as? String, !path.isEmpty {
+            if let path = directPath, !path.isEmpty {
                 outputPath = path
                 created = session.downloadTask(with: request)
             } else {
@@ -648,7 +888,11 @@ private final class AlphaXURLSessionOperation {
                 case "dart":
                     uploadBridge = AlphaXUploadBridge(
                         requestId: requestId,
-                        methodChannel: engine?.methodChannel
+                        methodChannel: engine?.methodChannel,
+                        onDemand: { [weak self] in
+                            guard let self else { return }
+                            self.integrationCounters.uploadDemand(self.requestId)
+                        }
                     )
                     created = session.uploadTask(withStreamedRequest: request)
                 default:
@@ -678,17 +922,13 @@ private final class AlphaXURLSessionOperation {
     func grantCredits(_ amount: Int) {
         guard amount > 0 else { return }
         stateLock.lock()
-        credits = min(maxCredits, credits + amount)
-        let shouldResume = suspended && credits > 0
-        if shouldResume { suspended = false }
-        stateLock.unlock()
-        flushPending()
-        if shouldResume {
-            stateLock.lock()
-            let activeTask = task
+        guard !terminal else {
             stateLock.unlock()
-            activeTask?.resume()
+            return
         }
+        let output = backpressure.grant(amount)
+        stateLock.unlock()
+        applyBackpressure(output)
         completeSuccessIfReady()
     }
 
@@ -699,6 +939,8 @@ private final class AlphaXURLSessionOperation {
             return
         }
         terminal = true
+        let cancelledState = backpressure.cancel()
+        integrationCounters.backpressureState(requestId, snapshot: cancelledState.snapshot)
         let activeTask = task
         stateLock.unlock()
         cancelTimeouts()
@@ -746,30 +988,19 @@ private final class AlphaXURLSessionOperation {
         }
         bytesDownloaded += Int64(data.count)
         if firstByteDate == nil { firstByteDate = Date() }
+        let output = backpressure.receive(data)
         stateLock.unlock()
         resetReadTimeout()
-        let pieces = split(data)
-        for piece in pieces {
-            stateLock.lock()
-            if terminal {
-                stateLock.unlock()
-                return
-            }
-            if credits > 0 {
-                credits -= 1
-                stateLock.unlock()
-                emitChunk(piece)
-                if currentCredits() == 0 { suspendForBackpressure() }
-            } else {
-                pendingChunks.append(piece)
-                pendingBytes += piece.count
-                if pendingBytes >= maxQueuedBytes {
-                    suspended = true
-                    task?.suspend()
-                }
-                stateLock.unlock()
-            }
+        integrationCounters.nativeRead(requestId, bytes: data.count)
+        integrationCounters.observableBuffer(requestId, bytes: data.count)
+        if data.count > chunkSize {
+            integrationCounters.appleDataSplit(
+                requestId,
+                sourceBytes: data.count,
+                copiedBytes: data.count
+            )
         }
+        applyBackpressure(output)
         emitDownloadProgress()
     }
 
@@ -903,6 +1134,7 @@ private final class AlphaXURLSessionOperation {
         bytesUploaded = totalBytesSent
         let total = totalBytesExpectedToSend > 0 ? totalBytesExpectedToSend : nil
         stateLock.unlock()
+        integrationCounters.progress(requestId)
         engine?.emit([
             "type": "progress",
             "requestId": requestId,
@@ -932,16 +1164,31 @@ private final class AlphaXURLSessionOperation {
         }.first
         let protocolValue = normalizedProtocol(protocolName)
         let total = metrics.taskInterval.duration
-        let ttfb = interval(transaction.requestStartDate, transaction.responseStartDate)
-        let transfer = interval(transaction.responseStartDate, transaction.responseEndDate)
+        let ttfb = AlphaXURLSessionTiming.interval(
+            transaction.requestStartDate,
+            transaction.responseStartDate
+        )
+        let transfer = AlphaXURLSessionTiming.interval(
+            transaction.responseStartDate,
+            transaction.responseEndDate
+        )
         stateLock.lock()
         self.metrics = [
-            "dnsDurationMs": optionalInt(interval(transaction.domainLookupStartDate, transaction.domainLookupEndDate)),
-            "connectDurationMs": optionalInt(interval(transaction.connectStartDate, transaction.connectEndDate)),
-            "tlsDurationMs": optionalInt(interval(transaction.secureConnectionStartDate, transaction.secureConnectionEndDate)),
+            "dnsDurationMs": optionalInt(AlphaXURLSessionTiming.interval(
+                transaction.domainLookupStartDate,
+                transaction.domainLookupEndDate
+            )),
+            "connectDurationMs": optionalInt(AlphaXURLSessionTiming.interval(
+                transaction.connectStartDate,
+                transaction.connectEndDate
+            )),
+            "tlsDurationMs": optionalInt(AlphaXURLSessionTiming.interval(
+                transaction.secureConnectionStartDate,
+                transaction.secureConnectionEndDate
+            )),
             "timeToFirstByteMs": optionalInt(ttfb),
             "transferDurationMs": optionalInt(transfer),
-            "totalDurationMs": milliseconds(total),
+            "totalDurationMs": optionalInt(AlphaXURLSessionTiming.milliseconds(total)),
             "uploadedBytes": bytesUploaded,
             "downloadedBytes": bytesDownloaded,
             "protocol": protocolValue,
@@ -975,11 +1222,19 @@ private final class AlphaXURLSessionOperation {
             }
         }
         stateLock.lock()
+        let deltaBytes = max(0, totalBytesWritten - bytesDownloaded)
         bytesDownloaded = totalBytesWritten
         if firstByteDate == nil { firstByteDate = Date() }
         stateLock.unlock()
+        if deltaBytes > 0 {
+            integrationCounters.nativeFileWrite(
+                requestId,
+                bytes: Int(min(deltaBytes, Int64(Int.max)))
+            )
+        }
         emitStartedIfNeeded(contentLength: totalBytesExpectedToWrite > 0 ? totalBytesExpectedToWrite : nil)
         resetReadTimeout()
+        integrationCounters.progress(requestId)
         engine?.emit([
             "type": "progress",
             "requestId": requestId,
@@ -994,14 +1249,14 @@ private final class AlphaXURLSessionOperation {
         guard let path = outputPath else { return }
         do {
             let target = URL(fileURLWithPath: path)
-            let parent = target.deletingLastPathComponent()
-            try FileManager.default.createDirectory(at: parent, withIntermediateDirectories: true)
-            if FileManager.default.fileExists(atPath: target.path) {
-                try FileManager.default.removeItem(at: target)
-            }
-            try FileManager.default.moveItem(at: location, to: target)
+            try AlphaXURLSessionFileFinalizer.finalize(location: location, target: target)
+            stateLock.lock()
             outputURL = target
+            stateLock.unlock()
         } catch {
+            // The URLSession temporary file is provider-owned. Best-effort
+            // cleanup is safe here because finalization never succeeded.
+            try? FileManager.default.removeItem(at: location)
             finishError(kind: "response_body", message: "The native download file could not be finalized: \(error.localizedDescription)")
         }
     }
@@ -1140,45 +1395,40 @@ private final class AlphaXURLSessionOperation {
     }
 
     private func emitChunk(_ data: Data) {
+        integrationCounters.chunk(requestId, bytes: data.count)
         engine?.emit(["type": "chunk", "requestId": requestId, "bytes": data])
     }
 
-    private func flushPending() {
-        while true {
+    private func applyBackpressure(_ output: AlphaXURLSessionBackpressure.Output) {
+        // Apply the upstream pause before dispatching the callback's chunks.
+        // This prevents a second URLSession callback from being admitted while
+        // the current callback is still being split. The state transition is
+        // already committed by the controller, so suspend is emitted at most
+        // once for this logical pause.
+        if output.suspendTask {
             stateLock.lock()
-            guard !terminal, credits > 0, !pendingChunks.isEmpty else {
-                stateLock.unlock()
-                break
+            if !terminal {
+                integrationCounters.taskSuspend(requestId)
+                task?.suspend()
             }
-            let data = pendingChunks.removeFirst()
-            pendingBytes -= data.count
-            credits -= 1
-            let shouldResume = suspended && pendingBytes < maxQueuedBytes
-            if shouldResume { suspended = false }
             stateLock.unlock()
-            emitChunk(data)
-            if shouldResume {
-                stateLock.lock()
-                let activeTask = task
-                stateLock.unlock()
-                activeTask?.resume()
+        }
+        for chunk in output.chunks {
+            stateLock.lock()
+            let shouldEmit = !terminal
+            stateLock.unlock()
+            if !shouldEmit { return }
+            emitChunk(chunk)
+        }
+        if output.resumeTask {
+            stateLock.lock()
+            if !terminal {
+                integrationCounters.taskResume(requestId)
+                task?.resume()
             }
+            stateLock.unlock()
         }
-    }
-
-    private func suspendForBackpressure() {
-        stateLock.lock()
-        if !terminal, !suspended {
-            suspended = true
-            task?.suspend()
-        }
-        stateLock.unlock()
-    }
-
-    private func currentCredits() -> Int {
-        stateLock.lock()
-        defer { stateLock.unlock() }
-        return credits
+        integrationCounters.backpressureState(requestId, snapshot: output.snapshot)
     }
 
     private func emitDownloadProgress() {
@@ -1186,6 +1436,7 @@ private final class AlphaXURLSessionOperation {
         let transferred = bytesDownloaded
         let total = response?.expectedContentLength ?? -1
         stateLock.unlock()
+        integrationCounters.progress(requestId)
         engine?.emit([
             "type": "progress",
             "requestId": requestId,
@@ -1207,14 +1458,17 @@ private final class AlphaXURLSessionOperation {
         // until credits arrive; otherwise readAsBytes() could observe an
         // empty body even though the server returned bytes.
         completionPending = true
+        let output = backpressure.markInputCompleted()
         stateLock.unlock()
-        flushPending()
+        applyBackpressure(output)
         completeSuccessIfReady()
     }
 
     private func completeSuccessIfReady() {
         stateLock.lock()
-        guard completionPending, !terminal, pendingChunks.isEmpty else {
+        let state = backpressure.snapshot
+        guard completionPending, !terminal, state.pendingChunkCount == 0,
+              state.deferredBytes == 0, !state.suspended else {
             stateLock.unlock()
             return
         }
@@ -1265,6 +1519,8 @@ private final class AlphaXURLSessionOperation {
             return
         }
         terminal = true
+        let cancelledState = backpressure.cancel()
+        integrationCounters.backpressureState(requestId, snapshot: cancelledState.snapshot)
         let activeTask = task
         stateLock.unlock()
         cancelTimeouts()
@@ -1282,7 +1538,9 @@ private final class AlphaXURLSessionOperation {
 
     private func fallbackMetrics() -> [String: Any] {
         stateLock.lock()
-        let total = responseDate.map { milliseconds(Date().timeIntervalSince($0)) }
+        let total = responseDate.flatMap {
+            AlphaXURLSessionTiming.milliseconds(Date().timeIntervalSince($0))
+        }
         let protocolValue = normalizedProtocol(nil)
         let result: [String: Any] = [
             "totalDurationMs": optionalInt(total),
@@ -1404,18 +1662,6 @@ private final class AlphaXURLSessionOperation {
         return Data()
     }
 
-    private func split(_ data: Data) -> [Data] {
-        guard data.count > chunkSize else { return [data] }
-        var result: [Data] = []
-        var offset = 0
-        while offset < data.count {
-            let count = min(chunkSize, data.count - offset)
-            result.append(data.subdata(in: offset..<(offset + count)))
-            offset += count
-        }
-        return result
-    }
-
     private func headerMap(_ response: HTTPURLResponse) -> [String: [String]] {
         var result: [String: [String]] = [:]
         for (key, value) in response.allHeaderFields {
@@ -1456,15 +1702,6 @@ private final class AlphaXURLSessionOperation {
         return String(describing: value)
     }
 
-    private func interval(_ start: Date?, _ end: Date?) -> Int? {
-        guard let start, let end else { return nil }
-        return milliseconds(start.distance(to: end) * 1000)
-    }
-
-    private func milliseconds(_ interval: TimeInterval) -> Int {
-        Int((interval * 1000).rounded())
-    }
-
     private func optionalInt(_ value: Int?) -> Any {
         value ?? NSNull()
     }
@@ -1473,13 +1710,20 @@ private final class AlphaXURLSessionOperation {
 private final class AlphaXUploadBridge {
     private let requestId: String
     private weak var methodChannel: FlutterMethodChannel?
+    private let onDemand: () -> Void
 
-    init(requestId: String, methodChannel: FlutterMethodChannel?) {
+    init(
+        requestId: String,
+        methodChannel: FlutterMethodChannel?,
+        onDemand: @escaping () -> Void
+    ) {
         self.requestId = requestId
         self.methodChannel = methodChannel
+        self.onDemand = onDemand
     }
 
     func next(maxBytes: Int) -> Result<(Data, Bool), Error> {
+        onDemand()
         guard let methodChannel else {
             return .failure(AlphaXNativeError.requestBody("The Apple upload channel is unavailable"))
         }
