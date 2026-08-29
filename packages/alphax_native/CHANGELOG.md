@@ -12,6 +12,9 @@
   replacement is not claimed.
 - Suppressed native progress-event construction and delivery when an operation
   has no progress observer, while retaining authoritative byte accounting.
+- Added `createAlphaXTransport()` for automatic Android Cronet/HttpEngine,
+  Apple URLSession, and Dart IO selection without adding platform dependencies
+  to `alphax` core.
 
 ## 1.0.0-rc.3 - 2026-08-17
 

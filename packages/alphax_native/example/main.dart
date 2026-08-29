@@ -1,9 +1,9 @@
 import 'package:alphax/alphax.dart';
 import 'package:alphax_native/alphax_native.dart';
 
-/// Sends one request through the Dart IO fallback transport.
+/// Sends one request through the automatically selected native transport.
 Future<void> main() async {
-  final client = AlphaXClient(transport: DartIoTransport());
+  final client = AlphaXClient(transport: await createAlphaXTransport());
   try {
     final response = await client.get(Uri.https('example.com', '/'));
     final metrics = await response.completionMetrics;
