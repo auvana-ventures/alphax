@@ -413,7 +413,24 @@ unstaged:
 No package will be published, no tag will be created, and no GitHub release will
 be created by this task.
 
-## 17. Remaining blockers
+## 17. Commits and remote
+
+Task-owned changes were split into three focused commits:
+
+| Commit | Subject |
+| --- | --- |
+| `8813673` | `feat: add automatic AlphaX transport selection` |
+| `d8753c3` | `docs: document AlphaX configuration and transport control` |
+| `2ab706e` | `docs: record final AlphaX release review validation` |
+
+The commits were pushed to `origin/main`. Final verification was:
+
+```text
+HEAD        = 2ab706e491ee596dd891b75c7ecf868c8e7f95f7
+origin/main = 2ab706e491ee596dd891b75c7ecf868c8e7f95f7
+```
+
+## 18. Remaining blockers
 
 There are no Task 44 correctness or documentation blockers after the automatic
 factory correction and documentation validation. Publication still requires a

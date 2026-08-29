@@ -133,3 +133,5 @@ benchmark/mobile/signing work and historical evidence remain unstaged.
   factory; reconciled current-facing documentation and package examples.
 - 2026-08-29 — Completed package, example, Android, macOS, iOS-simulator,
   Dartdoc, dependency, link, Markdown, security/path, and diff validation.
+- 2026-08-29 — Committed task-owned changes as `8813673`, `d8753c3`, and
+  `2ab706e`; pushed them to `origin/main` and verified the remote matches HEAD.
