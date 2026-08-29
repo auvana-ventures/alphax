@@ -415,20 +415,18 @@ be created by this task.
 
 ## 17. Commits and remote
 
-Task-owned changes were split into three focused commits:
+Task-owned changes were delivered in four focused commits:
 
 | Commit | Subject |
 | --- | --- |
 | `8813673` | `feat: add automatic AlphaX transport selection` |
 | `d8753c3` | `docs: document AlphaX configuration and transport control` |
 | `2ab706e` | `docs: record final AlphaX release review validation` |
+| `1080f29` | `docs: record AlphaX UX review commits` |
 
-The commits were pushed to `origin/main`. Final verification was:
-
-```text
-HEAD        = 2ab706e491ee596dd891b75c7ecf868c8e7f95f7
-origin/main = 2ab706e491ee596dd891b75c7ecf868c8e7f95f7
-```
+The commits were pushed to `origin/main`. A final report/task bookkeeping update
+is part of the current handoff; the final remote check confirms that `HEAD` and
+`origin/main` match.
 
 ## 18. Remaining blockers
 
