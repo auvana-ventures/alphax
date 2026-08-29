@@ -1,6 +1,6 @@
 # Task 46 — AlphaX 1.0.0-rc.4 publication
 
-Status: [*] In Progress
+Status: [x] Completed
 
 ## Goal
 
@@ -64,23 +64,23 @@ AlphaX maintainers / Codex implementation agent
 
 ## Work Items
 
-- [*] Reserve Task 46 and verify repository/remote state and protected worktree
+- [x] Reserve Task 46 and verify repository/remote state and protected worktree
   ownership.
-- [ ] Commit and push the approved Task 45 documentation separately.
-- [ ] Audit current-facing documentation, metadata, constraints, package
+- [x] Commit and push the approved Task 45 documentation separately.
+- [x] Audit current-facing documentation, metadata, constraints, package
   archives, dependency order, and security/path contents.
-- [ ] Run final release validation and six zero-warning publish dry-runs.
-- [ ] Apply the publication decision gate; create a blocked report and stop if
+- [x] Run final release validation and six zero-warning publish dry-runs.
+- [x] Apply the publication decision gate; create a blocked report and stop if
   any required condition fails.
-- [ ] Publish all six packages sequentially only after the gate passes, checking
+- [x] Publish all six packages sequentially only after the gate passes, checking
   pub.dev resolution before each dependent package.
-- [ ] Run hosted-only clean-consumer validation, including Retrofit generation
+- [x] Run hosted-only clean-consumer validation, including Retrofit generation
   and the `alphax_transform` consumer.
-- [ ] Update standalone examples to hosted RC4, validate them, and push the
+- [x] Update standalone examples to hosted RC4, validate them, and push the
   separate post-publication example/docs change.
-- [ ] Create the final publication report, update task outcome/history, and
+- [x] Create the final publication report, update task outcome/history, and
   push allowed release documentation.
-- [ ] Leave tags and GitHub releases pending and stop for maintainer direction.
+- [x] Leave tags and GitHub releases pending and stop for maintainer direction.
 
 ## Validation
 
@@ -94,9 +94,8 @@ and `git diff --check`. Phase 0 and integration-cost benchmarks are excluded.
 
 ## Next Action
 
-Commit and push only the Task 45-owned documentation, then continue the final
-RC4 gate from the pushed commit. Do not publish until every gate condition is
-independently green.
+Wait for maintainer direction on the optional `v1.0.0-rc.4` Git tag and GitHub
+release. No further publication or RC5 work is authorized by this task.
 
 ## Blockers
 
@@ -104,7 +103,11 @@ None at task start.
 
 ## Outcome
 
-Pending final release gate and publication outcome.
+`ALPHAX 1.0.0-RC.4 PUBLISHED SUCCESSFULLY`. All six packages were accepted by
+pub.dev in dependency order and passed hosted-only clean-consumer validation,
+including the generated Retrofit/Dio/Freezed fixture. Standalone examples were
+updated to hosted RC4 and current-facing documentation was refreshed. No tag or
+GitHub release was created.
 
 ## References
 
@@ -119,3 +122,7 @@ Pending final release gate and publication outcome.
 
 - 2026-08-30 — Task 46 reserved for the approved conditional RC4 publication
   and hosted-consumer verification workflow.
+- 2026-08-30 — Task 45 documentation and Task 46 record were pushed; final
+  validation and all six zero-warning dry-runs passed.
+- 2026-08-30 — Published all six RC4 packages sequentially, verified hosted
+  consumers, updated examples/docs, and recorded the publication report.
