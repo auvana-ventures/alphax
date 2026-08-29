@@ -1,8 +1,8 @@
 # AlphaX usage and customization
 
-This is the user guide for the coordinated AlphaX `1.0.0-rc.4` candidate. The
-candidate is prepared but not published yet; `rc.3` is the historical published
-set. The guide describes the APIs in this repository, not a future client.
+This is the user guide for the published coordinated AlphaX `1.0.0-rc.4`
+release. `rc.3` is the historical predecessor. The guide describes the APIs in
+this repository, not a future client.
 
 ## 1. Install the package set you need
 

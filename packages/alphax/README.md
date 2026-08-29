@@ -76,8 +76,7 @@ dependency.
 
 ## Install
 
-The previous `1.0.0-rc.3` is published on pub.dev. The coordinated
-`1.0.0-rc.4` candidate is prepared for publication:
+The coordinated `1.0.0-rc.4` release is published on pub.dev:
 
 ```sh
 flutter pub add alphax alphax_native
@@ -257,7 +256,6 @@ platform reports negotiation only after the operation completes.
 - [Waypoint reference app](https://github.com/auvana-ventures/alphax/tree/main/examples/waypoint)
 - [Migration guide](https://github.com/auvana-ventures/alphax/blob/main/docs/MIGRATION.md)
 
-The coordinated `1.0.0-rc.4` candidate is prepared for publication; the
-previous `1.0.0-rc.3` package remains the currently published release. The
-public AlphaX 1.0 API remains frozen; later changes to these contracts may be
-breaking.
+The coordinated `1.0.0-rc.4` release is published on pub.dev. The public
+AlphaX 1.0 API remains frozen; later changes to these contracts may be
+breaking. `rc.3` is the historical predecessor.

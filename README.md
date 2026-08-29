@@ -41,11 +41,10 @@ protocol model across the transports that each platform can actually provide.</p
 
 ## Status
 
-**The coordinated AlphaX candidate is `1.0.0-rc.4` and is prepared for
-publication.** The five original packages remain published on pub.dev at
-`1.0.0-rc.3`; `alphax_transform` is included in the coordinated candidate and
-is not yet published. AlphaX remains a release candidate with its 1.0 public
-API frozen; later contract changes may be breaking.
+**The coordinated AlphaX `1.0.0-rc.4` release is published on pub.dev.** All
+six packages are available at the coordinated RC4 version. AlphaX remains a
+release candidate with its 1.0 public API frozen; later contract changes may
+be breaking. `rc.3` is the historical predecessor.
 
 AlphaX makes no universal H3, speed, zero-copy, or “fastest client” claim.
 
@@ -63,7 +62,7 @@ flutter pub add alphax alphax_web
 # Existing Dio application
 flutter pub add dio alphax alphax_native alphax_dio
 
-# Optional one-shot large-payload JSON transform (after rc.4 publication)
+# Optional one-shot large-payload JSON transform
 dart pub add alphax alphax_transform
 ```
 
@@ -74,8 +73,7 @@ deterministic transport tests.
 
 ### Pin the coordinated RC explicitly
 
-After the coordinated candidate is published, pin the versions together in
-`pubspec.yaml`:
+Pin the coordinated RC versions together in `pubspec.yaml`:
 
 ```yaml
 dependencies:
@@ -93,8 +91,8 @@ dev_dependencies:
 that supplies Dart IO, Android Cronet/HttpEngine, and Apple URLSession adapters.
 `alphax_web` supplies the browser Fetch adapter; browser protocol metadata is
 intentionally unknown. `alphax_transform` is an optional package in the
-prepared coordinated `rc.4` set; it remains separate from `alphax` core and
-does not alter transport behavior. `rc.3` is the historical published set.
+published coordinated `rc.4` set; it remains separate from `alphax` core and
+does not alter transport behavior. `rc.3` is the historical predecessor.
 
 ## Which package do I need?
 
@@ -394,12 +392,12 @@ cannot authoritatively report H2/H3 and therefore does not advertise them.
 
 | Package | Purpose | 1.0 status |
 | --- | --- | --- |
-| [`alphax`](packages/alphax) | Pure-Dart transport-neutral contracts | PUBLISH_RC; coordinated rc.4 candidate |
-| [`alphax_native`](packages/alphax_native) | Dart IO, Cronet, and URLSession adapters | PUBLISH_RC; coordinated rc.4 candidate |
-| [`alphax_test`](packages/alphax_test) | Fakes and shared conformance helpers | PUBLISH_RC; coordinated rc.4 candidate |
-| [`alphax_dio`](packages/alphax_dio) | Focused Dio 5.x `HttpClientAdapter` boundary | PUBLISH_RC; coordinated rc.4 candidate |
-| [`alphax_web`](packages/alphax_web) | Browser Fetch transport adapter | PUBLISH_RC; coordinated rc.4 candidate |
-| [`alphax_transform`](packages/alphax_transform) | Explicit one-shot isolate JSON transform for buffered payloads | PUBLISH_RC; coordinated rc.4 candidate |
+| [`alphax`](packages/alphax) | Pure-Dart transport-neutral contracts | PUBLISHED_RC; coordinated 1.0.0-rc.4 |
+| [`alphax_native`](packages/alphax_native) | Dart IO, Cronet, and URLSession adapters | PUBLISHED_RC; coordinated 1.0.0-rc.4 |
+| [`alphax_test`](packages/alphax_test) | Fakes and shared conformance helpers | PUBLISHED_RC; coordinated 1.0.0-rc.4 |
+| [`alphax_dio`](packages/alphax_dio) | Focused Dio 5.x `HttpClientAdapter` boundary | PUBLISHED_RC; coordinated 1.0.0-rc.4 |
+| [`alphax_web`](packages/alphax_web) | Browser Fetch transport adapter | PUBLISHED_RC; coordinated 1.0.0-rc.4 |
+| [`alphax_transform`](packages/alphax_transform) | Explicit one-shot isolate JSON transform for buffered payloads | PUBLISHED_RC; coordinated 1.0.0-rc.4 |
 
 There is no AlphaX-owned C++ engine, production Rust transport, libcurl
 dependency, telemetry SDK, GraphQL layer, REST generator, or WebSocket/SSE API

@@ -57,8 +57,7 @@ not required in a production dependency list.
 
 ## Install
 
-The previous `1.0.0-rc.3` is published on pub.dev. The coordinated
-`1.0.0-rc.4` candidate is prepared for publication:
+The coordinated `1.0.0-rc.4` release is published on pub.dev:
 
 ```sh
 dart pub add --dev alphax_test
@@ -213,7 +212,5 @@ pattern.
 - [Waypoint reference app](https://github.com/auvana-ventures/alphax/tree/main/examples/waypoint)
 - [1.0 testing and conformance scope](https://github.com/auvana-ventures/alphax/blob/main/docs/ALPHAX_1_0_SCOPE.md)
 
-The coordinated `1.0.0-rc.4` candidate is prepared for publication; the
-previous `1.0.0-rc.3` package remains the currently published release. The
-package is a development dependency only and does not provide a production
-transport.
+The coordinated `1.0.0-rc.4` release is published on pub.dev. The package is
+a development dependency only and does not provide a production transport.

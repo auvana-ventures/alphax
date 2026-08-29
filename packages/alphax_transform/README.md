@@ -32,14 +32,11 @@ less occupied, while total latency, CPU, and memory can increase.
 
 ## Install
 
-After publication, add the package alongside `alphax`:
+Add the package alongside `alphax`:
 
 ```sh
 dart pub add alphax alphax_transform
 ```
-
-Before publication, use the repository workspace or a local path dependency;
-this implementation task does not publish the package.
 
 `alphax_transform` is pure Dart and has no Flutter, native transport, Dio, or
 browser-plugin dependency.
@@ -180,6 +177,6 @@ The package adds no dependency from `alphax` to `alphax_transform` and does not
 change any AlphaX transport, response, stream, cancellation, or protocol
 contract. It is independently publishable and remains optional.
 
-The coordinated `1.0.0-rc.4` candidate includes this package and is prepared
-for its first publication. The previous `1.0.0-rc.3` workspace candidate is
-historical and was not part of the five-package published set.
+The coordinated `1.0.0-rc.4` release includes this package and is published on
+pub.dev. `rc.3` is the historical five-package predecessor; it did not include
+`alphax_transform`.
