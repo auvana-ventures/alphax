@@ -63,7 +63,8 @@ already uses Dio.
 
 ## Install
 
-The current RC is published on pub.dev:
+The previous `1.0.0-rc.3` is published on pub.dev. The coordinated
+`1.0.0-rc.4` candidate is prepared for publication:
 
 ```sh
 flutter pub add alphax alphax_native
@@ -258,6 +259,7 @@ policies automatically.
 - [Migration guide](https://github.com/auvana-ventures/alphax/blob/main/docs/MIGRATION.md)
 - [1.0 platform and protocol matrix](https://github.com/auvana-ventures/alphax/blob/main/docs/ALPHAX_1_0_RELEASE_GATE.md)
 
-The current `1.0.0-rc.3` candidate is published on pub.dev. Android, iOS, and
-macOS support remains provider/platform dependent; Dart IO is the truthful
-fallback on Linux and Windows.
+The coordinated `1.0.0-rc.4` candidate is prepared for publication; the
+previous `1.0.0-rc.3` package remains the currently published release. Android,
+iOS, and macOS support remains provider/platform dependent; Dart IO is the
+truthful fallback on Linux and Windows.

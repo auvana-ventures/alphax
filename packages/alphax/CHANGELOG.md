@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.0-rc.4 - 2026-08-29
+
+- Preserved file-transfer byte accounting and completion metrics while
+  avoiding progress callback construction and invocation when the caller did
+  not register a download or upload observer.
+
 ## 1.0.0-rc.3 - 2026-08-17
 
 - Added a runnable package-local example showing a custom transport, request,

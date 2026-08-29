@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.0-rc.4 - 2026-08-29
+
+- Aligned package metadata with the coordinated AlphaX `1.0.0-rc.4` release;
+  no runtime changes were made since `rc.3`.
+
 ## 1.0.0-rc.3 - 2026-08-17
 
 - Added a runnable example showing Dio requests routed through

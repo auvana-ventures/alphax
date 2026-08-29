@@ -1,11 +1,11 @@
 # Changelog
 
-## 1.0.0-rc.3 - 2026-08-29
+## 1.0.0-rc.4 - 2026-08-29
 
-- Added the optional pure-Dart `decodeJson` helper for explicit one-shot JSON
+- Prepared the first coordinated RC publication of the optional pure-Dart
+  `decodeJson` helper for explicit one-shot JSON
   decoding and caller-supplied transforms on native Dart isolates.
-- Added normalized AlphaX cancellation/discard behavior, honest JSON/transform
-  error forwarding, and fail-closed Web behavior.
-- Documented isolate sendability, buffered-input ownership, measured usage
-  guidance, and the absence of automatic thresholds, streaming parsing, or
-  persistent workers.
+- Preserved explicit sendability, cooperative cancellation/discard semantics,
+  and fail-closed Web behavior.
+- Documented buffered-input ownership and the absence of automatic thresholds,
+  streaming parsing, and persistent workers.

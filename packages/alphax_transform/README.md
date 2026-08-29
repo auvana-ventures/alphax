@@ -175,3 +175,7 @@ caller-owned `Isolate.run`/`compute` when a package helper does not add value.
 The package adds no dependency from `alphax` to `alphax_transform` and does not
 change any AlphaX transport, response, stream, cancellation, or protocol
 contract. It is independently publishable and remains optional.
+
+The coordinated `1.0.0-rc.4` candidate includes this package and is prepared
+for its first publication. The previous `1.0.0-rc.3` workspace candidate is
+historical and was not part of the five-package published set.

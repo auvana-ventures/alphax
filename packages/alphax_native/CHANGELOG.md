@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.0.0-rc.4 - 2026-08-29
+
+- Corrected Apple URLSession phase-duration conversion so reported
+  millisecond metrics are scaled exactly once.
+- Hardened Apple URLSession bounded response backpressure, cancellation, and
+  completion ordering while preserving the `64 KiB × 4` delivery window and
+  `256 KiB` pending bound.
+- Improved Apple native-file finalization with
+  `FileManager.replaceItemAt` when replacing an existing destination; atomic
+  replacement is not claimed.
+- Suppressed native progress-event construction and delivery when an operation
+  has no progress observer, while retaining authoritative byte accounting.
+
 ## 1.0.0-rc.3 - 2026-08-17
 
 - Added a runnable example using the Dart IO fallback transport and reading
