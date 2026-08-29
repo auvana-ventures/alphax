@@ -385,16 +385,19 @@ The task validation set is:
 | Dartdoc for all six packages | generated successfully |
 | Workspace dependency resolution | passed |
 | `git diff --check` before final staging | passed |
+| Six post-commit `dart pub publish --dry-run` checks | passed with zero warnings |
 
 The existing generated Waypoint Apple project initially used stale Pods and did
 not contain the newly added native source files. A disposable local consumer was
 used to regenerate Pods and prove the current package builds on macOS and the iOS
 simulator; no repository user/signing files were changed.
 
-Final package dry-run archive sizes will be recorded after the task-owned commits
-are created. The prior clean-content estimates were approximately 54 KB
-(`alphax`), 12 KB (`alphax_test`), 94 KB (`alphax_native`), 11 KB (`alphax_web`),
-15 KB (`alphax_dio`), and 14 KB (`alphax_transform`).
+The post-commit package dry-runs completed with zero warnings and these compressed
+archive sizes: `alphax` 54 KB, `alphax_test` 12 KB, `alphax_native` 94 KB,
+`alphax_web` 11 KB, `alphax_dio` 15 KB, and `alphax_transform` 14 KB. Archive
+inspection found only package source, documentation, examples, tests, and the
+intended native plugin assets; no benchmark raw data, signing material, private
+certificates, or local machine paths were included.
 
 ## 16. Worktree and publication disposition
 

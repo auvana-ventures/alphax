@@ -106,10 +106,11 @@ report now describe the actual package/API boundaries, defaults, provider-owned
 behavior, error/capability semantics, reuse guidance, and factual ecosystem
 comparisons. No benchmark was rerun and no provider-specific control was added.
 
-The task-owned validation passed. The package dry-runs performed before commit
-reported only the expected dirty-worktree warning; final clean-worktree dry-runs
-are a post-commit release check. Pre-existing benchmark/mobile/signing work and
-historical evidence remain unstaged.
+The task-owned validation passed. Six post-commit package dry-runs completed with
+zero warnings and the final archive sizes were 54 KB, 12 KB, 94 KB, 11 KB,
+15 KB, and 14 KB in package order (`alphax`, `alphax_test`, `alphax_native`,
+`alphax_web`, `alphax_dio`, `alphax_transform`). Pre-existing
+benchmark/mobile/signing work and historical evidence remain unstaged.
 
 ## References
 
