@@ -14,8 +14,14 @@ Release preparation began from the approved frozen source HEAD:
 93cf03abe60da7bc695cb2001f37f71f1751a925
 ```
 
-The final release-preparation commit and the post-push remote equality check
-are recorded in the final history entry for this document and in
+The focused release-preparation commit is:
+
+```text
+5ba48c4  chore: prepare AlphaX 1.0.0-rc.5
+```
+
+The post-push remote equality check and the small evidence-record follow-up
+commit are recorded in the final history entry for this document and in
 `tasks/54-alphax-1-0-rc-5-release-preparation.md`.
 
 The freeze boundary is authoritative in
@@ -368,9 +374,10 @@ Updated current-facing material includes:
 The repository-standard Markdownlint baseline exclusions (`MD013`, `MD033`,
 `MD060`) pass for the changed documentation. The local relative Markdown target
 check passes for the changed documentation and report. Dartdoc link validation
-passes for all eight packages with zero errors; existing repository-style
-cross-package/example warnings are retained as non-blocking baseline warnings
-and are listed with the final command output in the task record.
+passes for all eight packages with zero errors; the existing repository-style
+cross-package/example warnings were 11 for `alphax`, 7 for `alphax_native`, 5
+for `alphax_web`, 1 for `alphax_transform`, 4 for `alphax_generator`, and 0
+for `alphax_dio`, `alphax_http`, and `alphax_test`.
 
 ## 18. Package dry-runs and archive inspection
 
@@ -389,11 +396,25 @@ and `pubspec.yaml` edits. Archive sizes were:
 | `alphax_http` | 12 KB | pass; expected dirty-worktree warning |
 | `alphax_generator` | 17 KB | pass; expected dirty-worktree warning |
 
-The final clean post-commit dry-run evidence is appended here after the
-preparation commit. It must contain zero warnings for all eight packages. Each
-archive is inspected for intended package metadata/source/examples/tests only;
-no `.dart_tool`, build output, fixture output, benchmark data, local absolute
-paths, logs, secrets, signing config, certificates, or private keys is allowed.
+After commit `5ba48c4`, every selected package passed the required clean
+`dart pub publish --dry-run` (Flutter's equivalent command for
+`alphax_native`) with zero warnings:
+
+| Package | Compressed archive | Clean dry-run |
+| --- | ---: | --- |
+| `alphax` | 67 KB | 0 warnings |
+| `alphax_test` | 12 KB | 0 warnings |
+| `alphax_native` | 104 KB | 0 warnings |
+| `alphax_web` | 17 KB | 0 warnings |
+| `alphax_dio` | 15 KB | 0 warnings |
+| `alphax_transform` | 14 KB | 0 warnings |
+| `alphax_http` | 12 KB | 0 warnings |
+| `alphax_generator` | 17 KB | 0 warnings |
+
+Each archive was inspected for intended package metadata/source/examples/tests
+only; no `.dart_tool`, build output, fixture output, benchmark data, local
+absolute paths, logs, secrets, signing config, certificates, or private keys is
+allowed.
 
 ## 19. Hosted-consumer plan after publication
 
@@ -460,7 +481,7 @@ The release sequence is:
   → 1.0.0
 ```
 
-Final release-preparation commit and remote equality are recorded below after
-the commit/push step.
+The focused preparation commit is `5ba48c4`; the final evidence-record commit
+and post-push `HEAD == origin/main` check are recorded in the task history.
 
 ALPHAX 1.0.0-RC.5 PREPARED FOR PUBLICATION

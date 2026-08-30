@@ -1,6 +1,6 @@
 # Task 54 — AlphaX 1.0.0-rc.5 Release Preparation
 
-Status: [*] In Progress
+Status: [x] Completed
 
 ## Goal
 
@@ -59,35 +59,37 @@ AlphaX maintainers / Codex implementation.
 ## Work Items
 
 - [x] Reserve Task 54 and read the freeze/governing release documents.
-- [*] Audit package purpose, versions, dependencies, archive readiness, and
+- [x] Audit package purpose, versions, dependencies, archive readiness, and
   coordinated publication classification.
-- [ ] Prepare selected package versions and internal AlphaX constraints.
-- [ ] Update package changelogs and current-facing rc.5 migration/release docs.
-- [ ] Complete final API, platform, ecosystem, security, dependency, and path
+- [x] Prepare selected package versions and internal AlphaX constraints.
+- [x] Update package changelogs and current-facing rc.5 migration/release docs.
+- [x] Complete final API, platform, ecosystem, security, dependency, and path
   review without changing frozen feature scope.
-- [ ] Run consolidated release validation and clean zero-warning dry-runs.
-- [ ] Record publication order, hosted-consumer plan, limitations, and readiness.
-- [ ] Review the Task 54-only diff, commit, push, confirm `HEAD == origin/main`,
+- [x] Run consolidated release validation and clean zero-warning dry-runs.
+- [x] Record publication order, hosted-consumer plan, limitations, and readiness.
+- [x] Review the Task 54-only diff, commit, push, confirm `HEAD == origin/main`,
   and stop without publishing or tagging.
 
 ## Validation
 
-Planned checks:
+Completed checks:
 
-- format and analysis for all eight packages;
-- all package tests, transport/policy/conformance tests, retained A–E fixtures,
-  and retained F/G/H fixtures;
-- native, Web, and pure-Dart consumer/build checks available locally;
-- Android, macOS, available iOS, and available Web/desktop validation gates;
-- Dartdoc, Markdown/internal-link checks, dependency/security/path audits;
-- post-version `dart pub publish --dry-run` with zero warnings for every
-  `PUBLISH_RC5` package and archive inspection;
+- `dart format --set-exit-if-changed packages` and the changed Waypoint source;
+- Dart/Flutter analysis for all eight packages and all eight package suites;
+- typed REST native, pure-Dart, Web, OpenAPI, and Protobuf fixtures;
+- Web Chrome tests, native temporary-consumer tests, Android profile/release,
+  macOS debug, and iOS simulator no-code-sign builds;
+- retained A–E/F/G/H compatibility evidence and ecosystem fixtures;
+- Dartdoc link validation, repository Markdownlint, relative-link checks,
+  dependency, security/path, secret/signing, and protected-work audits;
+- clean post-commit dry-runs and archive inspection for every `PUBLISH_RC5`
+  package, all with zero warnings;
 - `git diff --check`; no benchmarks.
 
 ## Next Action
 
-Complete release preparation, push the preparation commit, and return for
-explicit maintainer approval before any publication.
+Release preparation is complete. Return for explicit maintainer approval before
+any publication; do not publish, tag, or create a release in Task 54.
 
 ## Blockers
 
@@ -95,7 +97,12 @@ None currently.
 
 ## Outcome
 
-Pending.
+Completed. All eight workspace packages are prepared at `1.0.0-rc.5`, with
+coordinated internal constraints, current-facing release/migration docs,
+package changelogs, a final compatibility/platform/security/dependency review,
+and zero-warning clean package dry-runs. The exact publication order and
+hosted-consumer plan are in
+`docs/ALPHAX_1_0_RC_5_RELEASE_PREPARATION.md`.
 
 ## References
 
@@ -105,9 +112,27 @@ Pending.
 - `docs/ALPHAX_RC5_BOUNDED_OPTIONALS_REVIEW.md`
 - `docs/ALPHAX_1_0_RC_4_RELEASE_PREPARATION.md`
 - `docs/ALPHAX_1_0_RC_4_PUBLICATION_REPORT.md`
+- `docs/ALPHAX_1_0_RC_5_RELEASE_PREPARATION.md`
 
 ## History
 
 - 2026-08-30: Created after the approved AlphaX 1.0 feature freeze. No
   publication, tag, release, feature work, or benchmark work is authorized by
   this task.
+- 2026-08-30: Audited all eight package manifests and classified all eight as
+  `PUBLISH_RC5`; prepared coordinated `1.0.0-rc.5` versions, native platform
+  metadata, changelogs, current-facing documentation, and the additive rc.4 to
+  rc.5 migration guidance.
+- 2026-08-30: Completed package analysis/tests, typed consumer fixtures,
+  OpenAPI/Protobuf fixtures, Web Chrome, clean temporary native platform builds,
+  Dartdoc, Markdown/link, dependency, security/path, and archive checks. The
+  focused preparation commit is `5ba48c4`.
+- 2026-08-30: All eight clean post-commit package dry-runs passed with zero
+  warnings: `alphax` 67 KB, `alphax_test` 12 KB, `alphax_native` 104 KB,
+  `alphax_web` 17 KB, `alphax_dio` 15 KB, `alphax_transform` 14 KB,
+  `alphax_http` 12 KB, and `alphax_generator` 17 KB. Archive inspections found
+  no generated output, local paths, secrets, signing material, or benchmark
+  artifacts.
+- 2026-08-30: Pushed the preparation and evidence-record commits to
+  `origin/main`; final `HEAD == origin/main` was verified. No package was
+  published, no tag was created, and no GitHub release was created.
