@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.0 - 2026-08-30
+
+- First stable AlphaX release. The transport-independent API and frozen rc.5
+  feature surface carry forward without breaking changes.
+
 ## 1.0.0-rc.5 - 2026-08-30
 
 - Added the dedicated incremental `package:alphax/sse.dart` parser for

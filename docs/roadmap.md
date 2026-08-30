@@ -1,9 +1,10 @@
 # Roadmap
 
 The historical AlphaX 1.0 scope and implementation sequence are recorded in
-[`ALPHAX_1_0_SCOPE.md`](ALPHAX_1_0_SCOPE.md). The final rc.5 feature boundary
-is maintained in the [`ALPHAX_1_0_FEATURE_FREEZE.md`](ALPHAX_1_0_FEATURE_FREEZE.md)
-document.
+[`ALPHAX_1_0_SCOPE.md`](ALPHAX_1_0_SCOPE.md). The frozen feature boundary is
+maintained in the [`ALPHAX_1_0_FEATURE_FREEZE.md`](ALPHAX_1_0_FEATURE_FREEZE.md)
+document. Stable `1.0.0` package metadata is prepared; publication and the
+stable hosted-consumer gate remain separate release actions.
 
 The scope snapshot defines the earlier 1.0 classifications and Phase 1A–1F
 exit criteria. This roadmap page is kept as a historical navigation entry
@@ -23,11 +24,16 @@ thresholds, streaming parsing, or persistent workers. Its measured guidance
 and limitations are recorded in
 [`ALPHAX_TRANSFORM_EXTENSION_IMPLEMENTATION.md`](ALPHAX_TRANSFORM_EXTENSION_IMPLEMENTATION.md).
 
-## AlphaX 1.0.0-rc.5 final feature candidate
+## AlphaX 1.0 stable preparation
 
-AlphaX 1.0.0-rc.5 is the final feature release candidate before stable 1.0.0.
-There will be no rc.6 feature cycle. After rc.5 publication, the project moves
-directly into stable-1.0 stabilization.
+The rc.5 feature candidate is complete and the stable `1.0.0` package line is
+prepared without source/API changes. The project is limited to release
+preparation until stable publication; there is no rc.6 feature cycle.
+
+### Historical rc.5 feature candidate
+
+The following scope record describes the completed rc.5 feature work and is
+retained as release history.
 
 The accepted Model A+ architecture keeps `alphax` pure Dart and
 transport-independent, preserves the rc.4 package boundaries, and simplifies

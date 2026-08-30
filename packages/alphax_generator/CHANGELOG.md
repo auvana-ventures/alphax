@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.0 - 2026-08-30
+
+- First stable release of the direct AlphaX typed REST tooling; generated
+  clients continue to call AlphaX directly and borrow the supplied client.
+
 ## 1.0.0-rc.5 - 2026-08-30
 
 - Finalized the direct AlphaX typed REST generation contract for common HTTP

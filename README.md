@@ -42,20 +42,20 @@ protocol model across the transports that each platform can actually provide.</p
 
 ## Status
 
-**The coordinated AlphaX `1.0.0-rc.5` release is published on pub.dev.**
-All eight rc.5 packages are available as one coordinated family. All committed
-rc.5 feature work A–E and bounded F/G/H decisions are complete under the
+**AlphaX `1.0.0` is prepared for stable publication.** The eight-package
+stable family is versioned in this source tree; hosted users continue to
+resolve the published `1.0.0-rc.5` family until stable publication is approved.
+The feature surface is frozen under the
 [1.0 feature freeze](docs/ALPHAX_1_0_FEATURE_FREEZE.md). See the
-[rc.5 publication report](docs/ALPHAX_1_0_RC_5_PUBLICATION_REPORT.md) for
-hosted package and consumer verification. `rc.4` and `rc.3` are historical
-baselines.
+[rc.5 publication report](docs/ALPHAX_1_0_RC_5_PUBLICATION_REPORT.md) for the
+hosted candidate evidence. `rc.4` and `rc.3` are historical baselines.
 
 AlphaX makes no universal H3, speed, zero-copy, or “fastest client” claim.
 
 ## Install
 
-Start with the deployment package for your target. The coordinated rc.5
-packages are published and resolve transitively through the deployment path:
+Start with the deployment package for your target. The coordinated `1.0.0`
+packages are prepared to resolve transitively through the deployment path:
 
 ```sh
 # Android, iOS, macOS, Linux, or Windows
@@ -85,14 +85,14 @@ Pin the platform integration package directly in a native Flutter application:
 
 ```yaml
 dependencies:
-  alphax_native: ^1.0.0-rc.5
+  alphax_native: ^1.0.0
 ```
 
 For Web, use the equivalent direct dependency:
 
 ```yaml
 dependencies:
-  alphax_web: ^1.0.0-rc.5
+  alphax_web: ^1.0.0
 ```
 
 `alphax_native` and `alphax_web` already depend on `alphax`, so an ordinary
@@ -273,10 +273,10 @@ generator belongs in development tooling:
 
 ```yaml
 dependencies:
-  alphax_native: ^1.0.0-rc.5
+  alphax_native: ^1.0.0
 
 dev_dependencies:
-  alphax_generator: ^1.0.0-rc.5
+  alphax_generator: ^1.0.0
   build_runner: ^2.16.0
 ```
 
@@ -315,8 +315,9 @@ an additional AlphaX-owned choice, not a Retrofit replacement.
 
 ## Ecosystem compatibility
 
-The following boundaries were validated for rc.5. Compatibility means the
-existing library accepts the documented injection seam; it does not transfer
+The following boundaries were validated for rc.5 and are frozen for 1.0.
+Compatibility means the existing library accepts the documented injection
+seam; it does not transfer
 ownership of that library's protocol or serialization semantics to AlphaX.
 
 | Ecosystem | Classification | Path |
@@ -595,7 +596,7 @@ final response = await client.send(
 | iOS 15+ | URLSession | H1/H2/H3; the OS, provider, server, and network determine the negotiated protocol |
 | macOS 12+ | URLSession | H1/H2/H3; the OS, provider, server, and network determine the negotiated protocol |
 | Linux | Dart IO fallback | H1 only |
-| Windows | Dart IO fallback | H1 only |
+| Windows | Dart IO fallback | H1 only; `WINDOWS_SUPPORTED_UNVERIFIED_IN_CURRENT_GATE` |
 | Web | `alphax_web` Browser Fetch transport | H1/H2/H3 may be used by the browser, but Dart cannot authoritatively report the negotiated protocol; H3 requirements fail closed |
 
 H3 preference may legitimately negotiate H2 or H1. The actual protocol and
@@ -607,14 +608,14 @@ cannot authoritatively report H2/H3 and therefore does not advertise them.
 
 | Package | Purpose | 1.0 status |
 | --- | --- | --- |
-| [`alphax`](packages/alphax) | Pure-Dart transport-neutral HTTP and WebSocket contracts | `PUBLISHED_RC5`; `1.0.0-rc.5` |
-| [`alphax_native`](packages/alphax_native) | Native entry façade, HTTP adapters, and Dart IO WebSocket connector | `PUBLISHED_RC5`; `1.0.0-rc.5` |
-| [`alphax_test`](packages/alphax_test) | Fakes and shared conformance helpers | `PUBLISHED_RC5`; `1.0.0-rc.5` |
-| [`alphax_dio`](packages/alphax_dio) | Focused Dio 5.x `HttpClientAdapter` boundary | `PUBLISHED_RC5`; `1.0.0-rc.5` |
-| [`alphax_http`](packages/alphax_http) | Optional `package:http` `BaseClient` compatibility seam | `PUBLISHED_RC5`; `1.0.0-rc.5` |
-| [`alphax_web`](packages/alphax_web) | Web entry façade, browser Fetch adapter, and browser WebSocket connector | `PUBLISHED_RC5`; `1.0.0-rc.5` |
-| [`alphax_transform`](packages/alphax_transform) | Explicit one-shot isolate JSON transform for buffered payloads | `PUBLISHED_RC5`; `1.0.0-rc.5` |
-| [`alphax_generator`](packages/alphax_generator) | Dev-time direct AlphaX typed REST source generator | `PUBLISHED_RC5`; `1.0.0-rc.5` |
+| [`alphax`](packages/alphax) | Pure-Dart transport-neutral HTTP and WebSocket contracts | `PREPARED_1_0`; `1.0.0` |
+| [`alphax_native`](packages/alphax_native) | Native entry façade, HTTP adapters, and Dart IO WebSocket connector | `PREPARED_1_0`; `1.0.0` |
+| [`alphax_test`](packages/alphax_test) | Fakes and shared conformance helpers | `PREPARED_1_0`; `1.0.0` |
+| [`alphax_dio`](packages/alphax_dio) | Focused Dio 5.x `HttpClientAdapter` boundary | `PREPARED_1_0`; `1.0.0` |
+| [`alphax_http`](packages/alphax_http) | Optional `package:http` `BaseClient` compatibility seam | `PREPARED_1_0`; `1.0.0` |
+| [`alphax_web`](packages/alphax_web) | Web entry façade, browser Fetch adapter, and browser WebSocket connector | `PREPARED_1_0`; `1.0.0` |
+| [`alphax_transform`](packages/alphax_transform) | Explicit one-shot isolate JSON transform for buffered payloads | `PREPARED_1_0`; `1.0.0` |
+| [`alphax_generator`](packages/alphax_generator) | Dev-time direct AlphaX typed REST source generator | `PREPARED_1_0`; `1.0.0` |
 
 There is no AlphaX-owned C++ engine, production Rust transport, libcurl
 dependency, telemetry SDK, GraphQL client, or WebSocket engine in the 1.0

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.0 - 2026-08-30
+
+- First stable Dio adapter release. The existing Retrofit → Dio → AlphaX
+  compatibility path remains unchanged from rc.5.
+
 ## 1.0.0-rc.5 - 2026-08-30
 
 - Coordinated the existing Dio 5.x adapter with the final rc.5 package family;

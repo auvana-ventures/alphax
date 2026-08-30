@@ -57,8 +57,9 @@ not required in a production dependency list.
 
 ## Install
 
-The coordinated `1.0.0-rc.5` release is published on pub.dev; rc.4 is a
-historical baseline:
+The coordinated `1.0.0` package line is prepared for stable publication;
+hosted users continue to resolve the published `1.0.0-rc.5` candidate until
+that publication is approved. rc.4 is a historical baseline:
 
 ```sh
 dart pub add --dev alphax_test
@@ -213,5 +214,5 @@ pattern.
 - [Waypoint reference app](https://github.com/auvana-ventures/alphax/tree/main/examples/waypoint)
 - [1.0 testing and conformance scope](https://github.com/auvana-ventures/alphax/blob/main/docs/ALPHAX_1_0_FEATURE_FREEZE.md)
 
-The coordinated `1.0.0-rc.5` package is a development dependency only and does
-not provide a production transport.
+The coordinated `1.0.0` package is a development dependency only and does not
+provide a production transport.

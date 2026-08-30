@@ -1,9 +1,10 @@
 # Contributing to AlphaX
 
-AlphaX `1.0.0-rc.5` is published and the feature surface is frozen for
-stabilization before `1.0.0`. Contributions must stay within the stabilization
-allowance in `docs/ALPHAX_1_0_FEATURE_FREEZE.md` and keep the public Dart
-contract independent from any one native stack.
+AlphaX `1.0.0-rc.5` is published, the feature surface is frozen, and the
+`1.0.0` package family is prepared for stable publication. Contributions must
+stay within the stabilization and release allowance in
+`docs/ALPHAX_1_0_FEATURE_FREEZE.md` and keep the public Dart contract
+independent from any one native stack.
 
 ## Before coding
 

@@ -78,8 +78,9 @@ dependency.
 
 ## Install
 
-The coordinated `1.0.0-rc.5` release is published on pub.dev. The `rc.4`
-release is a historical baseline:
+The coordinated `1.0.0` package line is prepared for stable publication. Until
+that publication is approved, hosted users resolve the published `1.0.0-rc.5`
+candidate. The `rc.4` release is a historical baseline:
 
 ```sh
 flutter pub add alphax alphax_native
@@ -128,8 +129,8 @@ custom-transport hand-off is in
 
 ### Bounded interoperability
 
-The rc.5 ecosystem checks validate the existing seams without adding framework
-runtime dependencies to `alphax`:
+The rc.5 ecosystem checks are the evidence for the frozen 1.0 seams without
+adding framework runtime dependencies to `alphax`:
 
 - Dio and Retrofit use `alphax_dio`;
 - Chopper, GraphQL HTTP, and injectable generated `package:http` clients use
@@ -372,7 +373,8 @@ platform reports negotiation only after the operation completes.
 - [Waypoint reference app](https://github.com/auvana-ventures/alphax/tree/main/examples/waypoint)
 - [Migration guide](https://github.com/auvana-ventures/alphax/blob/main/docs/MIGRATION.md)
 
-The coordinated `1.0.0-rc.5` release is published. The completed rc.5
-package/API family remains under the
+The coordinated `1.0.0` package line is prepared for stable publication. The
+completed package/API family remains under the
 [1.0 feature freeze](../../docs/ALPHAX_1_0_FEATURE_FREEZE.md); no new features
-may be added before `1.0.0`; `rc.4` and `rc.3` are historical baselines.
+may be added before stable publication; `rc.4` and `rc.3` are historical
+baselines.

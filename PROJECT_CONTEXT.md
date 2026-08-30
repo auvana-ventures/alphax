@@ -17,13 +17,15 @@ official modular capabilities.
 ## Current phase
 
 Phase 0 research and transport validation are historical evidence. AlphaX
-`1.0.0-rc.5` is published, the final feature scope is frozen, and the project
-is in stabilization-only work before stable `1.0.0`. Android, macOS, and signed
-physical-iPhone H1/H2/H3 correctness evidence remains retained; H3 remains
-provider- and network-dependent with truthful fallback. ADR 0004 and ADR 0011
-remain accepted for the AlphaX 1.0 platform and release strategy. Stabilization
-may change correctness, security, frozen API consistency, compatibility,
-platform conformance, documentation, packaging, or release validation only.
+`1.0.0-rc.5` is published, the final feature scope is frozen, and the
+`1.0.0` package family is prepared for stable publication. The rc.5-to-1.0
+migration is version-only; no stable package has been published from this
+source state yet. Android, macOS, and signed physical-iPhone H1/H2/H3
+correctness evidence remains retained; H3 remains provider- and
+network-dependent with truthful fallback. ADR 0004 and ADR 0011 remain
+accepted for the AlphaX 1.0 platform and release strategy. Only final release
+validation, documentation, packaging, and publication approval remain before
+stable 1.0.0.
 
 ## Package philosophy
 

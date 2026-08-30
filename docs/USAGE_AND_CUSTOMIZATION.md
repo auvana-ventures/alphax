@@ -1,11 +1,12 @@
 # AlphaX usage and customization
 
-This is the user guide for the AlphaX source tree. The coordinated
-`1.0.0-rc.5` package family is published on pub.dev. Committed rc.5 feature
-work A–E and bounded F/G/H resolution are complete under the [1.0 feature
+This is the user guide for the AlphaX source tree. The coordinated `1.0.0`
+package family is prepared for stable publication; hosted users continue to
+resolve the published `1.0.0-rc.5` family until stable publication is approved.
+The feature surface is frozen under the [1.0 feature
 freeze](ALPHAX_1_0_FEATURE_FREEZE.md). See the [rc.5 publication
-report](ALPHAX_1_0_RC_5_PUBLICATION_REPORT.md) for hosted package and consumer
-verification. `rc.4` and `rc.3` are historical baselines.
+report](ALPHAX_1_0_RC_5_PUBLICATION_REPORT.md) for the hosted candidate
+evidence. `rc.4` and `rc.3` are historical baselines.
 
 ## 1. Choose the deployment path
 
@@ -36,14 +37,14 @@ For native Flutter, the direct AlphaX declaration is sufficient because
 
 ```yaml
 dependencies:
-  alphax_native: ^1.0.0-rc.5
+  alphax_native: ^1.0.0
 ```
 
 For browser Web, use the equivalent:
 
 ```yaml
 dependencies:
-  alphax_web: ^1.0.0-rc.5
+  alphax_web: ^1.0.0
 ```
 
 ## 2. The quickest start
@@ -240,7 +241,7 @@ the request runs.
 | iOS 15+ | URLSession transport | URLSession/OS, server, proxy, and network determine H1/H2/H3. |
 | macOS 12+ | URLSession transport | Same URLSession family behavior as iOS. |
 | Linux | Reusable Dart IO `HttpClient` | H1 only in AlphaX's truthful capability model. |
-| Windows | Reusable Dart IO `HttpClient` | H1 only in AlphaX's truthful capability model. |
+| Windows | Reusable Dart IO `HttpClient` | H1 only in AlphaX's truthful capability model; `WINDOWS_SUPPORTED_UNVERIFIED_IN_CURRENT_GATE`. |
 | Web | Explicit `createAlphaXClient()` from `alphax_web` | Fetch and the browser own protocol, TLS, proxy, CORS, and connection policy. Dart sees protocol `unknown`. |
 
 Automatic means provider selection only. It does not turn on retries, cache,
@@ -706,10 +707,10 @@ Retrofit, or `package:http` at runtime.
 
 ```yaml
 dependencies:
-  alphax_native: ^1.0.0-rc.5
+  alphax_native: ^1.0.0
 
 dev_dependencies:
-  alphax_generator: ^1.0.0-rc.5
+  alphax_generator: ^1.0.0
   build_runner: ^2.16.0
 ```
 
@@ -832,7 +833,7 @@ package, or claim universal OpenAPI-generator compatibility.
 The official OpenAPI template result is a bounded proof, not a mature SDK
 generator. See the [OpenAPI proof](../examples/openapi_template_proof/README.md),
 the [Protobuf recipe](../examples/protobuf_interop/README.md), and the
-[complete rc.5 matrix](ALPHAX_RC5_BOUNDED_OPTIONALS_REVIEW.md).
+[frozen compatibility matrix](ALPHAX_RC5_BOUNDED_OPTIONALS_REVIEW.md).
 
 ## 16. `package:http` comparison
 

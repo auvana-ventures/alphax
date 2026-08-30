@@ -19,10 +19,10 @@ boundary and add the generator only to development tooling:
 
 ```yaml
 dependencies:
-  alphax_native: ^1.0.0-rc.5
+  alphax_native: ^1.0.0
 
 dev_dependencies:
-  alphax_generator: ^1.0.0-rc.5
+  alphax_generator: ^1.0.0
   build_runner: ^2.16.0
 ```
 
@@ -117,7 +117,7 @@ final client = AlphaXClient(transport: MyTransport());
 final api = UsersApi(client);
 ```
 
-This package is the direct annotation generator foundation. The rc.5 OpenAPI
+This package is the direct annotation generator foundation. The OpenAPI
 template is a bounded proof that emits AlphaX declarations, and the Protobuf
 recipe is caller-layer serialization guidance; neither adds a runtime schema or
 serialization package. Framework-specific generator integrations remain outside

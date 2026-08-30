@@ -1,6 +1,6 @@
 name: alphax_transform
 description: Optional one-shot isolate JSON transforms for buffered AlphaX payloads.
-version: 1.0.0-rc.5
+version: 1.0.0
 homepage: https://github.com/auvana-ventures/alphax
 repository: https://github.com/auvana-ventures/alphax
 issue_tracker: https://github.com/auvana-ventures/alphax/issues
@@ -14,7 +14,7 @@ environment:
   sdk: ">=3.8.0 <4.0.0"
 
 dependencies:
-  alphax: ^1.0.0-rc.5
+  alphax: ^1.0.0
 
 dev_dependencies:
   lints: ^5.1.1

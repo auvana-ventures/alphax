@@ -64,8 +64,9 @@ development dependency for deterministic tests.
 
 ## Install
 
-The coordinated `1.0.0-rc.5` release is published on pub.dev. The rc.4
-package is a historical baseline:
+The coordinated `1.0.0` package line is prepared for stable publication;
+hosted users continue to resolve the published `1.0.0-rc.5` candidate until
+that publication is approved. The rc.4 package is a historical baseline:
 
 ```sh
 flutter pub add dio alphax alphax_native alphax_dio
@@ -315,5 +316,5 @@ Known 1.0 boundaries:
 - [Waypoint reference app](https://github.com/auvana-ventures/alphax/tree/main/examples/waypoint)
 - [Dio and package:http migration guide](https://github.com/auvana-ventures/alphax/blob/main/docs/MIGRATION.md)
 
-The coordinated `1.0.0-rc.5` release remains a focused Dio 5.x adapter, not
-full Dio source/API compatibility.
+The coordinated `1.0.0` release remains a focused Dio 5.x adapter, not full
+Dio source/API compatibility.

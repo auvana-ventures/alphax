@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.0 - 2026-08-30
+
+- First stable native deployment release. The one-import façade, platform
+  transports, WebSocket connector, and rc.5 lifecycle remain unchanged.
+
 ## 1.0.0-rc.5 - 2026-08-30
 
 - Added the one-import `createAlphaXClient()` façade, delegating transport

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.0 - 2026-08-30
+
+- First stable browser deployment release. Fetch, WebSocket, façade, and
+  browser-owned capability boundaries carry forward from rc.5.
+
 ## 1.0.0-rc.5 - 2026-08-30
 
 - Added the concise browser-backed `createAlphaXClient()` façade while

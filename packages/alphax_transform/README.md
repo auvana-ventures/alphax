@@ -177,6 +177,8 @@ The package adds no dependency from `alphax` to `alphax_transform` and does not
 change any AlphaX transport, response, stream, cancellation, or protocol
 contract. It is independently publishable and remains optional.
 
-The coordinated `1.0.0-rc.5` release includes this optional package and is
-published on pub.dev. `rc.4` and `rc.3` are historical predecessors; rc.3 did
-not include `alphax_transform`.
+The coordinated `1.0.0` package line includes this optional package and is
+prepared for stable publication; hosted users continue to resolve the
+published `1.0.0-rc.5` candidate until that publication is approved. `rc.4`
+and `rc.3` are historical predecessors; rc.3 did not include
+`alphax_transform`.

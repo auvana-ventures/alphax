@@ -1,8 +1,9 @@
 # Migration guidance
 
-AlphaX 1.0.0-rc.5 is the final feature RC before stable 1.0. This guide maps
-common `package:http` and Dio concepts; it is not a source-compatible port and
-does not promise a full Dio adapter.
+AlphaX 1.0.0 is prepared as the stable release following the published
+1.0.0-rc.5 candidate. The rc.5 → 1.0 migration is version-only. This guide
+maps common `package:http` and Dio concepts; it is not a source-compatible port
+and does not promise a full Dio adapter.
 
 ## rc.4 to rc.5
 
@@ -103,12 +104,11 @@ application.
 
 ## rc.5 to stable 1.0.0
 
-The frozen rc.5 API is intended to carry forward to stable `1.0.0`. For the
-published package family, the expected migration is version-only: update the
-coordinated `1.0.0-rc.5` constraints to `1.0.0` when stable packages are
-published. No source migration is required by the stabilization gate. Existing
-explicit transports, custom transports, `alphax_http`, SSE, WebSocket, and
-generated-client ownership paths remain valid.
+If you are already using `1.0.0-rc.5`, update the coordinated package
+constraints to `1.0.0` after the stable packages are published. No API or
+source migration is required. Existing explicit transports, custom transports,
+`alphax_http`, SSE, WebSocket, and generated-client ownership paths remain
+valid.
 
 ## Client creation and methods
 

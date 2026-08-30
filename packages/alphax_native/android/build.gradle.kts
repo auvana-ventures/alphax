@@ -1,5 +1,5 @@
 group = "com.auvana.ventures.alphax"
-version = "1.0.0-rc.5"
+version = "1.0.0"
 
 buildscript {
     val kotlinVersion = "2.4.0"

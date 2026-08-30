@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.0 - 2026-08-30
+
+- First stable release of the deterministic AlphaX test helpers; the public
+  fake transport and conformance surface is unchanged from rc.5.
+
 ## 1.0.0-rc.5 - 2026-08-30
 
 - Coordinated the deterministic test-helper package with the final rc.5
