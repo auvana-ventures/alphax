@@ -6,8 +6,8 @@ environment:
   sdk: ">=3.8.0 <4.0.0"
 
 dependencies:
-  alphax: ^1.0.0-rc.5
-  alphax_native: ^1.0.0-rc.5
+  alphax: ^1.0.0
+  alphax_native: ^1.0.0
   flutter:
     sdk: flutter
 
