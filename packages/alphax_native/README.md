@@ -203,6 +203,35 @@ await for (final chunk in response.stream) {
 Native adapters use bounded response delivery. Pausing or cancelling a Dart
 stream does not require the native layer to buffer the entire response.
 
+### Server-Sent Events
+
+The native entry point re-exports the small `AlphaXSseParser`, so this remains
+one import while using the selected native response stream:
+
+```dart
+import 'package:alphax_native/alphax_native.dart';
+
+Future<void> consumeSse(AlphaXClient client, Uri uri) async {
+  final response = await client.send(
+    AlphaXRequest(
+      method: HttpMethod.get,
+      uri: uri,
+      headers: AlphaXHeaders({'accept': 'text/event-stream'}),
+    ),
+  );
+
+  await for (final event in response.stream.transform(AlphaXSseParser())) {
+    print('${event.event ?? 'message'}: ${event.data}');
+  }
+}
+```
+
+The parser is incremental and does not reconnect or send `Last-Event-ID`.
+Cancellation remains the normal `AlphaXCancellationToken` on the request, and
+the selected transport continues to enforce its TLS, proxy, and bounded
+streaming behavior. See the [core SSE example](../alphax/example/sse.dart) for
+the parser contract and field semantics.
+
 ### Download directly to a platform file
 
 ```dart

@@ -313,6 +313,45 @@ final uploaded = await client.upload(
 print('${uploaded.bytesTransferred} bytes uploaded');
 ```
 
+### Server-Sent Events
+
+SSE is a parser sub-library over the existing AlphaX response stream. It uses
+the same request, middleware, timeout, cancellation, transport, and bounded
+streaming contracts; it does not add a transport or a reconnect loop.
+
+```dart
+import 'package:alphax/alphax.dart';
+import 'package:alphax/sse.dart';
+
+Future<void> consumeSse(AlphaXClient client, Uri uri) async {
+  final response = await client.send(
+    AlphaXRequest(
+      method: HttpMethod.get,
+      uri: uri,
+      headers: AlphaXHeaders({'accept': 'text/event-stream'}),
+    ),
+  );
+
+  await for (final event in response.stream.transform(AlphaXSseParser())) {
+    print('${event.event ?? 'message'}: ${event.data}');
+  }
+}
+```
+
+`AlphaXSseParser` incrementally decodes strict UTF-8, handles LF/CRLF/CR
+boundaries split across chunks, joins multiple `data` fields, ignores comments
+and unknown fields, and exposes `id` plus a valid non-negative `retry` hint in
+wire milliseconds. An absent ID remains `null`; an empty `id:` remains `''`.
+The parser does not require a content-type header, automatically reconnect, or
+send `Last-Event-ID`; retain those choices in the caller. The parser has
+generous line and event-data limits to avoid unbounded memory growth; limit
+violations and malformed UTF-8 are terminal errors.
+
+On native platforms the selected AlphaX transport owns TLS, proxy policy,
+connection behavior, and bounded delivery. On Web, Fetch, CORS, TLS, proxy
+routing, and browser connection behavior remain authoritative. Browser SSE is
+not EventSource parity. See the [compile-tested example](../packages/alphax/example/sse.dart).
+
 ## 7. Cancellation, timeouts, and progress
 
 Cancellation is explicit and normalized:
@@ -684,7 +723,7 @@ extension has been validated.
 | OpenAPI-generated `package:http` clients | Supported when the generated client exposes an injectable `http.Client`; generator validation remains bounded. |
 | gRPC | Out of AlphaX's REST/HTTP-client scope. |
 | WebSocket | Out of AlphaX's HTTP transport scope; use a WebSocket package. |
-| SSE | No parser/integration; callers may parse an AlphaX response stream. |
+| SSE | Incremental `package:alphax/sse.dart` parser over an AlphaX response stream; reconnect remains caller-owned. |
 
 AlphaX does not replace `retrofit_generator`, provide a Retrofit-specific
 package, or claim universal OpenAPI-generator compatibility.

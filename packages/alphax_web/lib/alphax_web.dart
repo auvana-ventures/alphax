@@ -2,6 +2,7 @@
 library;
 
 export 'package:alphax/alphax.dart';
+export 'package:alphax/sse.dart';
 
 export 'src/alpha_x_client_factory.dart';
 export 'src/web_fetch_transport_stub.dart'

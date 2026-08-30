@@ -175,6 +175,35 @@ return compatible CORS and credential headers. If the application needs an
 explicit, transport-neutral in-memory cookie jar, add
 `AlphaXCookieMiddleware(AlphaXCookieJar())` from `alphax` instead.
 
+## Server-Sent Events with Fetch
+
+The Web entry point re-exports `AlphaXSseParser`, so an SSE response can use
+the same one-import deployment path:
+
+```dart
+import 'package:alphax_web/alphax_web.dart';
+
+Future<void> consumeSse(AlphaXClient client, Uri uri) async {
+  final response = await client.send(
+    AlphaXRequest(
+      method: HttpMethod.get,
+      uri: uri,
+      headers: AlphaXHeaders({'accept': 'text/event-stream'}),
+    ),
+  );
+
+  await for (final event in response.stream.transform(AlphaXSseParser())) {
+    print('${event.event ?? 'message'}: ${event.data}');
+  }
+}
+```
+
+This uses Fetch response streaming, not the browser `EventSource` API. CORS,
+TLS, proxy routing, connection behavior, and browser protocol selection remain
+browser-owned. The parser exposes IDs and retry hints but never reconnects or
+sends `Last-Event-ID`; cancellation remains the normal AlphaX request token.
+See the [core SSE example](../alphax/example/sse.dart) for the parser contract.
+
 ## Browser boundaries
 
 - H3 is not guaranteed; provider, server, proxy, and network conditions decide

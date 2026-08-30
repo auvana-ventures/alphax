@@ -27,6 +27,7 @@ protocol model across the transports that each platform can actually provide.</p
 | Transports | Dart IO fallback, Android Cronet/HttpEngine, Apple URLSession, and a separate browser Fetch adapter |
 | Protocols | H1/H2/H3 where the Android or Apple provider negotiates them; H1 on Dart IO; browser protocol remains unknown to Dart |
 | Policies | Opt-in authentication, replay-aware retries, cookies, private HTTP caching, and a generic circuit breaker |
+| Streaming protocols | Incremental SSE parser over the existing AlphaX response stream; reconnection remains caller-owned |
 | Security | Verified TLS defaults, platform-scoped SPKI pinning, proxy policy, capability checks, and fail-closed unsupported controls |
 
 ## Why AlphaX?
@@ -125,6 +126,7 @@ separate networking products.
 | --- | --- |
 | Send a normal request | [Quick start](#quick-start) |
 | Stream or cancel work | [Streaming and cancellation](#streaming-and-cancellation) |
+| Parse Server-Sent Events | [Server-Sent Events](#server-sent-events) |
 | Upload or download a file | [Upload and download](#upload-and-download) |
 | Prefer H3 and see what completed | [Capabilities and protocol reporting](#capabilities-and-protocol-reporting) |
 | Add retries, tokens, cookies, cache, or resilience | [Policy guide](docs/POLICIES.md) |
@@ -368,6 +370,39 @@ try {
 }
 ```
 
+## Server-Sent Events
+
+Use the dedicated `package:alphax/sse.dart` parser on the existing bounded
+AlphaX response stream. It incrementally decodes UTF-8 and recognizes LF,
+CRLF, and CR line endings without buffering the complete response.
+
+```dart
+import 'package:alphax/alphax.dart';
+import 'package:alphax/sse.dart';
+
+Future<void> consumeSse(AlphaXClient client, Uri uri) async {
+  final response = await client.send(
+    AlphaXRequest(
+      method: HttpMethod.get,
+      uri: uri,
+      headers: AlphaXHeaders({'accept': 'text/event-stream'}),
+    ),
+  );
+
+  await for (final event in response.stream.transform(AlphaXSseParser())) {
+    print('${event.event ?? 'message'}: ${event.data}');
+  }
+}
+```
+
+`AlphaXSseEvent.retry` is the valid non-negative wire value in milliseconds;
+`id` preserves the distinction between an absent and empty field. The parser
+does not reconnect, send `Last-Event-ID`, or require a particular HTTP
+`Content-Type`; the caller owns those decisions and cancellation. Native
+transports retain their TLS/proxy and bounded-streaming behavior. On Web, the
+request uses browser Fetch, so CORS, TLS, proxy routing, and connection
+behavior remain browser-owned. See the [compile-tested core example](packages/alphax/example/sse.dart).
+
 ## Upload and download
 
 The public API is the same whether a platform uses a Dart stream or a native
@@ -462,8 +497,9 @@ cannot authoritatively report H2/H3 and therefore does not advertise them.
 | [`alphax_transform`](packages/alphax_transform) | Explicit one-shot isolate JSON transform for buffered payloads | PUBLISHED_RC; coordinated 1.0.0-rc.4 |
 
 There is no AlphaX-owned C++ engine, production Rust transport, libcurl
-dependency, telemetry SDK, GraphQL client, REST generator, or WebSocket/SSE API
-in the 1.0 architecture. The optional `alphax_http` package is only an
+dependency, telemetry SDK, GraphQL client, REST generator, or WebSocket API in
+the 1.0 architecture. The SSE parser is a small `alphax` sub-library over the
+existing HTTP stream. The optional `alphax_http` package is only an
 `http.Client` compatibility seam; GraphQL and Chopper remain caller-owned.
 Retry, authentication, cookie, cache, and generic
 resilience policies are opt-in pure-Dart middleware. Browser support is a

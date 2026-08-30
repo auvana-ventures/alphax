@@ -70,6 +70,24 @@ void main() {
     expect(const AlphaXTransportException('test'), isA<AlphaXException>());
   });
 
+  test('re-export exposes the dedicated SSE parser', () async {
+    final events = await Stream<List<int>>.value(<int>[
+      0x64,
+      0x61,
+      0x74,
+      0x61,
+      0x3A,
+      0x20,
+      0x77,
+      0x65,
+      0x62,
+      0x0A,
+      0x0A,
+    ]).transform(AlphaXSseParser()).toList();
+
+    expect(events, <AlphaXSseEvent>[const AlphaXSseEvent(data: 'web')]);
+  });
+
   test('reports browser protocol boundaries without guessing', () {
     final transport = WebFetchTransport();
 

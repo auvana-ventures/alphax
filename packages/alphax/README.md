@@ -154,6 +154,37 @@ await for (final chunk in response.stream) {
 Response streams are single-consumption and support Dart pause/resume
 semantics. Native adapters use bounded delivery windows.
 
+### Parse Server-Sent Events
+
+The optional `package:alphax/sse.dart` sub-library parses an AlphaX response
+stream incrementally:
+
+```dart
+import 'package:alphax/alphax.dart';
+import 'package:alphax/sse.dart';
+
+Future<void> consumeSse(AlphaXClient client, Uri uri) async {
+  final response = await client.send(
+    AlphaXRequest(
+      method: HttpMethod.get,
+      uri: uri,
+      headers: AlphaXHeaders({'accept': 'text/event-stream'}),
+    ),
+  );
+
+  await for (final event in response.stream.transform(AlphaXSseParser())) {
+    print('${event.event ?? 'message'}: ${event.data}');
+  }
+}
+```
+
+`AlphaXSseEvent` exposes `data`, an optional event type, an optional ID, and a
+valid non-negative `retry` hint in wire milliseconds. The parser handles
+fragmented UTF-8 and all SSE line endings, ignores comments/unknown fields, and
+does not reconnect or send `Last-Event-ID`. The caller owns the long-lived
+client and its cancellation token. The complete compile-checked example is
+[`example/sse.dart`](example/sse.dart).
+
 ### Transfer files
 
 Use the transport-neutral `AlphaXFileSource` and `AlphaXFileTarget` contracts.
@@ -218,8 +249,8 @@ cancellation, completion, and close semantics.
 The frozen public API includes request and response types, headers and bodies,
 streaming, file-transfer contracts, cancellation, timeouts, redirects,
 middleware, capabilities, protocol preference and requirement, completion-time
-metrics, TLS and proxy policy models, normalized errors, and the opt-in policy
-modules documented above.
+metrics, TLS and proxy policy models, normalized errors, the incremental SSE
+parser sub-library, and the opt-in policy modules documented above.
 
 Use `AlphaXResponse.completionMetrics` and
 `completionProtocolFallback` for authoritative final protocol metadata when a
