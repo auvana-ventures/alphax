@@ -352,6 +352,47 @@ connection behavior, and bounded delivery. On Web, Fetch, CORS, TLS, proxy
 routing, and browser connection behavior remain authoritative. Browser SSE is
 not EventSource parity. See the [compile-tested example](../packages/alphax/example/sse.dart).
 
+### WebSocket
+
+WebSocket uses a separate full-duplex connector/session contract; it is not
+forced through `AlphaXTransport.send()` or `AlphaXClient`:
+
+```dart
+import 'package:alphax_native/alphax_native.dart';
+
+Future<void> useSocket(Uri uri) async {
+  final connector = createAlphaXWebSocketConnector();
+  final socket = await connector.connect(
+    uri,
+    protocols: <String>['alpha.v1'],
+  );
+  try {
+    final firstMessage = socket.messages.first;
+    await socket.send(const AlphaXWebSocketMessage.text('hello'));
+    print(await firstMessage);
+  } finally {
+    await socket.close();
+  }
+}
+```
+
+Use the same call shape with `package:alphax_web/alphax_web.dart` in a browser
+deployment. The session preserves text/binary messages, reports the
+provider-selected subprotocol, exposes terminal close information through
+`done`, and performs no reconnect, replay, or retry. Connect cancellation also
+cancels an active built-in session; cancelling the message subscription only
+stops receiving, so the caller still closes the session.
+
+The common contract intentionally has no arbitrary connection-header
+parameter. The maintained `package:web_socket` abstraction and browser API do
+not provide safe, consistent header support; built-in capabilities report
+headers as unsupported. Use browser-managed cookies/origin or a protocol-level
+authentication message where appropriate. Do not move authorization values into
+query parameters automatically. Browser TLS, cookies, origin, CSP, and network
+policy remain browser-owned; native WebSocket provider behavior is separate
+from native HTTP transport selection. See the [compile-tested native example](../packages/alphax_native/example/websocket.dart)
+and [Web example](../packages/alphax_web/example/websocket.dart).
+
 ## 7. Cancellation, timeouts, and progress
 
 Cancellation is explicit and normalized:
@@ -722,7 +763,7 @@ extension has been validated.
 | GraphQL HTTP links | Supported through `alphax_http` when the link accepts an injectable `http.Client`; GraphQL semantics remain caller-owned. |
 | OpenAPI-generated `package:http` clients | Supported when the generated client exposes an injectable `http.Client`; generator validation remains bounded. |
 | gRPC | Out of AlphaX's REST/HTTP-client scope. |
-| WebSocket | Out of AlphaX's HTTP transport scope; use a WebSocket package. |
+| WebSocket | First-class `package:alphax/websocket.dart` lifecycle contract with native and browser deployment connectors; no automatic reconnect. |
 | SSE | Incremental `package:alphax/sse.dart` parser over an AlphaX response stream; reconnect remains caller-owned. |
 
 AlphaX does not replace `retrofit_generator`, provide a Retrofit-specific

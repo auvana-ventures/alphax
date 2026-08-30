@@ -25,7 +25,7 @@ Write request code once and choose the transport at the application boundary.</p
 | Protocol control | Preference, fail-closed requirement, capabilities, completion-time protocol metadata, and fallback information |
 | Application policy | Opt-in authentication, replay-aware retry, cookies, private HTTP cache, and generic circuit-breaker middleware |
 | Storage | In-memory cookie/cache implementations plus stable caller-owned store seams for persistence |
-| Transport | Contracts only; add `alphax_native`, `alphax_web`, or another `AlphaXTransport` implementation |
+| Transport | HTTP and WebSocket contracts only; add `alphax_native`, `alphax_web`, or another provider implementation |
 
 ## Start here
 
@@ -39,6 +39,8 @@ Write request code once and choose the transport at the application boundary.</p
 Flutter. Write request code once, then run it with Dart IO, Android Cronet,
 Apple URLSession, or a separate browser adapter without changing your request,
 response, streaming, file, cancellation, timeout, or error-handling code.
+Its dedicated WebSocket sub-library defines the portable full-duplex lifecycle;
+it does not select or implement a WebSocket provider.
 
 ## Why use it?
 
@@ -185,6 +187,26 @@ does not reconnect or send `Last-Event-ID`. The caller owns the long-lived
 client and its cancellation token. The complete compile-checked example is
 [`example/sse.dart`](example/sse.dart).
 
+### WebSocket lifecycle
+
+Import `package:alphax/websocket.dart` when implementing or consuming the
+transport-neutral WebSocket contract. It contains the connector/session
+lifecycle, immutable text/binary messages, negotiated subprotocol, close
+metadata, capabilities, and normalized WebSocket errors. It is deliberately
+separate from `AlphaXClient` and `AlphaXTransport.send()` because a WebSocket
+is a long-lived full-duplex session rather than an HTTP request/response.
+
+Use `createAlphaXWebSocketConnector()` from `alphax_native` or `alphax_web` at
+the deployment boundary; those packages adapt the maintained
+`package:web_socket` Dart IO or browser provider. A custom provider can
+implement `AlphaXWebSocketConnector` and `AlphaXWebSocketSession` directly.
+There is no automatic reconnect, retry, message replay, or resend queue.
+The common contract intentionally has no arbitrary connection-header argument:
+built-in browser/native providers report custom headers as unsupported rather
+than silently dropping authentication metadata. See the
+[native example](../alphax_native/example/websocket.dart) and
+[Web example](../alphax_web/example/websocket.dart).
+
 ### Transfer files
 
 Use the transport-neutral `AlphaXFileSource` and `AlphaXFileTarget` contracts.
@@ -250,7 +272,8 @@ The frozen public API includes request and response types, headers and bodies,
 streaming, file-transfer contracts, cancellation, timeouts, redirects,
 middleware, capabilities, protocol preference and requirement, completion-time
 metrics, TLS and proxy policy models, normalized errors, the incremental SSE
-parser sub-library, and the opt-in policy modules documented above.
+parser sub-library, the dedicated WebSocket lifecycle sub-library, and the
+opt-in policy modules documented above.
 
 Use `AlphaXResponse.completionMetrics` and
 `completionProtocolFallback` for authoritative final protocol metadata when a
@@ -262,6 +285,9 @@ platform reports negotiation only after the operation completes.
 - It does not include a native transport implementation by itself.
 - Web support is provided by the separate [`alphax_web`](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_web)
   package; importing `alphax` alone does not make Web available.
+- WebSocket provider connectors are provided by the deployment packages; the
+  core contract does not own native HTTP transport selection, browser policy,
+  automatic reconnect, or a WebSocket engine.
 - It does not guarantee H3; provider, server, proxy, and network conditions
   decide the actual protocol.
 - The policy middleware is deliberately bounded: cookie persistence remains

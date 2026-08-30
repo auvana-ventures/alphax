@@ -204,6 +204,46 @@ browser-owned. The parser exposes IDs and retry hints but never reconnects or
 sends `Last-Event-ID`; cancellation remains the normal AlphaX request token.
 See the [core SSE example](../alphax/example/sse.dart) for the parser contract.
 
+## WebSocket
+
+Use the browser connector from the same Web deployment import:
+
+```dart
+import 'package:alphax_web/alphax_web.dart';
+
+Future<void> useWebSocket(Uri uri) async {
+  final connector = createAlphaXWebSocketConnector();
+  final socket = await connector.connect(
+    uri,
+    protocols: <String>['alpha.v1'],
+  );
+  try {
+    final firstMessage = socket.messages.first;
+    await socket.send(const AlphaXWebSocketMessage.text('hello'));
+    print(await firstMessage);
+  } finally {
+    await socket.close();
+  }
+}
+```
+
+The connector uses the browser WebSocket API through the maintained
+`package:web_socket` abstraction. Text and binary messages remain distinct,
+the negotiated subprotocol is reported by the browser, and `socket.done`
+provides terminal close information. There is no EventSource-style automatic
+reconnect, retry, replay, or resend queue.
+
+Browser WebSocket does not permit arbitrary request headers, so the portable
+connector intentionally has no header parameter and reports
+`connector.capabilities.customHeaders` as `AlphaXSupport.unsupported`. Browser
+TLS, origin, cookies, CSP, proxy/network policy, and connection behavior remain
+browser-owned. Use browser-managed cookies, a supported subprotocol, or an
+application-level authentication message where appropriate; AlphaX never
+transforms authorization headers into query parameters. Use `wss:` when the
+browser connection must be secure; AlphaX does not add a trust-all or
+certificate-bypass path. The compile-tested example is
+[`example/websocket.dart`](example/websocket.dart).
+
 ## Browser boundaries
 
 - H3 is not guaranteed; provider, server, proxy, and network conditions decide

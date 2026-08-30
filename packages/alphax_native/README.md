@@ -232,6 +232,49 @@ the selected transport continues to enforce its TLS, proxy, and bounded
 streaming behavior. See the [core SSE example](../alphax/example/sse.dart) for
 the parser contract and field semantics.
 
+### WebSocket
+
+Use the separate WebSocket connector from the same native deployment import:
+
+```dart
+import 'package:alphax_native/alphax_native.dart';
+
+Future<void> useWebSocket(Uri uri) async {
+  final connector = createAlphaXWebSocketConnector();
+  final socket = await connector.connect(
+    uri,
+    protocols: <String>['alpha.v1'],
+  );
+  try {
+    final firstMessage = socket.messages.first;
+    await socket.send(const AlphaXWebSocketMessage.text('hello'));
+    print(await firstMessage);
+  } finally {
+    await socket.close();
+  }
+}
+```
+
+The connector adapts the maintained `package:web_socket` Dart IO provider. It
+is intentionally independent of whether HTTP selected Dart IO, Cronet, or
+URLSession; those HTTP providers do not implicitly own this full-duplex
+session. Text and binary messages remain distinct, subprotocol negotiation is
+reported by the provider, and `socket.done` provides terminal close
+information. There is no automatic reconnect, retry, replay, or resend queue.
+
+The portable connector has no arbitrary header parameter. The maintained
+provider boundary does not provide consistent custom-header support, so
+`connector.capabilities.customHeaders` is `AlphaXSupport.unsupported` rather
+than silently dropping authentication headers. Use an application-supported
+cookie, URL, subprotocol, or protocol-level authentication mechanism as
+appropriate; AlphaX never converts authorization headers into query parameters.
+Use `wss:` for a secure connection; the Dart IO provider keeps its verified
+platform TLS defaults. The HTTP `AlphaXTlsPolicy`/proxy settings configure the
+HTTP transport factory and are not silently applied to a separate WebSocket
+provider. No trust-all or certificate-bypass path is added.
+The compile-tested example is
+[`example/websocket.dart`](example/websocket.dart).
+
 ### Download directly to a platform file
 
 ```dart

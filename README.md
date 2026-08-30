@@ -27,7 +27,7 @@ protocol model across the transports that each platform can actually provide.</p
 | Transports | Dart IO fallback, Android Cronet/HttpEngine, Apple URLSession, and a separate browser Fetch adapter |
 | Protocols | H1/H2/H3 where the Android or Apple provider negotiates them; H1 on Dart IO; browser protocol remains unknown to Dart |
 | Policies | Opt-in authentication, replay-aware retries, cookies, private HTTP caching, and a generic circuit breaker |
-| Streaming protocols | Incremental SSE parser over the existing AlphaX response stream; reconnection remains caller-owned |
+| Streaming protocols | Incremental SSE parser over the existing AlphaX response stream plus a separate WebSocket lifecycle contract; reconnect remains caller-owned |
 | Security | Verified TLS defaults, platform-scoped SPKI pinning, proxy policy, capability checks, and fail-closed unsupported controls |
 
 ## Why AlphaX?
@@ -42,12 +42,12 @@ protocol model across the transports that each platform can actually provide.</p
 
 ## Status
 
-**The coordinated AlphaX `1.0.0-rc.4` release is published on pub.dev.** All
-six packages are available at the coordinated RC4 version. AlphaX remains a
-release candidate with its 1.0 public API frozen; later contract changes may
-be breaking. The current source also contains the additive rc.5 entry façades;
-no rc.5 package has been published, and version preparation remains part of the
-release task. `rc.3` is the historical predecessor.
+**The coordinated AlphaX `1.0.0-rc.4` release is published on pub.dev.** The
+published RC4 packages remain the release baseline. AlphaX remains a release
+candidate with its 1.0 public API frozen; later contract changes may be
+breaking. The current source also contains the additive rc.5 entry façades and
+WebSocket contract; no rc.5 package has been published, and version preparation
+remains part of the release task. `rc.3` is the historical predecessor.
 
 AlphaX makes no universal H3, speed, zero-copy, or “fastest client” claim.
 
@@ -127,6 +127,7 @@ separate networking products.
 | Send a normal request | [Quick start](#quick-start) |
 | Stream or cancel work | [Streaming and cancellation](#streaming-and-cancellation) |
 | Parse Server-Sent Events | [Server-Sent Events](#server-sent-events) |
+| Open a WebSocket | [WebSocket](#websocket) |
 | Upload or download a file | [Upload and download](#upload-and-download) |
 | Prefer H3 and see what completed | [Capabilities and protocol reporting](#capabilities-and-protocol-reporting) |
 | Add retries, tokens, cookies, cache, or resilience | [Policy guide](docs/POLICIES.md) |
@@ -403,6 +404,46 @@ transports retain their TLS/proxy and bounded-streaming behavior. On Web, the
 request uses browser Fetch, so CORS, TLS, proxy routing, and connection
 behavior remain browser-owned. See the [compile-tested core example](packages/alphax/example/sse.dart).
 
+## WebSocket
+
+WebSocket is a separate full-duplex lifecycle, not an `AlphaXTransport.send()`
+request. Native and browser entry packages expose the same small connector and
+session contract through their deployment import:
+
+```dart
+import 'package:alphax_native/alphax_native.dart';
+
+Future<void> useWebSocket(Uri uri) async {
+  final connector = createAlphaXWebSocketConnector();
+  final socket = await connector.connect(
+    uri,
+    protocols: <String>['alpha.v1'],
+  );
+  try {
+    final firstMessage = socket.messages.first;
+    await socket.send(const AlphaXWebSocketMessage.text('hello'));
+    final message = await firstMessage;
+    print(message);
+  } finally {
+    await socket.close();
+  }
+}
+```
+
+`AlphaXWebSocketMessage` preserves text and binary messages, and
+`socket.negotiatedSubprotocol` reports the provider's authoritative result.
+`socket.done` reports the terminal close code, reason, and origin. The
+connector performs no automatic reconnect, retry, backoff, replay, or resend.
+
+The browser connector uses the browser WebSocket API. Browser TLS, origin,
+cookies, CSP, network policy, and arbitrary connection headers remain
+browser-owned; the portable AlphaX contract therefore does not accept custom
+headers and reports that capability as unsupported. Native uses the maintained
+`package:web_socket` Dart IO path rather than assuming the selected HTTP
+transport also owns WebSockets. See the compile-tested native and Web examples:
+[`alphax_native/example/websocket.dart`](packages/alphax_native/example/websocket.dart)
+and [`alphax_web/example/websocket.dart`](packages/alphax_web/example/websocket.dart).
+
 ## Upload and download
 
 The public API is the same whether a platform uses a Dart stream or a native
@@ -488,18 +529,19 @@ cannot authoritatively report H2/H3 and therefore does not advertise them.
 
 | Package | Purpose | 1.0 status |
 | --- | --- | --- |
-| [`alphax`](packages/alphax) | Pure-Dart transport-neutral contracts | PUBLISHED_RC; coordinated 1.0.0-rc.4 |
-| [`alphax_native`](packages/alphax_native) | Native entry façade plus Dart IO, Cronet, and URLSession adapters | PUBLISHED_RC; additive rc.5 façade in source |
+| [`alphax`](packages/alphax) | Pure-Dart transport-neutral HTTP and WebSocket contracts | PUBLISHED_RC; coordinated 1.0.0-rc.4 |
+| [`alphax_native`](packages/alphax_native) | Native entry façade, HTTP adapters, and Dart IO WebSocket connector | PUBLISHED_RC; additive rc.5 façade in source |
 | [`alphax_test`](packages/alphax_test) | Fakes and shared conformance helpers | PUBLISHED_RC; coordinated 1.0.0-rc.4 |
 | [`alphax_dio`](packages/alphax_dio) | Focused Dio 5.x `HttpClientAdapter` boundary | PUBLISHED_RC; coordinated 1.0.0-rc.4 |
 | [`alphax_http`](packages/alphax_http) | Optional `package:http` `BaseClient` compatibility seam | rc.5 source; not published |
-| [`alphax_web`](packages/alphax_web) | Web entry façade plus browser Fetch adapter | PUBLISHED_RC; additive rc.5 façade in source |
+| [`alphax_web`](packages/alphax_web) | Web entry façade, browser Fetch adapter, and browser WebSocket connector | PUBLISHED_RC; additive rc.5 façade in source |
 | [`alphax_transform`](packages/alphax_transform) | Explicit one-shot isolate JSON transform for buffered payloads | PUBLISHED_RC; coordinated 1.0.0-rc.4 |
 
 There is no AlphaX-owned C++ engine, production Rust transport, libcurl
-dependency, telemetry SDK, GraphQL client, REST generator, or WebSocket API in
-the 1.0 architecture. The SSE parser is a small `alphax` sub-library over the
-existing HTTP stream. The optional `alphax_http` package is only an
+dependency, telemetry SDK, GraphQL client, REST generator, or WebSocket engine
+in the 1.0 architecture. The SSE parser is a small `alphax` sub-library over the
+existing HTTP stream, and the WebSocket contract is a separate lifecycle seam
+adapted by the deployment packages. The optional `alphax_http` package is only an
 `http.Client` compatibility seam; GraphQL and Chopper remain caller-owned.
 Retry, authentication, cookie, cache, and generic
 resilience policies are opt-in pure-Dart middleware. Browser support is a
@@ -574,8 +616,10 @@ Dart application
       │     └── createAlphaXClient() → createAlphaXTransport()
       │     ├── Dart IO fallback
       │     ├── Android Cronet/HttpEngine
-      │     └── iOS/macOS URLSession
+      │     ├── iOS/macOS URLSession
+      │     └── WebSocket connector → maintained Dart IO provider
       └── alphax_web entry facade → Browser Fetch (separate package)
+            └── WebSocket connector → browser WebSocket
 ```
 
 See the [1.0 scope](docs/ALPHAX_1_0_SCOPE.md),

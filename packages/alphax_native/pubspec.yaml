@@ -19,6 +19,7 @@ dependencies:
   alphax: ^1.0.0-rc.4
   flutter:
     sdk: flutter
+  web_socket: ^1.0.1
 
 dev_dependencies:
   alphax_test: ^1.0.0-rc.4
