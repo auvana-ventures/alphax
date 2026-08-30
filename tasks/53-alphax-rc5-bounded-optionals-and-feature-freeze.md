@@ -100,8 +100,9 @@ Completed on 2026-08-30:
   existing cross-package/example warnings recorded in the final review;
 - repository-standard Markdownlint exclusions and a local relative Markdown
   target check;
-- `alphax` package dry-run/archive inspection (66 KB compressed), dependency
-  graph, generated-artifact, security/path, secret, and protected-work audits;
+- clean post-commit `alphax` package dry-run/archive inspection (66 KB
+  compressed, 0 warnings), dependency graph, generated-artifact,
+  security/path, secret, and protected-work audits;
 - `git diff --check` after the Task 53 batch. No benchmarks, version bump,
   publication, tag, or new platform feature build was run.
 
@@ -148,3 +149,5 @@ API, version, tag, release, or benchmark was added by Task 53.
 - 2026-08-30: Freeze declaration commit is
   `1cf2ed49f1ab2d586d57189807b7e549b437a883`; a follow-up documentation commit
   records this identity in the stable-boundary document.
+- 2026-08-30: Clean post-commit `dart pub publish --dry-run` for `alphax`
+  passed with a 66 KB compressed archive and 0 warnings.

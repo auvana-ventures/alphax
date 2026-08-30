@@ -259,8 +259,8 @@ The final consolidated validation completed after the Task 53 batch:
   protected-work audit;
 - `git diff --check`.
 
-The affected publishable package `alphax` dry-run reported a 66 KB compressed
-archive and contained no Task 53 fixture or build output. The new OpenAPI and
+The clean post-commit `alphax` dry-run passed with a 66 KB compressed archive,
+0 warnings, and no Task 53 fixture or build output. The new OpenAPI and
 Protobuf fixtures are `publish_to: none` examples rather than independently
 published packages. The archive listing was inspected for local paths,
 secrets, `.dart_tool`, and build output.
