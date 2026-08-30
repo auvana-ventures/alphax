@@ -1,5 +1,5 @@
 PODS:
-  - alphax_native (1.0.0-rc.1):
+  - alphax_native (1.0.0-rc.5):
     - FlutterMacOS
   - FlutterMacOS (1.0.0)
 
@@ -14,7 +14,7 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral
 
 SPEC CHECKSUMS:
-  alphax_native: 3d4f03513bc08b2d75ac280ed17bb59dbcda5e17
+  alphax_native: 9b92e0693ae556c8a7185020f64252a99344b12a
   FlutterMacOS: c232990155153907050900a2e175c7773903ba4e
 
 PODFILE CHECKSUM: 1e95c36afbfd1cb6423ceca4de7a8e1b256fb6ac
