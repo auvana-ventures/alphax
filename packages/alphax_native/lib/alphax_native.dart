@@ -1,6 +1,9 @@
 /// AlphaX platform transport adapters.
 library;
 
+export 'package:alphax/alphax.dart';
+
+export 'src/alpha_x_client_factory.dart';
 export 'src/dart_io_transport.dart';
 export 'src/android_cronet_transport.dart';
 export 'src/apple_url_session_transport.dart';

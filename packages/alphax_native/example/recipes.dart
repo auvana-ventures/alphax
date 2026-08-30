@@ -1,10 +1,7 @@
-import 'package:alphax/alphax.dart';
 import 'package:alphax_native/alphax_native.dart';
 
 /// The automatic setup used by the main package example.
-Future<AlphaXClient> automaticClient() async => AlphaXClient(
-  transport: await createAlphaXTransport(),
-);
+Future<AlphaXClient> automaticClient() => createAlphaXClient();
 
 /// Explicit adapter choices remain available for controlled environments.
 Future<AlphaXTransport> explicitDartIo() async => DartIoTransport();

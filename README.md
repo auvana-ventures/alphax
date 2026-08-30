@@ -44,7 +44,9 @@ protocol model across the transports that each platform can actually provide.</p
 **The coordinated AlphaX `1.0.0-rc.4` release is published on pub.dev.** All
 six packages are available at the coordinated RC4 version. AlphaX remains a
 release candidate with its 1.0 public API frozen; later contract changes may
-be breaking. `rc.3` is the historical predecessor.
+be breaking. The current source also contains the additive rc.5 entry façades;
+no rc.5 package has been published, and version preparation remains part of the
+release task. `rc.3` is the historical predecessor.
 
 AlphaX makes no universal H3, speed, zero-copy, or “fastest client” claim.
 
@@ -54,62 +56,67 @@ Start with the published RC packages for your target:
 
 ```sh
 # Android, iOS, macOS, Linux, or Windows
-flutter pub add alphax alphax_native
+flutter pub add alphax_native
 
 # Browser Fetch
-flutter pub add alphax alphax_web
+flutter pub add alphax_web
 
-# Existing Dio application
-flutter pub add dio alphax alphax_native alphax_dio
+# Pure Dart with a custom transport
+dart pub add alphax
+
+# Existing Dio application on native Flutter
+flutter pub add dio alphax_native alphax_dio
 
 # Optional one-shot large-payload JSON transform
 dart pub add alphax alphax_transform
 ```
 
 `alphax` has no Flutter SDK dependency. A pure-Dart application can use it with
-its own `AlphaXTransport`; Flutter applications normally pair it with
-`alphax_native`. Add `alphax_test` as a development dependency when you want
-deterministic transport tests.
+its own `AlphaXTransport`; native Flutter applications use `alphax_native` as
+their direct AlphaX package. Add `alphax_test` as a development dependency
+when you want deterministic transport tests.
 
-### Pin the coordinated RC explicitly
+### Pin a coordinated deployment path explicitly
 
-Pin the coordinated RC versions together in `pubspec.yaml`:
+For a native Flutter application, the direct AlphaX dependency is the platform
+integration package:
 
 ```yaml
 dependencies:
-  alphax: ^1.0.0-rc.4
   alphax_native: ^1.0.0-rc.4
-  alphax_dio: ^1.0.0-rc.4
-  alphax_web: ^1.0.0-rc.4
-  alphax_transform: ^1.0.0-rc.4
-
-dev_dependencies:
-  alphax_test: ^1.0.0-rc.4
 ```
 
-`alphax` has no Flutter SDK dependency. `alphax_native` is the Flutter plugin
-that supplies Dart IO, Android Cronet/HttpEngine, and Apple URLSession adapters.
-`alphax_web` supplies the browser Fetch adapter; browser protocol metadata is
-intentionally unknown. `alphax_transform` is an optional package in the
-published coordinated `rc.4` set; it remains separate from `alphax` core and
-does not alter transport behavior. `rc.3` is the historical predecessor.
+For Web, use the equivalent direct dependency:
 
-## Which package do I need?
+```yaml
+dependencies:
+  alphax_web: ^1.0.0-rc.4
+```
 
-Choose the package by the job you are doing:
+`alphax_native` and `alphax_web` already depend on `alphax`, so an ordinary
+consumer does not need to declare the core package directly. `alphax` remains
+the direct choice for pure-Dart custom transports. Add `alphax_dio`,
+`alphax_transform`, or `alphax_test` only for those optional integration,
+workload, or development roles. The coordinated rc.5 version is not published
+yet; the release task owns version preparation.
 
-| Package | Use it when you want to… | What you get |
+## Choose by deployment path
+
+Start with where the application runs, then add only the optional seam it needs:
+
+| Deployment path | Direct package | Entry point |
 | --- | --- | --- |
-| [`alphax`](packages/alphax/README.md) | write request code once | transport-independent requests, responses, streams, files, cancellation, timeouts, errors, and protocol metadata |
-| [`alphax_native`](packages/alphax_native/README.md) | run the same client on Flutter platforms | Dart IO on Linux/Windows, Cronet on Android, and URLSession on iOS/macOS |
-| [`alphax_web`](packages/alphax_web/README.md) | run the same client in a browser | RC Fetch adapter for Web requests with truthful browser capability boundaries |
-| [`alphax_dio`](packages/alphax_dio/README.md) | keep an existing Dio application | a Dio `HttpClientAdapter` backed by an injected AlphaX client and its configured transport/security policies |
-| [`alphax_test`](packages/alphax_test/README.md) | test without a live server or device | deterministic fake transports, streams, failures, cancellation, files, and conformance helpers |
-| [`alphax_transform`](packages/alphax_transform/README.md) | explicitly offload a profiled large buffered JSON payload | one-shot native `Isolate.run` decoding with caller-supplied sendable transformation; Web fails closed |
+| Native Flutter | [`alphax_native`](packages/alphax_native/README.md) | `createAlphaXClient()` |
+| Browser Web | [`alphax_web`](packages/alphax_web/README.md) | `createAlphaXClient()` |
+| Pure Dart/custom transport | [`alphax`](packages/alphax/README.md) | `AlphaXClient(transport: ...)` |
+| Existing Dio/Retrofit | [`alphax_dio`](packages/alphax_dio/README.md) plus a platform path | injected AlphaX client |
+| Large buffered JSON | [`alphax_transform`](packages/alphax_transform/README.md) | explicit one-shot transform |
+| Testing | [`alphax_test`](packages/alphax_test/README.md) as a dev dependency | deterministic fakes and conformance helpers |
 
-New Flutter applications normally use `alphax` with `alphax_native`. Existing
-Dio applications can add `alphax_dio` instead of rewriting their request
-layer. `alphax_test` is a development dependency, not a runtime transport.
+The deployment packages re-export the public `alphax` API. This keeps the
+ordinary native and Web import to one package while preserving `alphax` as the
+canonical pure-Dart contract namespace. These are package roles, not six
+separate networking products.
 
 ## Choose a starting point
 
@@ -129,11 +136,10 @@ layer. `alphax_test` is a development dependency, not a runtime transport.
 ## Quick start
 
 ```dart
-import 'package:alphax/alphax.dart';
 import 'package:alphax_native/alphax_native.dart';
 
 Future<void> main() async {
-  final client = AlphaXClient(transport: await createAlphaXTransport());
+  final client = await createAlphaXClient();
   try {
     final response = await client.get(Uri.https('example.com', '/'));
     print('${response.statusCode}: ${await response.readAsString()}');
@@ -147,14 +153,14 @@ Future<void> main() async {
 }
 ```
 
-`createAlphaXTransport()` selects Cronet/HttpEngine on Android, URLSession on
-iOS/macOS, and Dart IO on Linux/Windows. Web is a separate package boundary:
+`createAlphaXClient()` creates one `AlphaXClient` and delegates transport
+selection to `createAlphaXTransport()`: Cronet/HttpEngine on Android, URLSession
+on iOS/macOS, and Dart IO on Linux/Windows. Web is a separate package boundary:
 
 ```dart
-import 'package:alphax/alphax.dart';
 import 'package:alphax_web/alphax_web.dart';
 
-final webClient = AlphaXClient(transport: WebFetchTransport());
+final webClient = createAlphaXClient();
 ```
 
 Create one configured client for an API or session and reuse it; the client
@@ -166,21 +172,51 @@ or background JSON parsing.
 
 ### Start simple
 
-Add `alphax` and `alphax_native`, then use `createAlphaXTransport()`. Normal
-request code does not need platform branching.
+Add `alphax_native`, import its entry point, and use `createAlphaXClient()`.
+Normal request code does not need platform branching or manual transport
+assembly. For Web, add `alphax_web` and use its same-named synchronous factory.
 
 ### Configure portable policies
 
-Pass `AlphaXMiddleware` to the client and set request-level timeout, redirect,
-cancellation, progress, protocol preference, and protocol requirement values.
-These settings express application intent while the selected provider decides
-which platform operations can honor it.
+Configure the existing client middleware and transport-construction policies at
+the native façade:
+
+```dart
+Future<AlphaXClient> createConfiguredClient() => createAlphaXClient(
+  middleware: <AlphaXMiddleware>[AlphaXRetryMiddleware()],
+  tlsPolicy: const AlphaXTlsPolicy.platformDefault(),
+  proxyPolicy: const AlphaXProxyPolicy.system(),
+);
+```
+
+Web accepts middleware and browser credential mode through
+`createAlphaXClient(withCredentials: true)`. Timeout, cancellation, redirect,
+progress, protocol preference, and protocol requirement remain request-level
+settings. These controls express application intent while the selected
+provider/browser decides which platform operations can honor it.
 
 ### Take control of the transport
 
-Inject `DartIoTransport()`, `AndroidCronetTransport.create()`, or
-`AppleUrlSessionTransport.create()` when a deliberate provider choice is useful.
-The browser equivalent is `WebFetchTransport()` from `alphax_web`.
+The explicit rc.4 transport path remains available for troubleshooting, testing,
+or a deliberate provider choice:
+
+```dart
+Future<void> main() async {
+final client = AlphaXClient(
+  transport: await createAlphaXTransport(),
+);
+
+final dartIoClient = AlphaXClient(
+  transport: DartIoTransport(),
+);
+await client.close();
+await dartIoClient.close();
+}
+```
+
+`AndroidCronetTransport.create()`, `AppleUrlSessionTransport.create()`, and
+the browser equivalent `WebFetchTransport()` remain available from their
+integration packages.
 
 ### Bring your own transport
 
@@ -203,7 +239,6 @@ Dio instance with an AlphaX client once, then pass that Dio instance to the
 generated API:
 
 ```dart
-import 'package:alphax/alphax.dart';
 import 'package:alphax_dio/alphax_dio.dart';
 import 'package:alphax_native/alphax_native.dart';
 import 'package:dio/dio.dart';
@@ -220,9 +255,7 @@ abstract class UsersApi {
 }
 
 Future<void> main() async {
-  final alphaClient = AlphaXClient(
-    transport: await createAlphaXTransport(),
-  );
+  final alphaClient = await createAlphaXClient();
   final dio = Dio()
     ..httpClientAdapter = AlphaXDioAdapter(alphaClient);
   try {
@@ -255,7 +288,7 @@ AlphaX keeps application policy explicit:
 
 | Behavior | Default |
 | --- | --- |
-| Transport | `alphax_native` selects Android Cronet/HttpEngine, Apple URLSession, or Dart IO with `createAlphaXTransport()`; `alphax` core still requires injection and Web uses `WebFetchTransport()`. |
+| Transport | Native `createAlphaXClient()` delegates to `createAlphaXTransport()`; Web `createAlphaXClient()` constructs browser Fetch; `alphax` core still requires injection. |
 | Retry, authentication, cookies, cache, resilience | Off until middleware is added. |
 | TLS | Verified platform trust. |
 | Proxy | System-managed routing on the selected transport. |
@@ -388,15 +421,15 @@ fallback metadata must be inspected for each completed request. A protocol
 requirement fails closed when the exact protocol is not observed. Dart IO
 cannot authoritatively report H2/H3 and therefore does not advertise them.
 
-## Packages
+## Supporting package roles
 
 | Package | Purpose | 1.0 status |
 | --- | --- | --- |
 | [`alphax`](packages/alphax) | Pure-Dart transport-neutral contracts | PUBLISHED_RC; coordinated 1.0.0-rc.4 |
-| [`alphax_native`](packages/alphax_native) | Dart IO, Cronet, and URLSession adapters | PUBLISHED_RC; coordinated 1.0.0-rc.4 |
+| [`alphax_native`](packages/alphax_native) | Native entry façade plus Dart IO, Cronet, and URLSession adapters | PUBLISHED_RC; additive rc.5 façade in source |
 | [`alphax_test`](packages/alphax_test) | Fakes and shared conformance helpers | PUBLISHED_RC; coordinated 1.0.0-rc.4 |
 | [`alphax_dio`](packages/alphax_dio) | Focused Dio 5.x `HttpClientAdapter` boundary | PUBLISHED_RC; coordinated 1.0.0-rc.4 |
-| [`alphax_web`](packages/alphax_web) | Browser Fetch transport adapter | PUBLISHED_RC; coordinated 1.0.0-rc.4 |
+| [`alphax_web`](packages/alphax_web) | Web entry façade plus browser Fetch adapter | PUBLISHED_RC; additive rc.5 façade in source |
 | [`alphax_transform`](packages/alphax_transform) | Explicit one-shot isolate JSON transform for buffered payloads | PUBLISHED_RC; coordinated 1.0.0-rc.4 |
 
 There is no AlphaX-owned C++ engine, production Rust transport, libcurl
@@ -455,25 +488,27 @@ the API does not promise portable DNS/TCP/TLS phase precision.
 
 See [migration guidance](docs/MIGRATION.md) for `package:http` and Dio mapping.
 The beginner-friendly [Waypoint reference app](examples/waypoint/README.md)
-demonstrates the packages in a travel-planning interface. The minimal smoke
-test remains
-[`examples/basic`](examples/basic/README.md) and its source is in
-[`examples/basic/lib/main.dart`](examples/basic/lib/main.dart).
+demonstrates the packages in a travel-planning interface. The compile-tested
+entry examples are [`alphax_native/example/main.dart`](packages/alphax_native/example/main.dart)
+and [`alphax_web/example/main.dart`](packages/alphax_web/example/main.dart);
+the existing [basic reference app](examples/basic/README.md) remains available
+for the broader request-surface demonstration.
 
 ## Architecture and evidence
 
-The public contract stays in `alphax`; platform processing is isolated in
-`alphax_native`:
+The public contract stays in `alphax`; deployment entry points are isolated in
+the integration packages:
 
 ```text
 Dart application
       ├── alphax (pure-Dart contracts)
       │     └── AlphaXClient(transport: ...)
-      ├── alphax_native automatic factory
+      ├── alphax_native entry facade
+      │     └── createAlphaXClient() → createAlphaXTransport()
       │     ├── Dart IO fallback
       │     ├── Android Cronet/HttpEngine
       │     └── iOS/macOS URLSession
-      └── alphax_web Browser Fetch (separate package)
+      └── alphax_web entry facade → Browser Fetch (separate package)
 ```
 
 See the [1.0 scope](docs/ALPHAX_1_0_SCOPE.md),

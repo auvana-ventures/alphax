@@ -1,6 +1,6 @@
 # Task 48 — AlphaX rc.5 Entry Façade and Package-Role UX
 
-Status: [ ] Pending
+Status: [x] Completed
 
 ## Goal
 
@@ -59,13 +59,13 @@ AlphaX maintainers / implementation agent.
 
 ## Work Items
 
-- [ ] Reconfirm current public exports, package dependencies, and client lifecycle.
-- [ ] Choose and document the smallest native/Web façade API.
-- [ ] Implement the additive façade without changing core transport semantics.
-- [ ] Add API, lifecycle, close-ownership, and compatibility tests.
-- [ ] Add compile-tested native/Web quick-start examples and update user docs.
-- [ ] Run scoped analysis, tests, builds, docs checks, and package dry-runs.
-- [ ] Review the task-owned diff and request maintainer approval before the next
+- [x] Reconfirm current public exports, package dependencies, and client lifecycle.
+- [x] Choose and document the smallest native/Web façade API.
+- [x] Implement the additive façade without changing core transport semantics.
+- [x] Add API, lifecycle, close-ownership, and compatibility tests.
+- [x] Add compile-tested native/Web quick-start examples and update user docs.
+- [x] Run scoped analysis, tests, builds, docs checks, and package dry-runs.
+- [x] Review the task-owned diff and request maintainer approval before the next
   locked rc.5 task.
 
 ## Validation
@@ -83,19 +83,34 @@ Planned validation:
 
 No transport benchmark or broad performance experiment is authorized.
 
+Completed validation:
+
+- `dart format --output=none --set-exit-if-changed` passed for all changed Dart
+  files;
+- `bash tooling/scripts/analyze_dart_packages.sh` passed;
+- `bash tooling/scripts/test_packages.sh` passed all six package suites;
+- native and Web clean consumers passed dependency resolution, analysis, and
+  compilation with only their deployment package declared directly;
+- Android, macOS, iOS (`--no-codesign`), and Web checks passed where available;
+- Dartdoc, Markdown/internal-link checks, package dry-runs/archive inspection,
+  dependency/security/path audit, and `git diff --check` passed; and
+- no benchmark, version, tag, release, or publication operation was performed.
+
 ## Next Action
 
-Obtain maintainer approval to implement Task 48. Do not begin code changes from
-this prepared task record without that approval.
+Return for maintainer review. Do not begin Task B or any later rc.5 task.
 
 ## Blockers
 
-None currently. Implementation is intentionally pending the separate task review
-required by the rc.5 scope lock.
+None.
 
 ## Outcome
 
-Pending implementation approval.
+Implemented and validated the additive native/Web entry façades, one-import
+re-exports, lifecycle/error/compatibility tests, clean consumer examples, and
+deployment-path documentation. The review record is
+[`docs/ALPHAX_RC5_ENTRY_FACADE_REVIEW.md`](../docs/ALPHAX_RC5_ENTRY_FACADE_REVIEW.md)
+and concludes `RC5 ENTRY FACADE READY`. No rc.5 package was published.
 
 ## References
 
@@ -111,3 +126,10 @@ Pending implementation approval.
 
 - 2026-08-30: Reserved Task 48 as the next implementation task for the locked
   rc.5 entry-façade/package-role UX feature. No implementation was started.
+- 2026-08-30: Maintainer approved implementation. The task moved to In Progress;
+  scope remains limited to the locked native/Web entry façades, compatibility,
+  documentation, examples, and validation.
+- 2026-08-30: Implemented and validated Task 48. Native and Web façades,
+  one-import re-exports, lifecycle/error/compatibility tests, clean consumers,
+  examples, and current-facing documentation are complete. Task marked
+  Completed; return for maintainer review before Task B.

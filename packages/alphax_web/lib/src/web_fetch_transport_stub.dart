@@ -7,6 +7,7 @@ final class WebFetchTransport extends AlphaXTransport {
 
   /// Whether browser-managed credentials may be sent cross-origin.
   final bool withCredentials;
+  bool _closed = false;
 
   @override
   AlphaXCapabilities get capabilities => const AlphaXCapabilities(
@@ -36,21 +37,33 @@ final class WebFetchTransport extends AlphaXTransport {
   );
 
   @override
-  Future<AlphaXResponse> send(AlphaXRequest request) => Future<AlphaXResponse>.error(
-    const AlphaXUnsupportedCapabilityException(
-      'WebFetchTransport is only available when compiled for Web',
-      capability: AlphaXCapability.http11,
-    ),
-  );
+  Future<AlphaXResponse> send(AlphaXRequest request) {
+    if (_closed) {
+      return Future<AlphaXResponse>.error(const AlphaXClientClosedException());
+    }
+    return Future<AlphaXResponse>.error(
+      const AlphaXUnsupportedCapabilityException(
+        'WebFetchTransport is only available when compiled for Web',
+        capability: AlphaXCapability.http11,
+      ),
+    );
+  }
 
   @override
-  Stream<AlphaXEvent> sendStreaming(AlphaXRequest request) => Stream<AlphaXEvent>.error(
-    const AlphaXUnsupportedCapabilityException(
-      'WebFetchTransport is only available when compiled for Web',
-      capability: AlphaXCapability.streamingDownload,
-    ),
-  );
+  Stream<AlphaXEvent> sendStreaming(AlphaXRequest request) {
+    if (_closed) {
+      return Stream<AlphaXEvent>.error(const AlphaXClientClosedException());
+    }
+    return Stream<AlphaXEvent>.error(
+      const AlphaXUnsupportedCapabilityException(
+        'WebFetchTransport is only available when compiled for Web',
+        capability: AlphaXCapability.streamingDownload,
+      ),
+    );
+  }
 
   @override
-  Future<void> close() async {}
+  Future<void> close() async {
+    _closed = true;
+  }
 }

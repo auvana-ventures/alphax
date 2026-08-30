@@ -29,14 +29,16 @@ Keep the request API while respecting the browser's security and networking cont
 
 ## Start here
 
-1. Add `alphax` and `alphax_web`.
-2. Create `WebFetchTransport` and an `AlphaXClient`.
+1. Add `alphax_web`. Its runtime dependency supplies the core AlphaX API
+   transitively.
+2. Create one client with `createAlphaXClient()`.
 3. Configure CORS and browser credentials on the server/application boundary.
 4. Treat protocol metadata as `unknown`; browser controls remain browser-owned.
 
 `alphax_web` adds a browser Fetch transport for AlphaX. Use it when the same
 transport-independent request code must run in a Flutter Web application or a
-Dart application compiled for the browser.
+Dart application compiled for the browser. Its entry point re-exports the
+public AlphaX API, so ordinary browser users need only this package import.
 
 ## What you get
 
@@ -55,17 +57,20 @@ requirement fails closed instead of guessing.
 ## Install
 
 ```sh
-flutter pub add alphax alphax_web
+flutter pub add alphax_web
 ```
+
+Do not add `alphax` directly just to use the ordinary Web API; it is already a
+runtime dependency of `alphax_web`. The coordinated package version remains
+governed by the release task.
 
 ## First request
 
 ```dart
-import 'package:alphax/alphax.dart';
 import 'package:alphax_web/alphax_web.dart';
 
 Future<void> loadHealth() async {
-  final client = AlphaXClient(transport: WebFetchTransport());
+  final client = createAlphaXClient();
   try {
     final response = await client.get(Uri.https('example.com', '/health'));
     print('${response.statusCode}: ${await response.readAsString()}');
@@ -78,6 +83,42 @@ Future<void> loadHealth() async {
 
 The target server must allow the browser origin with the appropriate CORS
 headers. AlphaX cannot bypass browser security rules.
+
+The compile-tested one-import example is
+[`example/main.dart`](example/main.dart); explicit `WebFetchTransport()`
+construction remains covered in the compatibility section below.
+
+## Configured Web client
+
+Web configuration remains limited to options the browser-backed transport can
+actually expose:
+
+```dart
+final client = createAlphaXClient(
+  middleware: <AlphaXMiddleware>[
+    AlphaXAuthenticationMiddleware(
+      accessToken: () async => 'token-from-app',
+    ),
+  ],
+  withCredentials: true,
+);
+```
+
+TLS, proxy routing, CORS, redirects, connection reuse, and protocol negotiation
+remain browser-owned. `withCredentials` controls browser-managed credential
+mode; it is not a native TLS, proxy, or cookie policy.
+
+For explicit assembly and custom transports, the rc.4 path remains available:
+
+```dart
+final client = AlphaXClient(
+  transport: WebFetchTransport(),
+);
+
+final customClient = AlphaXClient(
+  transport: MyTransport(),
+);
+```
 
 ## Defaults and optional policies
 
@@ -96,8 +137,7 @@ The same AlphaX middleware can be added to Web for policies that do not require
 native controls:
 
 ```dart
-final client = AlphaXClient(
-  transport: WebFetchTransport(),
+final client = createAlphaXClient(
   middleware: <AlphaXMiddleware>[
     AlphaXAuthenticationMiddleware(
       accessToken: () async => 'token-from-app',
@@ -115,7 +155,7 @@ to the browser. See the [policy defaults and customization guide](https://github
 for the general policy rules.
 
 Do not combine `AlphaXCacheMiddleware` with
-`WebFetchTransport(withCredentials: true)` unless the application supplies a
+`createAlphaXClient(withCredentials: true)` unless the application supplies a
 stable, non-secret cache `identityKey` for the browser session and changes it or
 clears the store on logout/account change. Browser-managed cookies are opaque to
 AlphaX, so the cache cannot discover that identity itself. If browser identity
@@ -127,9 +167,7 @@ those requests.
 For browser-managed cookies, opt in deliberately:
 
 ```dart
-final client = AlphaXClient(
-  transport: WebFetchTransport(withCredentials: true),
-);
+final client = createAlphaXClient(withCredentials: true);
 ```
 
 `withCredentials` is a browser Fetch setting. Cross-origin servers must also
@@ -159,6 +197,6 @@ transport and check its reported capabilities before configuring TLS, proxy, or
 protocol requirements. AlphaX will fail closed rather than pretending that the
 browser can enforce a control it cannot observe.
 
-The package is licensed under Apache-2.0 and is published as part of the
-coordinated `1.0.0-rc.4` release on pub.dev. `rc.3` is the historical
-predecessor.
+The package is licensed under Apache-2.0. The rc.5 façade is additive to the
+existing Web transport and explicit rc.4 construction path; publication and
+coordinated versioning remain release-task work.

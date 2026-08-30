@@ -27,8 +27,9 @@ Use the platform networking stack where it is supported, with a truthful Dart IO
 
 ## Start here
 
-1. Add `alphax` and `alphax_native` to the application.
-2. Use [`createAlphaXTransport`](#automatic-selection) for the normal platform
+1. Add `alphax_native` to the application. Its runtime dependency supplies the
+   core AlphaX API transitively.
+2. Use [`createAlphaXClient`](#simple-native-client) for the normal platform
    choice.
 3. Keep the request code shared across platforms.
 4. Read [TLS and proxy behavior](#configure-tls-and-proxy-behavior) before
@@ -37,7 +38,9 @@ Use the platform networking stack where it is supported, with a truthful Dart IO
 `alphax_native` gives an AlphaX application the platform transport selected for
 each supported target while keeping the same Dart request code everywhere. It
 supplies Dart IO, Android Cronet/HttpEngine, and Apple URLSession adapters
-behind the transport-neutral [`alphax`](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax) API.
+behind the transport-neutral [`alphax`](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax) API. The
+package entry point re-exports that public API, so ordinary native users need
+only this package import.
 
 ## Why use it?
 
@@ -64,23 +67,72 @@ already uses Dio.
 
 ## Install
 
-The coordinated `1.0.0-rc.4` release is published on pub.dev:
+Install `alphax_native` for a native Flutter application:
 
 ```sh
-flutter pub add alphax alphax_native
+flutter pub add alphax_native
 ```
+
+Do not add `alphax` directly just to use the ordinary native API; it is already
+declared by `alphax_native` and is available through its public entry import.
+The coordinated package version remains governed by the release task.
 
 The Android provider is resolved through Gradle and Apple packaging uses
 CocoaPods. No copied Cronet binary is bundled in the pub package. Swift
 Package Manager integration is deferred for 1.0.
 
-## Automatic selection
+## Simple native client
 
-For native Dart VM and Flutter targets, the factory selects the recommended
+The recommended setup creates one reusable `AlphaXClient` and selects the
+native transport for the current platform:
+
+```dart
+import 'package:alphax_native/alphax_native.dart';
+
+Future<void> main() async {
+  final client = await createAlphaXClient();
+  try {
+    final response = await client.get(Uri.https('example.com', '/'));
+    print('${response.statusCode}: ${await response.readAsString()}');
+  } finally {
+    await client.close();
+  }
+}
+```
+
+The client owns the one selected transport. Reuse it for all requests in the
+owning scope and close it when that scope ends.
+
+The same one-import flow is kept in the compile-tested
+[`example/main.dart`](example/main.dart). The advanced
+[`example/recipes.dart`](example/recipes.dart) retains explicit transport and
+policy construction.
+
+## Configured native client
+
+The factory accepts the existing client middleware and transport-construction
+TLS/proxy policies:
+
+```dart
+import 'package:alphax_native/alphax_native.dart';
+
+Future<AlphaXClient> createConfiguredClient() => createAlphaXClient(
+  middleware: <AlphaXMiddleware>[AlphaXRetryMiddleware()],
+  tlsPolicy: const AlphaXTlsPolicy.platformDefault(),
+  proxyPolicy: const AlphaXProxyPolicy.system(),
+);
+```
+
+Timeouts, cancellation, redirects, protocol preference/requirement, and
+progress remain request-level settings. The browser has its own authority for
+TLS and proxy behavior; this native factory only configures native transports.
+
+## Automatic selection (advanced)
+
+For native Dart VM and Flutter targets, `createAlphaXTransport` selects the recommended
 AlphaX adapter without application-level `Platform.is...` branching:
 
 ```dart
-import 'package:alphax/alphax.dart';
 import 'package:alphax_native/alphax_native.dart';
 
 Future<void> main() async {
@@ -98,7 +150,8 @@ The automatic mapping is Android → Cronet/HttpEngine, iOS/macOS → URLSession
 and Linux/Windows → Dart IO. Web is intentionally separate; use
 `WebFetchTransport` from [`alphax_web`](../alphax_web/README.md). The factory
 only selects and initializes a transport. It does not enable retries, cookies,
-cache, authentication, resilience, or background JSON parsing.
+cache, authentication, resilience, or background JSON parsing. The direct
+factory is retained for callers who need to assemble `AlphaXClient` explicitly.
 
 ## Explicit selection
 
@@ -195,7 +248,7 @@ Configure these controls when the transport is created, before passing it to
 `AlphaXClient`:
 
 ```dart
-Future<AlphaXClient> createPinnedAppleClient({
+Future<AlphaXClient> createPinnedClient({
   required String apiHost,
   required String primarySpkiSha256Base64,
   required DateTime primaryPinExpiry,
@@ -204,7 +257,7 @@ Future<AlphaXClient> createPinnedAppleClient({
   required String proxyHost,
   required int proxyPort,
 }) async {
-  final transport = await AppleUrlSessionTransport.create(
+  return createAlphaXClient(
     tlsPolicy: AlphaXTlsPolicy(
       pins: <AlphaXSpkiPin>[
         AlphaXSpkiPin(
@@ -224,8 +277,19 @@ Future<AlphaXClient> createPinnedAppleClient({
       port: proxyPort,
     ),
   );
-  return AlphaXClient(transport: transport);
 }
+```
+
+The same progressive path applies to explicit transports:
+
+```dart
+final client = AlphaXClient(
+  transport: await createAlphaXTransport(),
+);
+
+final customClient = AlphaXClient(
+  transport: MyTransport(),
+);
 ```
 
 The pin variables must come from your secure release configuration. A pin is a
@@ -282,6 +346,7 @@ policies automatically.
 - [Usage and customization guide](https://github.com/auvana-ventures/alphax/blob/main/docs/USAGE_AND_CUSTOMIZATION.md)
 - [1.0 platform and protocol matrix](https://github.com/auvana-ventures/alphax/blob/main/docs/ALPHAX_1_0_RELEASE_GATE.md)
 
-The coordinated `1.0.0-rc.4` release is published on pub.dev. Android, iOS,
-and macOS support remains provider/platform dependent; Dart IO is the truthful
-fallback on Linux and Windows.
+The coordinated package version remains provider/platform dependent; Android,
+iOS, and macOS support remains provider-dependent, while Dart IO is the
+truthful fallback on Linux and Windows. The rc.5 façade is additive and does
+not remove any explicit rc.4 construction path.
