@@ -145,3 +145,6 @@ API, version, tag, release, or benchmark was added by Task 53.
 - 2026-08-30: Final package suites, retained fixtures, official generation,
   Dartdoc, Markdown/link, dependency/security/path, package dry-run, archive,
   and whitespace checks passed; protected benchmark/release work was excluded.
+- 2026-08-30: Freeze declaration commit is
+  `1cf2ed49f1ab2d586d57189807b7e549b437a883`; a follow-up documentation commit
+  records this identity in the stable-boundary document.

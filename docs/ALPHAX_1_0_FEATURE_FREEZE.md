@@ -3,8 +3,7 @@
 State: **ALPHAX 1.0 FEATURE FREEZE**
 
 Declared: 2026-08-30
-Freeze declaration commit: recorded in the final Task 53 history after commit
-finalization.
+Freeze declaration commit: `1cf2ed49f1ab2d586d57189807b7e549b437a883`
 
 This is the authoritative stable boundary after the final feature candidate.
 There is no rc.6 feature cycle and no new feature work before `1.0.0`.

@@ -297,6 +297,8 @@ short stable-boundary authority.
 From the freeze declaration onward, only correctness, security, frozen API
 consistency, platform conformance, compatibility regressions, documentation,
 migration, metadata, packaging/build, and release validation are permitted.
+The freeze declaration commit is
+`1cf2ed49f1ab2d586d57189807b7e549b437a883`.
 
 ## 23. Exact next task
 
