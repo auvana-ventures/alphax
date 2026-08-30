@@ -99,6 +99,26 @@ release-governance error or a stabilization issue that prevents a correct,
 secure, compatible stable 1.0 release. A new feature request is not a reason to
 reopen this ADR.
 
+## Implementation evidence
+
+Task 53 resolved the bounded optional scope without changing this decision:
+
+- A complete — entry façades and package-role UX;
+- B complete — `alphax_http` compatibility seam;
+- C complete — first-class SSE;
+- D complete — first-class WebSocket lifecycle contract;
+- E complete — direct typed REST generator;
+- F resolved — official OpenAPI Generator template proof accepted;
+- G resolved — existing AlphaX byte APIs are sufficient for Protobuf;
+- H resolved — bounded ecosystem compatibility validation completed.
+
+The final evidence is in
+[`ALPHAX_RC5_BOUNDED_OPTIONALS_REVIEW.md`](../ALPHAX_RC5_BOUNDED_OPTIONALS_REVIEW.md).
+The resulting stable boundary is
+[`ALPHAX_1_0_FEATURE_FREEZE.md`](../ALPHAX_1_0_FEATURE_FREEZE.md), which records
+the prohibition on new features before `1.0.0` and the release-preparation-only
+next step.
+
 References:
 
 - [`ALPHAX_1_0_RC_5_ARCHITECTURE_AND_ECOSYSTEM_PLAN.md`](../ALPHAX_1_0_RC_5_ARCHITECTURE_AND_ECOSYSTEM_PLAN.md)

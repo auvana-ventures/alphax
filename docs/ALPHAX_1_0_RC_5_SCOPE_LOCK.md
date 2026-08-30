@@ -350,6 +350,36 @@ stabilization-only verification
 Do not plan an rc.6 feature cycle, another ecosystem-discovery cycle, or another
 optimization cycle before stable. Any additional RC number is stabilization-only.
 
+## Implementation state after Task 53
+
+As of 2026-08-30, the final committed rc.5 feature work and bounded optional
+resolution are complete:
+
+```text
+Tasks A–E COMPLETE
+F RESOLVED: OPENAPI TEMPLATE PROOF ACCEPTED
+G RESOLVED: PROTOBUF ERGONOMICS DOCUMENTATION SUFFICIENT
+H RESOLVED: VALIDATED with explicit ecosystem classifications
+```
+
+The evidence is recorded in
+[`ALPHAX_RC5_BOUNDED_OPTIONALS_REVIEW.md`](ALPHAX_RC5_BOUNDED_OPTIONALS_REVIEW.md)
+and the stable boundary is recorded in
+[`ALPHAX_1_0_FEATURE_FREEZE.md`](ALPHAX_1_0_FEATURE_FREEZE.md).
+
+## ALPHAX 1.0 FEATURE FREEZE
+
+From this state onward:
+
+```text
+NO NEW FEATURES BEFORE 1.0.0.
+```
+
+Only correctness, security, frozen API consistency, platform conformance,
+compatibility regressions, documentation, migration, package metadata,
+packaging/build fixes, and release validation are allowed. The next task is
+`ALPHAX 1.0.0-RC.5 RELEASE PREPARATION`; it may not add feature scope.
+
 ## References
 
 - [ADR-0011: rc.5 final feature candidate](decisions/0011-rc5-final-feature-candidate.md)

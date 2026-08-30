@@ -1,0 +1,30 @@
+// Generated from OpenAPI by the AlphaX bounded template proof.
+// The template emits declarations; alphax_generator emits the implementation.
+
+import 'package:alphax/alphax.dart';
+import 'package:alphax/annotations.dart';
+import '{{{alphaXModelImport}}}';
+
+part 'users_api.g.dart';
+
+@AlphaXApi(baseUrl: '{{{alphaXBaseUrl}}}')
+abstract class {{classname}} {
+  factory {{classname}}(AlphaXClient client) = _{{classname}};
+
+{{#operations}}
+{{#operation}}
+  {{#vendorExtensions.x-alphax-get}}@AlphaXGet('{{{path}}}'){{/vendorExtensions.x-alphax-get}}{{#vendorExtensions.x-alphax-post}}@AlphaXPost('{{{path}}}'){{/vendorExtensions.x-alphax-post}}
+  {{#returnType}}
+  {{^returnTypeIsPrimitive}}
+  @AlphaXDecode('{{{returnBaseType}}}.fromJson')
+  {{/returnTypeIsPrimitive}}
+  {{/returnType}}
+  Future<{{#returnType}}{{{returnType}}}?{{/returnType}}{{^returnType}}void{{/returnType}}> {{{nickname}}}(
+{{#allParams}}
+    {{#isPathParam}}@AlphaXPath('{{{baseName}}}') {{/isPathParam}}{{#isQueryParam}}@AlphaXQuery('{{{baseName}}}') {{/isQueryParam}}{{#isHeaderParam}}@AlphaXHeader('{{{baseName}}}') {{/isHeaderParam}}{{#isBodyParam}}@AlphaXBodyParam() {{/isBodyParam}}{{{dataType}}}{{^required}}?{{/required}} {{{paramName}}},
+{{/allParams}}
+  );
+
+{{/operation}}
+{{/operations}}
+}

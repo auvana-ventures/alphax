@@ -1,9 +1,11 @@
 # AlphaX usage and customization
 
 This is the user guide for the AlphaX source tree. The coordinated `1.0.0-rc.4`
-release remains the published baseline; the additive rc.5 entry façades are
-implemented here but are not published until the release task. `rc.3` is the
-historical predecessor.
+release remains the published baseline; committed rc.5 feature work A–E and
+bounded F/G/H resolution are complete under the
+[1.0 feature freeze](ALPHAX_1_0_FEATURE_FREEZE.md). No rc.5 package is
+published until the release-preparation task. `rc.3` is the historical
+predecessor.
 
 ## 1. Choose the deployment path
 
@@ -810,20 +812,26 @@ extension has been validated.
 
 | Ecosystem | AlphaX relationship |
 | --- | --- |
-| Dio | First-class `alphax_dio` adapter. |
-| Retrofit | Supported through the Dio adapter; generated code remains unchanged. |
-| `json_serializable` / Freezed | Caller DTO/code-generation layer; fixture-validated. |
-| `built_value` | Caller serialization layer; no AlphaX adapter required. |
-| OpenAPI-generated Dio clients | Conditional `alphax_dio` use when Dio is injectable. |
-| Chopper | Supported through `alphax_http` when the service uses an injectable `http.Client`; no dedicated adapter. |
-| GraphQL HTTP links | Supported through `alphax_http` when the link accepts an injectable `http.Client`; GraphQL semantics remain caller-owned. |
-| OpenAPI-generated `package:http` clients | Supported when the generated client exposes an injectable `http.Client`; generator validation remains bounded. |
-| gRPC | Out of AlphaX's REST/HTTP-client scope. |
-| WebSocket | First-class `package:alphax/websocket.dart` lifecycle contract with native and browser deployment connectors; no automatic reconnect. |
-| SSE | Incremental `package:alphax/sse.dart` parser over an AlphaX response stream; reconnect remains caller-owned. |
+| Dio | `SUPPORTED_VIA_ADAPTER` through `alphax_dio`. |
+| Retrofit | `SUPPORTED_VIA_ADAPTER` through Dio; generated code remains unchanged. |
+| `json_serializable` / Freezed | `COMPATIBLE_CALLER_LAYER`; fixture-validated model hooks. |
+| OpenAPI-generated Dio clients | `SUPPORTED_VIA_ADAPTER` when Dio is injectable. |
+| Chopper | `SUPPORTED_VIA_ADAPTER` through `alphax_http`. |
+| GraphQL HTTP links | `SUPPORTED_VIA_ADAPTER` through `alphax_http`; GraphQL semantics remain caller-owned. |
+| OpenAPI-generated `package:http` clients | `SUPPORTED_VIA_ADAPTER` when the generated client exposes injectable `http.Client`. |
+| Protobuf | `COMPATIBLE_CALLER_LAYER` through existing AlphaX byte bodies; no Protobuf package. |
+| GraphQL WebSocket/subscriptions | `PROOF_ONLY` through a caller-owned `WebSocketChannel` bridge. |
+| gRPC | `DEFERRED_POST_1_0`; Protobuf serialization does not imply gRPC. |
+| WebSocket | `FIRST_CLASS` `package:alphax/websocket.dart` lifecycle contract; no automatic reconnect. |
+| SSE | `FIRST_CLASS` `package:alphax/sse.dart` parser; reconnect remains caller-owned. |
 
 AlphaX does not replace `retrofit_generator`, provide a Retrofit-specific
 package, or claim universal OpenAPI-generator compatibility.
+
+The official OpenAPI template result is a bounded proof, not a mature SDK
+generator. See the [OpenAPI proof](../examples/openapi_template_proof/README.md),
+the [Protobuf recipe](../examples/protobuf_interop/README.md), and the
+[complete rc.5 matrix](ALPHAX_RC5_BOUNDED_OPTIONALS_REVIEW.md).
 
 ## 16. `package:http` comparison
 

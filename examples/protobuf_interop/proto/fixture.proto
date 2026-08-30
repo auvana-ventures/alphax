@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package alphax.fixture;
+
+message Greeting {
+  string name = 1;
+  int32 count = 2;
+}

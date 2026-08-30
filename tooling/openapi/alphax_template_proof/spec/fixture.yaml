@@ -1,0 +1,77 @@
+openapi: 3.0.3
+info:
+  title: AlphaX OpenAPI template proof
+  version: 1.0.0
+servers:
+  - url: http://127.0.0.1:45874/
+paths:
+  /users/{id}:
+    get:
+      operationId: getUser
+      x-alphax-get: true
+      tags:
+        - Users
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: verbose
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: X-Request-ID
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: User not found
+  /users:
+    post:
+      operationId: createUser
+      x-alphax-post: true
+      tags:
+        - Users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUser'
+      responses:
+        '201':
+          description: Created user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+components:
+  schemas:
+    User:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+    CreateUser:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string

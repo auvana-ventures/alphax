@@ -1,0 +1,22 @@
+name: alphax_protobuf_interop
+description: Compile-tested Protobuf byte mapping recipe for AlphaX.
+publish_to: none
+
+environment:
+  sdk: ">=3.8.0 <4.0.0"
+
+dependencies:
+  alphax:
+    path: ../../packages/alphax
+  protobuf: ^6.0.0
+
+dev_dependencies:
+  alphax_test:
+    path: ../../packages/alphax_test
+  lints: ^5.1.1
+  protoc_plugin: ^25.0.0
+  test: ^1.25.0
+
+dependency_overrides:
+  alphax:
+    path: ../../packages/alphax

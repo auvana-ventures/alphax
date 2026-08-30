@@ -1,0 +1,28 @@
+name: alphax_openapi_template_proof
+description: Bounded OpenAPI Generator template proof for AlphaX.
+publish_to: none
+
+environment:
+  sdk: ">=3.8.0 <4.0.0"
+
+dependencies:
+  alphax:
+    path: ../../packages/alphax
+  alphax_native:
+    path: ../../packages/alphax_native
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  alphax_generator:
+    path: ../../packages/alphax_generator
+  build_runner: ^2.16.0
+  lints: ^5.1.1
+  test: ^1.25.0
+
+dependency_overrides:
+  alphax:
+    path: ../../packages/alphax
+
+flutter:
+  uses-material-design: true

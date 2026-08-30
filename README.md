@@ -43,11 +43,11 @@ protocol model across the transports that each platform can actually provide.</p
 ## Status
 
 **The coordinated AlphaX `1.0.0-rc.4` release is published on pub.dev.** The
-published RC4 packages remain the release baseline. AlphaX remains a release
-candidate with its 1.0 public API frozen; later contract changes may be
-breaking. The current source also contains the additive rc.5 entry façades and
-WebSocket contract; no rc.5 package has been published, and version preparation
-remains part of the release task. `rc.3` is the historical predecessor.
+published RC4 packages remain the release baseline. All committed rc.5 feature
+work A–E and the bounded F/G/H decisions are complete, and AlphaX is now under
+the [1.0 feature freeze](docs/ALPHAX_1_0_FEATURE_FREEZE.md). No rc.5 package
+has been published; version preparation remains part of the release task.
+`rc.3` is the historical predecessor.
 
 AlphaX makes no universal H3, speed, zero-copy, or “fastest client” claim.
 
@@ -118,8 +118,8 @@ Start with where the application runs, then add only the optional seam it needs:
 
 The deployment packages re-export the public `alphax` API. This keeps the
 ordinary native and Web import to one package while preserving `alphax` as the
-canonical pure-Dart contract namespace. These are package roles, not six
-separate networking products.
+canonical pure-Dart contract namespace. These are package roles, not separate
+networking products.
 
 ## Choose a starting point
 
@@ -312,6 +312,28 @@ client and never closes it. The complete compile-tested fixture is in
 If an existing application already uses Retrofit, keep its generated Dio path
 and use [`alphax_dio`](packages/alphax_dio/README.md). The direct generator is
 an additional AlphaX-owned choice, not a Retrofit replacement.
+
+## Ecosystem compatibility
+
+The following boundaries were validated for rc.5. Compatibility means the
+existing library accepts the documented injection seam; it does not transfer
+ownership of that library's protocol or serialization semantics to AlphaX.
+
+| Ecosystem | Classification | Path |
+| --- | --- | --- |
+| Dio / Retrofit | `SUPPORTED_VIA_ADAPTER` | Dio → `AlphaXDioAdapter` → AlphaX |
+| `package:http` / Chopper | `SUPPORTED_VIA_ADAPTER` | `http.Client` → `AlphaXHttpClient` → AlphaX |
+| GraphQL HTTP | `SUPPORTED_VIA_ADAPTER` | `HttpLink` → `AlphaXHttpClient` → AlphaX |
+| OpenAPI direct output | `PROOF_ONLY` | Official template → `alphax_generator` → AlphaX |
+| OpenAPI generated Dio/http clients | `SUPPORTED_VIA_ADAPTER` | Injectable generated client → existing adapter |
+| Protobuf | `COMPATIBLE_CALLER_LAYER` | `writeToBuffer`/`mergeFromBuffer` with AlphaX bytes |
+| GraphQL WebSocket | `PROOF_ONLY` | Caller bridge → AlphaX WebSocket session |
+| gRPC | `DEFERRED_POST_1_0` | Separate RPC/runtime boundary |
+
+See the [full bounded-optionals review](docs/ALPHAX_RC5_BOUNDED_OPTIONALS_REVIEW.md)
+and the compile-tested [OpenAPI](examples/openapi_template_proof/README.md) and
+[Protobuf](examples/protobuf_interop/README.md) recipes. These results do not
+add GraphQL, OpenAPI, Protobuf, or gRPC runtime packages to AlphaX.
 
 ## Using Retrofit
 

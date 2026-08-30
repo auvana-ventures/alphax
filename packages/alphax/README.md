@@ -125,6 +125,27 @@ dependencies. The full compile-tested examples are in
 custom-transport hand-off is in
 [`examples/typed_rest_dart`](../../examples/typed_rest_dart).
 
+### Bounded interoperability
+
+The rc.5 ecosystem checks validate the existing seams without adding framework
+runtime dependencies to `alphax`:
+
+- Dio and Retrofit use `alphax_dio`;
+- Chopper, GraphQL HTTP, and injectable generated `package:http` clients use
+  `alphax_http`;
+- the official OpenAPI template is a bounded proof in
+  [`examples/openapi_template_proof`](../../examples/openapi_template_proof);
+- Protobuf uses `writeToBuffer()` and `mergeFromBuffer()` with the existing
+  AlphaX byte-body APIs, as shown in
+  [`examples/protobuf_interop`](../../examples/protobuf_interop); and
+- GraphQL WebSocket use is caller-layer proof only and does not add a GraphQL
+  adapter or runtime package.
+
+These classifications and their limitations are recorded in the
+[bounded-optionals review](../../docs/ALPHAX_RC5_BOUNDED_OPTIONALS_REVIEW.md).
+The package/API family is now under the
+[1.0 feature freeze](../../docs/ALPHAX_1_0_FEATURE_FREEZE.md).
+
 ## Your first request
 
 This is a complete small client: create a transport, send a request, read the
@@ -350,6 +371,8 @@ platform reports negotiation only after the operation completes.
 - [Waypoint reference app](https://github.com/auvana-ventures/alphax/tree/main/examples/waypoint)
 - [Migration guide](https://github.com/auvana-ventures/alphax/blob/main/docs/MIGRATION.md)
 
-The coordinated `1.0.0-rc.4` release is published on pub.dev. The public
-AlphaX 1.0 API remains frozen; later changes to these contracts may be
-breaking. `rc.3` is the historical predecessor.
+The coordinated `1.0.0-rc.4` release is published on pub.dev. The completed
+rc.5 package/API family is now under the
+[1.0 feature freeze](../../docs/ALPHAX_1_0_FEATURE_FREEZE.md); no new features
+may be added before `1.0.0`. Version preparation belongs to the release task.
+`rc.3` is the historical predecessor.

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+exec dart run protoc_plugin:protoc_plugin "$@"
