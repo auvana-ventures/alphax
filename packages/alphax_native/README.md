@@ -127,6 +127,32 @@ Timeouts, cancellation, redirects, protocol preference/requirement, and
 progress remain request-level settings. The browser has its own authority for
 TLS and proxy behavior; this native factory only configures native transports.
 
+## Direct typed REST generation
+
+For a new typed API, add `alphax_generator` and `build_runner` as development
+dependencies. This package re-exports the lightweight AlphaX annotations, so
+the declaration can keep the native one-import experience:
+
+```dart
+import 'package:alphax_native/alphax_native.dart';
+
+part 'users_api.g.dart';
+
+@AlphaXApi(baseUrl: 'https://example.com')
+abstract class UsersApi {
+  factory UsersApi(AlphaXClient client) = _UsersApi;
+
+  @AlphaXGet('/users/{id}')
+  @AlphaXDecode('User.fromJson')
+  Future<User> getUser(@AlphaXPath('id') String id);
+}
+```
+
+The generated implementation calls `AlphaXClient` directly and borrows the
+client; it does not use Dio or Retrofit. See
+[`alphax_generator`](../alphax_generator/README.md) and the
+[compile-tested native fixture](../../examples/typed_rest).
+
 ## Automatic selection (advanced)
 
 For native Dart VM and Flutter targets, `createAlphaXTransport` selects the recommended

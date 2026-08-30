@@ -128,11 +128,36 @@ final class AlphaXResponse {
   /// Reads the complete response body.
   Future<List<int>> readAsBytes() => body.readAsBytes();
 
+  /// Reads the complete response body, returning `null` for an empty body.
+  Future<List<int>?> readAsBytesOrNull() async {
+    final bytes = await readAsBytes();
+    return bytes.isEmpty ? null : bytes;
+  }
+
   /// Reads the response as text.
   Future<String> readAsString({Encoding encoding = utf8}) => body.readAsString(encoding: encoding);
 
+  /// Reads the response as text, returning `null` for an empty body.
+  Future<String?> readAsStringOrNull({Encoding encoding = utf8}) async {
+    final bytes = await readAsBytes();
+    return bytes.isEmpty ? null : encoding.decode(bytes);
+  }
+
   /// Reads and decodes a JSON response.
   Future<Object?> readAsJson({Encoding encoding = utf8}) => body.readAsJson(encoding: encoding);
+
+  /// Reads and decodes a JSON response, returning `null` for an empty body.
+  ///
+  /// This preserves the distinction between an empty HTTP body and a JSON
+  /// response containing a value while allowing generated nullable APIs to
+  /// consume a streamed response exactly once.
+  Future<Object?> readAsJsonOrNull({Encoding encoding = utf8}) async {
+    final bytes = await readAsBytes();
+    if (bytes.isEmpty) {
+      return null;
+    }
+    return jsonDecode(encoding.decode(bytes));
+  }
 
   static int _validateStatus(int statusCode) {
     if (statusCode < 100 || statusCode > 599) {
@@ -144,6 +169,40 @@ final class AlphaXResponse {
     }
     return statusCode;
   }
+}
+
+/// A typed response that retains the underlying AlphaX response metadata.
+///
+/// Generated methods may return this small wrapper when callers need both a
+/// decoded value and status/headers/protocol facts. It is not a second HTTP
+/// response hierarchy.
+final class AlphaXApiResponse<T> {
+  /// Creates a typed response wrapper.
+  const AlphaXApiResponse({required this.data, required this.response});
+
+  /// Decoded response value.
+  final T data;
+
+  /// Original AlphaX response and its transport metadata.
+  final AlphaXResponse response;
+
+  /// HTTP status code.
+  int get statusCode => response.statusCode;
+
+  /// Response headers.
+  AlphaXHeaders get headers => response.headers;
+
+  /// Best-known negotiated protocol.
+  AlphaXProtocol get protocol => response.protocol;
+
+  /// Redirects observed while resolving the response.
+  List<AlphaXRedirectInfo> get redirects => response.redirects;
+
+  /// Headers-time metrics.
+  AlphaXRequestMetrics get metrics => response.metrics;
+
+  /// Final metrics future.
+  Future<AlphaXRequestMetrics> get completionMetrics => response.completionMetrics;
 }
 
 AlphaXProtocolFallback? _protocolFallbackFor(

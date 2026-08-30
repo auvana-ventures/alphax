@@ -120,6 +120,33 @@ final customClient = AlphaXClient(
 );
 ```
 
+## Direct typed REST generation
+
+For a new typed API, add `alphax_generator` and `build_runner` as development
+dependencies. The Web entry point re-exports the lightweight AlphaX
+annotations, so a declaration can use one deployment import:
+
+```dart
+import 'package:alphax_web/alphax_web.dart';
+
+part 'users_api.g.dart';
+
+@AlphaXApi(baseUrl: 'https://example.com')
+abstract class UsersApi {
+  factory UsersApi(AlphaXClient client) = _UsersApi;
+
+  @AlphaXGet('/users/{id}')
+  @AlphaXDecode('User.fromJson')
+  Future<User> getUser(@AlphaXPath('id') String id);
+}
+```
+
+The generated implementation calls `AlphaXClient` directly and borrows the
+client. Fetch, CORS, browser credentials, TLS, proxy routing, redirects, and
+protocol negotiation remain browser-owned; the generator does not add native
+capabilities. See [`alphax_generator`](../alphax_generator/README.md) and the
+[compile-tested Web fixture](../../examples/typed_rest_web).
+
 ## Defaults and optional policies
 
 `WebFetchTransport` follows browser security and has these defaults:

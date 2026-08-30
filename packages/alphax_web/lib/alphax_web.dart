@@ -2,6 +2,7 @@
 library;
 
 export 'package:alphax/alphax.dart';
+export 'package:alphax/annotations.dart';
 export 'package:alphax/sse.dart';
 export 'package:alphax/websocket.dart';
 

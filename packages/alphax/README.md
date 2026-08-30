@@ -88,6 +88,43 @@ flutter pub add alphax alphax_native
 The example below uses the automatic factory supplied by `alphax_native`; a
 pure-Dart application may inject its own `AlphaXTransport` instead.
 
+## Typed REST generation
+
+For a new typed API declaration, add
+[`alphax_generator`](../alphax_generator/README.md) as development tooling.
+It emits ordinary Dart source that calls the supplied `AlphaXClient` directly;
+the generated runtime does not depend on Dio, Retrofit, `package:http`,
+analyzer, or source_gen. Lightweight AlphaX-owned annotations live in the
+dedicated `package:alphax/annotations.dart` sub-library and deployment
+packages re-export them for one-import native/Web declarations.
+
+```dart
+import 'package:alphax_native/alphax_native.dart';
+
+part 'users_api.g.dart';
+
+@AlphaXApi(baseUrl: 'https://example.com')
+abstract class UsersApi {
+  factory UsersApi(AlphaXClient client) = _UsersApi;
+
+  @AlphaXGet('/users/{id}')
+  @AlphaXDecode('User.fromJson')
+  Future<User> getUser(@AlphaXPath('id') String id);
+}
+```
+
+Use `dart run build_runner build` after adding `alphax_generator` and
+`build_runner` to `dev_dependencies`. The generated service borrows the
+caller-owned AlphaX client and never closes it. Use
+`AlphaXApiResponse<T>` when a method needs decoded data together with status,
+headers, protocol, redirects, or metrics. Serialization remains a caller/model
+concern; json_serializable and Freezed are compatible hooks, not AlphaX runtime
+dependencies. The full compile-tested examples are in
+[`examples/typed_rest`](../../examples/typed_rest) and
+[`examples/typed_rest_web`](../../examples/typed_rest_web). The pure-Dart
+custom-transport hand-off is in
+[`examples/typed_rest_dart`](../../examples/typed_rest_dart).
+
 ## Your first request
 
 This is a complete small client: create a transport, send a request, read the

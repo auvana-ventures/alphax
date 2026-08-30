@@ -1,0 +1,25 @@
+name: alphax_typed_rest_web_example
+description: Compile-tested Web consumer for the direct AlphaX typed REST generator.
+publish_to: none
+
+environment:
+  sdk: ">=3.8.0 <4.0.0"
+
+dependencies:
+  alphax_web:
+    path: ../../packages/alphax_web
+
+dev_dependencies:
+  alphax:
+    path: ../../packages/alphax
+  alphax_generator:
+    path: ../../packages/alphax_generator
+  alphax_test:
+    path: ../../packages/alphax_test
+  build_runner: ^2.16.0
+  lints: ^5.1.1
+  test: ^1.31.1
+
+dependency_overrides:
+  alphax:
+    path: ../../packages/alphax

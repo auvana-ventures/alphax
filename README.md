@@ -112,6 +112,7 @@ Start with where the application runs, then add only the optional seam it needs:
 | Pure Dart/custom transport | [`alphax`](packages/alphax/README.md) | `AlphaXClient(transport: ...)` |
 | Existing Dio/Retrofit | [`alphax_dio`](packages/alphax_dio/README.md) plus a platform path | injected AlphaX client |
 | Existing `package:http` library | [`alphax_http`](packages/alphax_http/README.md) plus a platform path | injected `AlphaXHttpClient` |
+| New direct typed REST API | [`alphax_generator`](packages/alphax_generator/README.md) as dev tooling plus a platform path | generated `AlphaXClient` service |
 | Large buffered JSON | [`alphax_transform`](packages/alphax_transform/README.md) | explicit one-shot transform |
 | Testing | [`alphax_test`](packages/alphax_test/README.md) as a dev dependency | deterministic fakes and conformance helpers |
 
@@ -256,6 +257,61 @@ standard error/status behavior, while AlphaX middleware, TLS, proxy, and
 transport selection remain below the bridge. AlphaX-only capabilities such as
 protocol metadata, completion metrics, progress, native file paths, and rich
 request controls require direct AlphaX usage.
+
+## Typed REST with AlphaX
+
+For a new typed API declaration, the optional dev-time
+[`alphax_generator`](packages/alphax_generator/README.md) package emits a
+client that calls `AlphaXClient` directly:
+
+```text
+AlphaX annotations → alphax_generator → AlphaXClient → AlphaX transport
+```
+
+Native setup remains one deployment dependency and one entry import; the
+generator belongs in development tooling:
+
+```yaml
+dependencies:
+  alphax_native: ^1.0.0-rc.4
+
+dev_dependencies:
+  alphax_generator: ^1.0.0-rc.4
+  build_runner: ^2.16.0
+```
+
+```dart
+import 'package:alphax_native/alphax_native.dart';
+
+part 'users_api.g.dart';
+
+@AlphaXApi(baseUrl: 'https://example.com')
+abstract class UsersApi {
+  factory UsersApi(AlphaXClient client) = _UsersApi;
+
+  @AlphaXGet('/users/{id}')
+  @AlphaXDecode('User.fromJson')
+  Future<User> getUser(@AlphaXPath('id') String id);
+}
+
+Future<void> main() async {
+  final alpha = await createAlphaXClient();
+  final users = UsersApi(alpha);
+  // Reuse `users` for requests, then close `alpha` with the application scope.
+  await alpha.close();
+}
+```
+
+Run `dart run build_runner build`. Serialization stays caller-owned through
+decoder expressions such as `User.fromJson`; middleware, retries, auth,
+cookies, cache, resilience, TLS, proxy, cancellation, timeouts, and protocol
+options remain AlphaX concerns. The generated service borrows the supplied
+client and never closes it. The complete compile-tested fixture is in
+[`examples/typed_rest`](examples/typed_rest).
+
+If an existing application already uses Retrofit, keep its generated Dio path
+and use [`alphax_dio`](packages/alphax_dio/README.md). The direct generator is
+an additional AlphaX-owned choice, not a Retrofit replacement.
 
 ## Using Retrofit
 

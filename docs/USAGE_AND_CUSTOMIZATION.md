@@ -23,6 +23,8 @@ Supporting roles are opt-in:
   the platform deployment package and the application's Dio/Retrofit tooling.
 - A library that expects `package:http`: [`alphax_http`](../packages/alphax_http/README.md)
   plus the platform deployment package and the application's framework/SDK.
+- A new direct typed REST API: [`alphax_generator`](../packages/alphax_generator/README.md)
+  as dev tooling plus the platform deployment package.
 - Large buffered JSON after profiling: [`alphax_transform`](../packages/alphax_transform/README.md).
 - Application tests: [`alphax_test`](../packages/alphax_test/README.md) as a
   dev dependency.
@@ -692,6 +694,60 @@ boundary below the adapter. Dio's current default transformer may decode large
 JSON in an isolate; that is Dio response-processing behavior, not evidence that
 one transport is faster. AlphaX core intentionally does not do this
 automatically.
+
+## 15A. Typed REST with AlphaX
+
+New typed API declarations can use the optional dev-time
+[`alphax_generator`](../packages/alphax_generator/README.md) package. It emits
+ordinary Dart code that calls `AlphaXClient` directly; it does not use Dio,
+Retrofit, or `package:http` at runtime.
+
+```yaml
+dependencies:
+  alphax_native: ^1.0.0-rc.4
+
+dev_dependencies:
+  alphax_generator: ^1.0.0-rc.4
+  build_runner: ^2.16.0
+```
+
+```dart
+import 'package:alphax_native/alphax_native.dart';
+
+part 'users_api.g.dart';
+
+@AlphaXApi(baseUrl: 'https://example.com')
+abstract class UsersApi {
+  factory UsersApi(AlphaXClient client) = _UsersApi;
+
+  @AlphaXGet('/users/{id}')
+  @AlphaXDecode('User.fromJson')
+  Future<User> getUser(@AlphaXPath('id') String id);
+}
+
+Future<UsersApi> createUsersApi() async => UsersApi(await createAlphaXClient());
+```
+
+Run `dart run build_runner build`. The complete native and Web declarations
+and generated output are compile-tested in
+[`examples/typed_rest`](../examples/typed_rest) and
+[`examples/typed_rest_web`](../examples/typed_rest_web). An API declaration
+uses AlphaX-owned annotations for common methods, path/query/header bindings,
+JSON/text/bytes/stream/file/multipart bodies, typed decoders, cancellation,
+and the existing request options bundle. `AlphaXBodyParam` is deliberately
+distinct from the existing `AlphaXBody` runtime type.
+
+Generated services borrow their `AlphaXClient`; the caller closes that client.
+AlphaX middleware continues to own authentication, retry, cookies, cache,
+resilience, and other transport/request policy. Non-2xx responses remain
+AlphaX responses rather than becoming generated transport exceptions. Model
+serialization remains caller-owned, so json_serializable and Freezed can be
+used without becoming AlphaX runtime dependencies.
+
+This is a bounded direct-generator foundation. OpenAPI templates and other
+schema/generator integrations are separate follow-up decisions. Existing
+Retrofit applications should continue to use the unchanged
+`retrofit → Dio → AlphaXDioAdapter → AlphaX` path documented below.
 
 ### Using Retrofit
 

@@ -20,6 +20,7 @@ export 'src/alpha_x_protocol.dart';
 export 'src/alpha_x_redirect.dart';
 export 'src/alpha_x_resilience.dart';
 export 'src/alpha_x_request.dart';
+export 'src/alpha_x_request_options.dart';
 export 'src/alpha_x_response.dart';
 export 'src/alpha_x_retry.dart';
 export 'src/alpha_x_security.dart';

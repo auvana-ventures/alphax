@@ -1,0 +1,35 @@
+name: alphax_typed_rest_example
+description: Compile-tested native consumer for the direct AlphaX typed REST generator.
+publish_to: none
+
+environment:
+  sdk: ">=3.8.0 <4.0.0"
+
+dependencies:
+  alphax_native:
+    path: ../../packages/alphax_native
+  freezed_annotation: ^3.1.0
+  flutter:
+    sdk: flutter
+  json_annotation: ^4.12.0
+
+dev_dependencies:
+  alphax:
+    path: ../../packages/alphax
+  alphax_generator:
+    path: ../../packages/alphax_generator
+  alphax_test:
+    path: ../../packages/alphax_test
+  build_runner: ^2.16.0
+  freezed: ^4.0.1
+  json_serializable: ^6.13.2
+  flutter_test:
+    sdk: flutter
+  lints: ^5.1.1
+
+dependency_overrides:
+  alphax:
+    path: ../../packages/alphax
+
+flutter:
+  uses-material-design: true
