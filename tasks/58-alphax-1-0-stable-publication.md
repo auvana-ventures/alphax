@@ -1,6 +1,6 @@
 # Task 58: AlphaX 1.0 stable publication
 
-Status: [*] In Progress
+Status: [x] Completed
 
 ## Goal
 
@@ -48,14 +48,14 @@ AlphaX maintainers / Codex implementation agent.
 - [x] Reconfirm stable source, manifests, constraints, package set, and clean
   release-owned state.
 - [x] Create Task 58 and establish the publication source commit.
-- [ ] Run immediate zero-warning dry-runs and inspect archives from the clean
+- [x] Run immediate zero-warning dry-runs and inspect archives from the clean
   publication worktree.
-- [ ] Publish and verify each of the eight packages sequentially.
-- [ ] Run clean hosted stable consumers and bounded retained fixtures.
-- [ ] Update current examples to `^1.0.0` after hosted validation and verify
+- [x] Publish and verify each of the eight packages sequentially.
+- [x] Run clean hosted stable consumers and bounded retained fixtures.
+- [x] Update current examples to `^1.0.0` after hosted validation and verify
   their normal gates.
-- [ ] Create the successful publication report, stable tag, and GitHub release.
-- [ ] Complete this task with final provenance, hosted results, incidents, and
+- [x] Create the successful publication report, stable tag, and GitHub release.
+- [x] Complete this task with final provenance, hosted results, incidents, and
   the exact stable handoff.
 
 ## Validation
@@ -69,8 +69,7 @@ transform, test helpers, and current examples. No benchmarks are authorized.
 
 ## Next Action
 
-Run the final clean dry-run gate from the publication source, then publish
-`alphax` first and verify its hosted stable artifact before continuing.
+Stop. AlphaX 1.0.0 stable publication and hosted verification are complete.
 
 ## Blockers
 
@@ -78,7 +77,10 @@ None at task creation.
 
 ## Outcome
 
-In progress; stable publication has not yet begun.
+All eight packages were published at `1.0.0`, hosted consumers passed, current
+examples were moved to stable constraints, and the approved `v1.0.0` tag and
+`AlphaX 1.0.0` GitHub release were created. The final state is
+`ALPHAX 1.0.0 — STABLE RELEASED`.
 
 ## References
 
@@ -94,3 +96,14 @@ In progress; stable publication has not yet begun.
 - 2026-08-30: Created for the approved AlphaX 1.0.0 stable publication.
 - 2026-08-30: Confirmed prepared source `53991e2`, stable manifests, and Task
   58 availability; protected unrelated work remains untouched.
+- 2026-08-30: Published all eight stable packages sequentially from source
+  `77be267`; verified hosted metadata, dependency resolution, archive hashes,
+  and clean hosted consumers.
+- 2026-08-30: Updated current `basic` and `waypoint` examples in separate
+  commit `efccb5b` after hosted validation.
+- 2026-08-30: Created annotated tag `v1.0.0` at `77be267` and published the
+  `AlphaX 1.0.0` GitHub release.
+- 2026-08-30: Completed the publication report and final provenance checks;
+  GitHub release URL is
+  `https://github.com/auvana-ventures/alphax/releases/tag/v1.0.0`; protected
+  benchmark/mobile/history work remains untouched.

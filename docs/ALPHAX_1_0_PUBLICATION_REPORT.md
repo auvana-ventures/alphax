@@ -9,8 +9,8 @@ Status: package publication and hosted-consumer verification complete.
 - The publication source is the accepted Task 57 stable-preparation source plus
   the Task 58 publication record. Package `lib/`, `test/`, and manifests were
   unchanged from the prepared stable source.
-- Current repository HEAD after the separate current-example update is
-  `efccb5b1a56f4f275589e41ad872614f9e83d5dc` and equals `origin/main`.
+- The separate current-example update commit is
+  `efccb5b1a56f4f275589e41ad872614f9e83d5dc`.
 
 ## 2. Published package set
 
@@ -148,18 +148,34 @@ These were validation-environment issues, not package publication defects.
 ## 9. Final release state
 
 All eight AlphaX `1.0.0` packages are published and hosted-consumer
-verification is complete. The project is stable-release ready. The approved
-stable tag and GitHub release are the remaining provenance operations for this
-publication task.
+verification is complete. The approved stable tag and GitHub release are also
+complete. AlphaX 1.0.0 is now the stable released package line.
 
-Proposed tag: `v1.0.0`  
-Proposed release: `AlphaX 1.0.0`
+Package publication source: `77be267435c25ab5acf963426e7787b552a1d343`
+
+Example update commit: `efccb5b1a56f4f275589e41ad872614f9e83d5dc`
+
+Publication report/provenance checkpoint: `a682630cf49910a799f5b71c8f78fed5548aa113`
 
 ## 10. Tag and GitHub release state
 
-At this report stage, no stable tag or GitHub release has been created. The tag
-will point to the package publication source commit
-`77be267435c25ab5acf963426e7787b552a1d343`; later report/example commits are
-documentation/provenance updates only.
+The annotated stable tag `v1.0.0` was pushed successfully and resolves to
+`77be267435c25ab5acf963426e7787b552a1d343`:
+
+```text
+v1.0.0 -> 77be267435c25ab5acf963426e7787b552a1d343
+```
+
+The GitHub release is published and non-draft:
+
+<https://github.com/auvana-ventures/alphax/releases/tag/v1.0.0>
+
+- Title: `AlphaX 1.0.0`
+- Tag: `v1.0.0`
+- Published: 2026-08-30T18:31:30Z
+- Release notes: `docs/ALPHAX_1_0_RELEASE_NOTES.md`
+
+The final report/task bookkeeping commit is documentation-only; the tag remains
+anchored to the exact package publication source.
 
 ALPHAX 1.0.0 PUBLISHED SUCCESSFULLY
