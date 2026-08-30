@@ -104,6 +104,8 @@ through `package:alphax/websocket.dart`; `alphax_native` and `alphax_web` expose
 thin maintained `package:web_socket` connectors. The default AlphaX HTTP API and
 all existing HTTP transports remain unchanged. The final review is
 `docs/ALPHAX_RC5_WEBSOCKET_REVIEW.md` and concludes `RC5 WEBSOCKET READY`.
+Committed as `0b1341536ab54db5138d759f9d92a38b986d6814`; after push,
+`HEAD == origin/main` was verified.
 
 ## References
 
@@ -124,3 +126,5 @@ all existing HTTP transports remain unchanged. The final review is
   checks passed with documented Dartdoc baseline warnings only.
 - 2026-08-30 — Task marked Completed; ready for maintainer review and the locked
   next task, Task E — direct typed REST generator.
+- 2026-08-30 — Verified commit `0b1341536ab54db5138d759f9d92a38b986d6814`
+  and confirmed `HEAD == origin/main` after push.

@@ -337,6 +337,10 @@ The workspace contains seven package directories (`alphax`, `alphax_dio`,
 `alphax_web`), so seven package suites were run; there is no eighth package
 directory to validate or claim.
 
+The Task D implementation was committed as
+`0b1341536ab54db5138d759f9d92a38b986d6814`, pushed to `origin/main`, and
+verified with `HEAD == origin/main`.
+
 ## 25. Remaining limitations
 
 - Browser WebSocket cannot provide arbitrary connection headers; authentication
