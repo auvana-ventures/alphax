@@ -128,6 +128,37 @@ The package-local [`example/main.dart`](example/main.dart) uses a deterministic
 transport because `alphax` is pure Dart and does not bundle a platform provider.
 For a real native or browser request, use the deployment package shown above.
 
+### One Flutter project targeting native and Web
+
+If one Flutter project ships to both native platforms and the browser, use
+`alphax_native` for native Flutter builds and `alphax_web` for Flutter Web.
+Declare both deployment packages, then hide the choice behind an app-local
+conditional export so shared application code uses one entry point:
+
+```yaml
+dependencies:
+  alphax_native: ^1.0.0
+  alphax_web: ^1.0.0
+```
+
+```dart
+// lib/networking/alpha_client.dart
+export 'alpha_client_native.dart'
+    if (dart.library.js_interop) 'alpha_client_web.dart';
+```
+
+The native implementation can return `native.createAlphaXClient()` directly;
+the Web implementation can wrap its synchronous `createAlphaXClient()` in an
+`async` function. Shared code can then write:
+
+```dart
+final client = await createAppClient();
+```
+
+Do not import `alphax_native` from code compiled for the browser. The two
+deployment packages share the same `alphax` core types; only the platform
+provider changes.
+
 ## Typed REST generation
 
 For a new typed API declaration, add

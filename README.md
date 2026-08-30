@@ -73,6 +73,51 @@ import 'package:alphax_web/alphax_web.dart';
 final client = createAlphaXClient();
 ```
 
+### One Flutter project targeting native and Web
+
+If one Flutter project ships to Android, iOS, desktop, and the browser, declare
+both deployment packages and select the provider behind an app-local
+conditional export. `alphax_native` is for native Flutter builds;
+`alphax_web` is for Flutter Web. Do not import `alphax_native` from code that is
+compiled for the browser.
+
+```yaml
+dependencies:
+  alphax_native: ^1.0.0
+  alphax_web: ^1.0.0
+```
+
+For example, keep the platform choice in a small application-owned layer:
+
+```dart
+// lib/networking/alpha_client.dart
+export 'alpha_client_native.dart'
+    if (dart.library.js_interop) 'alpha_client_web.dart';
+```
+
+```dart
+// lib/networking/alpha_client_native.dart
+import 'package:alphax_native/alphax_native.dart' as native;
+
+Future<native.AlphaXClient> createAppClient() => native.createAlphaXClient();
+```
+
+```dart
+// lib/networking/alpha_client_web.dart
+import 'package:alphax_web/alphax_web.dart' as web;
+
+Future<web.AlphaXClient> createAppClient() async => web.createAlphaXClient();
+```
+
+Shared application code then imports only the app-owned entry point:
+
+```dart
+final client = await createAppClient();
+```
+
+Both façades return the same `AlphaXClient` core type. The platform-specific
+choice changes the provider, not the request code.
+
 ## Choose the package by deployment path
 
 Install the direct package for the application boundary, then add only the
