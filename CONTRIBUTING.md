@@ -1,7 +1,9 @@
 # Contributing to AlphaX
 
-AlphaX is in Phase 0 research. Contributions should keep the transport decision
-evidence-based and the public Dart contract independent from any one native stack.
+AlphaX `1.0.0-rc.5` is published and the feature surface is frozen for
+stabilization before `1.0.0`. Contributions must stay within the stabilization
+allowance in `docs/ALPHAX_1_0_FEATURE_FREEZE.md` and keep the public Dart
+contract independent from any one native stack.
 
 ## Before coding
 
@@ -11,7 +13,7 @@ under `tasks/`.
 
 ## Development
 
-The supported Phase 0 SDK range is Dart `>=3.8.0 <4.0.0`. The core package has no
+The supported SDK range is Dart `>=3.8.0 <4.0.0`. The core package has no
 Flutter SDK constraint. Use sound null safety, public API documentation, immutable
 metadata where practical, and deterministic error semantics.
 
@@ -39,4 +41,6 @@ Transport-sensitive changes require reproducible scenarios and raw result metada
 
 Keep changes focused. Update documentation in the same change as public behavior,
 platform support, package status, architecture, or performance claims. Do not
-publish packages or create releases from Phase 0 work.
+add features or publish stable packages from stabilization work. Package
+publication, tags, and releases require their separately authorized release
+tasks.

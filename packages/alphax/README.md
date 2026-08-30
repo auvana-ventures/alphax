@@ -11,7 +11,7 @@
 Write request code once and choose the transport at the application boundary.</p>
 
 <p align="center">
-  <a href="https://github.com/auvana-ventures/alphax/blob/main/docs/ALPHAX_1_0_SCOPE.md">1.0 scope</a> ·
+  <a href="https://github.com/auvana-ventures/alphax/blob/main/docs/ALPHAX_1_0_FEATURE_FREEZE.md">1.0 feature freeze</a> ·
   <a href="https://github.com/auvana-ventures/alphax/blob/main/docs/USAGE_AND_CUSTOMIZATION.md">Usage and customization</a> ·
   <a href="https://github.com/auvana-ventures/alphax/tree/main/examples/waypoint">Waypoint example</a> ·
   <a href="https://github.com/auvana-ventures/alphax/blob/main/LICENSE">Apache-2.0</a>

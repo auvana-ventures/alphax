@@ -4,7 +4,10 @@ final class User {
 
   factory User.fromJson(Object? value) {
     final json = (value! as Map<Object?, Object?>).cast<String, Object?>();
-    return User(id: (json['id']! as num).toInt(), name: json['name']! as String);
+    return User(
+      id: (json['id']! as num).toInt(),
+      name: json['name']! as String,
+    );
   }
 
   final int id;

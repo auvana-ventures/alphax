@@ -211,7 +211,7 @@ pattern.
 - [Native platform transports](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_native)
 - [Dio adapter](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_dio)
 - [Waypoint reference app](https://github.com/auvana-ventures/alphax/tree/main/examples/waypoint)
-- [1.0 testing and conformance scope](https://github.com/auvana-ventures/alphax/blob/main/docs/ALPHAX_1_0_SCOPE.md)
+- [1.0 testing and conformance scope](https://github.com/auvana-ventures/alphax/blob/main/docs/ALPHAX_1_0_FEATURE_FREEZE.md)
 
 The coordinated `1.0.0-rc.5` package is a development dependency only and does
 not provide a production transport.

@@ -1,12 +1,14 @@
 # Roadmap
 
-The definitive AlphaX 1.0 scope and implementation sequence are maintained in
-[`ALPHAX_1_0_SCOPE.md`](ALPHAX_1_0_SCOPE.md).
+The historical AlphaX 1.0 scope and implementation sequence are recorded in
+[`ALPHAX_1_0_SCOPE.md`](ALPHAX_1_0_SCOPE.md). The final rc.5 feature boundary
+is maintained in the [`ALPHAX_1_0_FEATURE_FREEZE.md`](ALPHAX_1_0_FEATURE_FREEZE.md)
+document.
 
-That document defines the only valid 1.0 classifications, required release
-gate, package changes, and Phase 1A–1F exit criteria. This roadmap page is kept
-as a navigation entry point so older phase labels cannot contradict the 1.0
-scope.
+The scope snapshot defines the earlier 1.0 classifications and Phase 1A–1F
+exit criteria. This roadmap page is kept as a historical navigation entry
+point; stabilization is governed by the feature-freeze document and its release
+gate rather than another capability-discovery cycle.
 
 Historical Phase 0 benchmark evidence remains under
 [`benchmarks/results/summaries`](../benchmarks/results/summaries/). It is not
@@ -59,11 +61,11 @@ would delay stable 1.0 disproportionately; removal does not create an rc.6
 backlog. New discoveries are release-blocking only when required for correctness,
 security, frozen API coherence, or an already-approved rc.5 feature.
 
-When the locked rc.5 work and bounded decisions are resolved, declare
-`ALPHAX 1.0 FEATURE FREEZE`. The stable release then uses one release gate for
-API, correctness, supported platforms, security, ecosystem fixtures, and
-packaging. No capability-discovery cycle or open-ended feature queue continues
-before stable.
+The locked rc.5 work and bounded decisions are resolved, and
+`ALPHAX 1.0 FEATURE FREEZE` is declared. The stable release now uses one
+stabilization gate for API, correctness, supported platforms, security,
+ecosystem fixtures, and packaging. No capability-discovery cycle or open-ended
+feature queue continues before stable.
 
 See the [rc.5 scope lock](ALPHAX_1_0_RC_5_SCOPE_LOCK.md),
 [ADR-0011](decisions/0011-rc5-final-feature-candidate.md), and

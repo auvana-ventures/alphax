@@ -16,15 +16,14 @@ official modular capabilities.
 
 ## Current phase
 
-Phase 0 research and transport validation is complete. Phase 1A contracts, the
-Dart IO fallback, the Phase 1C Android Cronet transport, the Phase 1D Apple
-URLSession implementation, and the Phase 1E/1F release-gate evidence are
-complete for `1.0.0-rc.1` maintainer review. Android, macOS, and signed
-physical-iPhone H1/H2/H3 correctness evidence is retained; H3 remains
-provider- and network-dependent with truthful fallback. ADR 0004 is accepted
-for the AlphaX 1.0 platform strategy. The working project name is AlphaX; the
-repository is `alphax`, but packages must not be published to pub.dev until
-naming clearance and maintainer release approval are complete.
+Phase 0 research and transport validation are historical evidence. AlphaX
+`1.0.0-rc.5` is published, the final feature scope is frozen, and the project
+is in stabilization-only work before stable `1.0.0`. Android, macOS, and signed
+physical-iPhone H1/H2/H3 correctness evidence remains retained; H3 remains
+provider- and network-dependent with truthful fallback. ADR 0004 and ADR 0011
+remain accepted for the AlphaX 1.0 platform and release strategy. Stabilization
+may change correctness, security, frozen API consistency, compatibility,
+platform conformance, documentation, packaging, or release validation only.
 
 ## Package philosophy
 
@@ -73,15 +72,18 @@ not change architecture based solely on preference.
 
 ## Explicit non-goals
 
-The current RC does not include an offline queue, telemetry exporter, complete
-DevTools extension, full Dio API compatibility, GraphQL integration, REST
-generation, custom QUIC/TLS, or a full model-specific authentication framework.
-The pure-Dart core now includes opt-in replay-aware retry, caller-owned token
-authentication, in-memory cookies/cache, and a generic circuit breaker. The
-separate `alphax_web` package provides browser Fetch support with unknown
-protocol metadata; it does not change the native transport architecture. The
-focused `alphax_dio` adapter is an optional 1.0 boundary and full Dio parity
-remains out of scope.
+The frozen 1.0 boundary does not include an offline queue, telemetry exporter,
+complete DevTools extension, full Dio API compatibility, GraphQL framework
+ownership, gRPC, a full OpenAPI compiler, custom QUIC/TLS controls, or a
+model-specific authentication framework. The published rc.5 family includes
+the direct typed REST generator, SSE/WebSocket contracts, and the validated
+compatibility seams described by the feature-freeze and publication reports;
+those surfaces are frozen during stabilization. The pure-Dart core includes
+opt-in replay-aware retry, caller-owned token authentication, in-memory
+cookies/cache, and a generic circuit breaker. The separate `alphax_web`
+package provides browser Fetch support with unknown protocol metadata; it does
+not change the native transport architecture. The focused `alphax_dio` adapter
+is an optional boundary and full Dio parity remains out of scope.
 
 ## Source documents
 

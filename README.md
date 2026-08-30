@@ -12,7 +12,7 @@ One request, response, streaming, file-transfer, cancellation, policy, and
 protocol model across the transports that each platform can actually provide.</p>
 
 <p align="center">
-  <a href="docs/ALPHAX_1_0_SCOPE.md">1.0 scope</a> ·
+  <a href="docs/ALPHAX_1_0_FEATURE_FREEZE.md">1.0 feature freeze</a> ·
   <a href="docs/USAGE_AND_CUSTOMIZATION.md">Usage and customization</a> ·
   <a href="examples/waypoint/README.md">Waypoint example</a> ·
   <a href="docs/MIGRATION.md">Migration guide</a> ·
@@ -702,7 +702,7 @@ Dart application
             └── WebSocket connector → browser WebSocket
 ```
 
-See the [1.0 scope](docs/ALPHAX_1_0_SCOPE.md),
+See the [1.0 feature freeze](docs/ALPHAX_1_0_FEATURE_FREEZE.md),
 [accepted transport ADR](docs/decisions/0004-platform-native-mobile-transports.md),
 the [1.0 requirements audit](docs/ALPHAX_1_0_REQUIREMENTS_AUDIT.md),
 and [Phase 1E validation report](docs/phase1e-cross-transport-validation.md).

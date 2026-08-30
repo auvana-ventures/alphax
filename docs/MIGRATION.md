@@ -101,6 +101,15 @@ Retrofit → Dio → AlphaXDioAdapter → AlphaX
 Keep that path and use `alphax_dio` when Retrofit is already part of the
 application.
 
+## rc.5 to stable 1.0.0
+
+The frozen rc.5 API is intended to carry forward to stable `1.0.0`. For the
+published package family, the expected migration is version-only: update the
+coordinated `1.0.0-rc.5` constraints to `1.0.0` when stable packages are
+published. No source migration is required by the stabilization gate. Existing
+explicit transports, custom transports, `alphax_http`, SSE, WebSocket, and
+generated-client ownership paths remain valid.
+
 ## Client creation and methods
 
 For normal native targets, let `alphax_native` choose the transport and pass it

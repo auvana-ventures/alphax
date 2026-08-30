@@ -1,11 +1,14 @@
 # AlphaX 1.0 Scope
 
-Review state: Accepted for 1.0.0-rc.1 review
+Review state: Historical rc.1 scope snapshot; superseded for the final feature
+boundary by `ALPHAX_1_0_RC_5_SCOPE_LOCK.md` and
+`ALPHAX_1_0_FEATURE_FREEZE.md`.
 
-This document is the source of truth for AlphaX 1.0 scope. It supersedes
-conflicting capability status language in older PRDs, README tables, and
-`docs/roadmap.md`; those documents remain historical context unless updated to
-point here.
+This document records the earlier AlphaX 1.0 scope and remains useful as
+historical context. The final feature boundary and current release state are
+defined by the rc.5 scope lock and feature-freeze document. Older capability
+status language remains historical unless a current-facing document points to
+the frozen boundary.
 
 The associated architecture decision is [ADR-0004: Platform-Native Mobile
 Transports](decisions/0004-platform-native-mobile-transports.md), which remains

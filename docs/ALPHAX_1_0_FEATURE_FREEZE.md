@@ -79,4 +79,8 @@ rc.5 preparation
   → 1.0.0
 ```
 
-The next task is **ALPHAX 1.0 STABILIZATION AND RELEASE GATE**.
+The stabilization gate is recorded in the
+[AlphaX 1.0 stabilization and release gate report](ALPHAX_1_0_STABILIZATION_AND_RELEASE_GATE.md).
+It found no `STABLE_BLOCKER`; the next task is **ALPHAX 1.0 STABLE VERSION
+PREPARATION**. Until that task is explicitly authorized, only the stabilization
+changes listed above remain allowed.
