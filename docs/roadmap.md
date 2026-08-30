@@ -25,7 +25,7 @@ and limitations are recorded in
 
 AlphaX 1.0.0-rc.5 is the final feature release candidate before stable 1.0.0.
 There will be no rc.6 feature cycle. After rc.5 publication, the project moves
-directly into stabilization-only work for 1.0.0.
+directly into stable-1.0 stabilization.
 
 The accepted Model A+ architecture keeps `alphax` pure Dart and
 transport-independent, preserves the rc.4 package boundaries, and simplifies
@@ -42,15 +42,15 @@ Must-have:
 
 Committed features:
 
-3. first-class SSE sub-library;
-4. first-class WebSocket lifecycle contract;
-5. direct AlphaX typed REST generator.
+1. first-class SSE sub-library;
+2. first-class WebSocket lifecycle contract;
+3. direct AlphaX typed REST generator.
 
 Bounded optional work:
 
-6. official OpenAPI Generator template proof;
-7. Protobuf ergonomics without a core runtime dependency;
-8. representative Chopper, GraphQL, and generated-client compatibility fixtures.
+1. official OpenAPI Generator template proof;
+2. Protobuf ergonomics without a core runtime dependency;
+3. representative Chopper, GraphQL, and generated-client compatibility fixtures.
 
 gRPC, a full OpenAPI compiler, GraphQL framework ownership, package-role
 restructuring, advanced provider controls, and new performance/zero-copy work

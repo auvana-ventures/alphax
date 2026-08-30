@@ -83,11 +83,12 @@ None. Implementation remains separately gated by the accepted scope lock.
 
 ## Outcome
 
-`APPROVED WITH FINAL FEATURE RC LOCK`. The maintainer approved Model A+: preserve the
-rc.4 package graph, add native/Web entry façades, use one broad `package:http`
-compatibility seam, one dev-time generator surface, and protocol sub-libraries
-instead of a package per feature. The approved release scope and no-rc.6 rule are
-now authoritative in the final-feature ADR and scope-lock document.
+`APPROVED WITH FINAL FEATURE RC LOCK`. The maintainer approved Model A+:
+preserve the rc.4 package graph, add native/Web entry façades, and use one broad
+`package:http` compatibility seam, one dev-time generator surface, and protocol
+sub-libraries instead of a package per feature. The approved release scope and
+no-rc.6 rule are now authoritative in the final-feature ADR and scope-lock
+document.
 
 ## References
 
