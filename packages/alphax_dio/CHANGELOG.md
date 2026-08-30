@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.0-rc.5 - 2026-08-30
+
+- Coordinated the existing Dio 5.x adapter with the final rc.5 package family;
+  no adapter runtime behavior changed after rc.4.
+- Revalidated the supported Retrofit/Dio path and an injectable official
+  OpenAPI-generated Dio client through `AlphaXDioAdapter`.
+
 ## 1.0.0-rc.4 - 2026-08-29
 
 - Aligned package metadata with the coordinated AlphaX `1.0.0-rc.4` release;

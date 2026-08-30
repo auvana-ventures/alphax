@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'alphax_native'
-  s.version          = '1.0.0-rc.4'
+  s.version          = '1.0.0-rc.5'
   s.summary          = 'AlphaX native URLSession transport.'
   s.description      = <<-DESC
 AlphaX Apple URLSession transport adapter for iOS.

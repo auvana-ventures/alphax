@@ -1,11 +1,13 @@
 # AlphaX usage and customization
 
-This is the user guide for the AlphaX source tree. The coordinated `1.0.0-rc.4`
-release remains the published baseline; committed rc.5 feature work A–E and
-bounded F/G/H resolution are complete under the
-[1.0 feature freeze](ALPHAX_1_0_FEATURE_FREEZE.md). No rc.5 package is
-published until the release-preparation task. `rc.3` is the historical
-predecessor.
+This is the user guide for the AlphaX source tree. The coordinated
+`1.0.0-rc.5` candidate is prepared for publication; the six rc.4 packages
+remain the published hosted baseline and `alphax_http`/`alphax_generator` join
+the eight-package rc.5 family. Committed rc.5 feature work A–E and bounded
+F/G/H resolution are complete under the [1.0 feature freeze](ALPHAX_1_0_FEATURE_FREEZE.md).
+See the [rc.5 release-preparation report](ALPHAX_1_0_RC_5_RELEASE_PREPARATION.md)
+for the coordinated publication set and validation evidence. No rc.5 package
+has been published. `rc.4` and `rc.3` are historical baselines.
 
 ## 1. Choose the deployment path
 
@@ -36,14 +38,14 @@ For native Flutter, the direct AlphaX declaration is sufficient because
 
 ```yaml
 dependencies:
-  alphax_native: ^1.0.0-rc.4
+  alphax_native: ^1.0.0-rc.5
 ```
 
 For browser Web, use the equivalent:
 
 ```yaml
 dependencies:
-  alphax_web: ^1.0.0-rc.4
+  alphax_web: ^1.0.0-rc.5
 ```
 
 ## 2. The quickest start
@@ -706,10 +708,10 @@ Retrofit, or `package:http` at runtime.
 
 ```yaml
 dependencies:
-  alphax_native: ^1.0.0-rc.4
+  alphax_native: ^1.0.0-rc.5
 
 dev_dependencies:
-  alphax_generator: ^1.0.0-rc.4
+  alphax_generator: ^1.0.0-rc.5
   build_runner: ^2.16.0
 ```
 
@@ -746,8 +748,9 @@ AlphaX responses rather than becoming generated transport exceptions. Model
 serialization remains caller-owned, so json_serializable and Freezed can be
 used without becoming AlphaX runtime dependencies.
 
-This is a bounded direct-generator foundation. OpenAPI templates and other
-schema/generator integrations are separate follow-up decisions. Existing
+This is a bounded direct-generator foundation. The official OpenAPI template
+result is a proof-only integration, and Protobuf remains caller-owned byte
+serialization; neither makes AlphaX a schema or model generator. Existing
 Retrofit applications should continue to use the unchanged
 `retrofit → Dio → AlphaXDioAdapter → AlphaX` path documented below.
 

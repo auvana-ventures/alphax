@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.0-rc.5 - 2026-08-30
+
+- Added the dedicated incremental `package:alphax/sse.dart` parser for
+  bounded HTTP response streams, including standard event, ID, and retry
+  semantics without automatic reconnect.
+- Added the transport-neutral `package:alphax/websocket.dart` lifecycle
+  contract for ordered text/binary messages, subprotocol negotiation, close
+  information, and explicit cancellation without automatic reconnect.
+- Added lightweight AlphaX annotations, request options, and typed response
+  helpers used by the direct typed REST generator; generator tooling remains
+  outside the core runtime dependency graph.
+
 ## 1.0.0-rc.4 - 2026-08-29
 
 - Preserved file-transfer byte accounting and completion metrics while

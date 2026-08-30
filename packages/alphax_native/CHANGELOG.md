@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.0-rc.5 - 2026-08-30
+
+- Added the one-import `createAlphaXClient()` façade, delegating transport
+  selection to the existing native factory while preserving explicit transport
+  construction and client-owned close semantics.
+- Re-exported the ordinary public AlphaX API and exposed the native
+  WebSocket connector alongside the existing Dart IO, Android, Apple, and
+  browser-boundary behavior.
+- Validated native SSE response-stream parsing and the frozen WebSocket
+  lifecycle contract without adding a second networking engine.
+
 ## 1.0.0-rc.4 - 2026-08-29
 
 - Corrected Apple URLSession phase-duration conversion so reported

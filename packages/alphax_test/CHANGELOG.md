@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.0-rc.5 - 2026-08-30
+
+- Coordinated the deterministic test-helper package with the final rc.5
+  package family; no production transport or public runtime API changes were
+  made in this package after rc.4.
+- Retained the fake transport and conformance helpers used by the rc.5
+  entry-facade, compatibility, SSE, WebSocket, and typed-generator validation.
+
 ## 1.0.0-rc.4 - 2026-08-29
 
 - Aligned package metadata with the coordinated AlphaX `1.0.0-rc.4` release;

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.0-rc.5 - 2026-08-30
+
+- Added the concise browser-backed `createAlphaXClient()` façade while
+  retaining explicit `WebFetchTransport()` construction.
+- Re-exported the ordinary public AlphaX API and exposed the browser
+  WebSocket connector through the separate Web deployment boundary.
+- Validated SSE over Fetch response streams while keeping TLS, proxy, CORS,
+  protocol reporting, and connection behavior browser-owned.
+
 ## 1.0.0-rc.4 - 2026-08-29
 
 - Aligned package metadata with the coordinated AlphaX `1.0.0-rc.4` release;

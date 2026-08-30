@@ -42,18 +42,22 @@ protocol model across the transports that each platform can actually provide.</p
 
 ## Status
 
-**The coordinated AlphaX `1.0.0-rc.4` release is published on pub.dev.** The
-published RC4 packages remain the release baseline. All committed rc.5 feature
-work A–E and the bounded F/G/H decisions are complete, and AlphaX is now under
-the [1.0 feature freeze](docs/ALPHAX_1_0_FEATURE_FREEZE.md). No rc.5 package
-has been published; version preparation remains part of the release task.
-`rc.3` is the historical predecessor.
+**The coordinated AlphaX `1.0.0-rc.5` candidate is prepared for publication.**
+The six rc.4 packages remain the published hosted baseline; `alphax_http` and
+`alphax_generator` join the eight-package rc.5 family. All committed rc.5
+feature work A–E and bounded F/G/H decisions are complete under the
+[1.0 feature freeze](docs/ALPHAX_1_0_FEATURE_FREEZE.md). No rc.5 package has
+been published; publication remains a separate approved action. See the
+[rc.5 release-preparation report](docs/ALPHAX_1_0_RC_5_RELEASE_PREPARATION.md)
+for the package set and validation evidence. `rc.4` and `rc.3` are historical
+baselines.
 
 AlphaX makes no universal H3, speed, zero-copy, or “fastest client” claim.
 
 ## Install
 
-Start with the published RC packages for your target:
+Start with the deployment package for your target. The rc.5 source candidate
+is prepared below; hosted consumers should use rc.4 until rc.5 publication:
 
 ```sh
 # Android, iOS, macOS, Linux, or Windows
@@ -79,27 +83,27 @@ when you want deterministic transport tests.
 
 ### Pin a coordinated deployment path explicitly
 
-For a native Flutter application, the direct AlphaX dependency is the platform
+After rc.5 publication, a native Flutter application can pin the platform
 integration package:
 
 ```yaml
 dependencies:
-  alphax_native: ^1.0.0-rc.4
+  alphax_native: ^1.0.0-rc.5
 ```
 
 For Web, use the equivalent direct dependency:
 
 ```yaml
 dependencies:
-  alphax_web: ^1.0.0-rc.4
+  alphax_web: ^1.0.0-rc.5
 ```
 
 `alphax_native` and `alphax_web` already depend on `alphax`, so an ordinary
 consumer does not need to declare the core package directly. `alphax` remains
 the direct choice for pure-Dart custom transports. Add `alphax_dio`,
 `alphax_http`, `alphax_transform`, or `alphax_test` only for those optional
-integration, workload, or development roles. The coordinated rc.5 version is
-not published yet; the release task owns version preparation.
+integration, workload, or development roles. Until publication, hosted
+consumers should continue using the published rc.4 baseline.
 
 ## Choose by deployment path
 
@@ -273,10 +277,10 @@ generator belongs in development tooling:
 
 ```yaml
 dependencies:
-  alphax_native: ^1.0.0-rc.4
+  alphax_native: ^1.0.0-rc.5
 
 dev_dependencies:
-  alphax_generator: ^1.0.0-rc.4
+  alphax_generator: ^1.0.0-rc.5
   build_runner: ^2.16.0
 ```
 
@@ -607,17 +611,19 @@ cannot authoritatively report H2/H3 and therefore does not advertise them.
 
 | Package | Purpose | 1.0 status |
 | --- | --- | --- |
-| [`alphax`](packages/alphax) | Pure-Dart transport-neutral HTTP and WebSocket contracts | PUBLISHED_RC; coordinated 1.0.0-rc.4 |
-| [`alphax_native`](packages/alphax_native) | Native entry façade, HTTP adapters, and Dart IO WebSocket connector | PUBLISHED_RC; additive rc.5 façade in source |
-| [`alphax_test`](packages/alphax_test) | Fakes and shared conformance helpers | PUBLISHED_RC; coordinated 1.0.0-rc.4 |
-| [`alphax_dio`](packages/alphax_dio) | Focused Dio 5.x `HttpClientAdapter` boundary | PUBLISHED_RC; coordinated 1.0.0-rc.4 |
-| [`alphax_http`](packages/alphax_http) | Optional `package:http` `BaseClient` compatibility seam | rc.5 source; not published |
-| [`alphax_web`](packages/alphax_web) | Web entry façade, browser Fetch adapter, and browser WebSocket connector | PUBLISHED_RC; additive rc.5 façade in source |
-| [`alphax_transform`](packages/alphax_transform) | Explicit one-shot isolate JSON transform for buffered payloads | PUBLISHED_RC; coordinated 1.0.0-rc.4 |
+| [`alphax`](packages/alphax) | Pure-Dart transport-neutral HTTP and WebSocket contracts | `PUBLISH_RC5`; prepared `1.0.0-rc.5` |
+| [`alphax_native`](packages/alphax_native) | Native entry façade, HTTP adapters, and Dart IO WebSocket connector | `PUBLISH_RC5`; prepared `1.0.0-rc.5` |
+| [`alphax_test`](packages/alphax_test) | Fakes and shared conformance helpers | `PUBLISH_RC5`; prepared `1.0.0-rc.5` |
+| [`alphax_dio`](packages/alphax_dio) | Focused Dio 5.x `HttpClientAdapter` boundary | `PUBLISH_RC5`; prepared `1.0.0-rc.5` |
+| [`alphax_http`](packages/alphax_http) | Optional `package:http` `BaseClient` compatibility seam | `PUBLISH_RC5`; prepared `1.0.0-rc.5` |
+| [`alphax_web`](packages/alphax_web) | Web entry façade, browser Fetch adapter, and browser WebSocket connector | `PUBLISH_RC5`; prepared `1.0.0-rc.5` |
+| [`alphax_transform`](packages/alphax_transform) | Explicit one-shot isolate JSON transform for buffered payloads | `PUBLISH_RC5`; prepared `1.0.0-rc.5` |
+| [`alphax_generator`](packages/alphax_generator) | Dev-time direct AlphaX typed REST source generator | `PUBLISH_RC5`; prepared `1.0.0-rc.5` |
 
 There is no AlphaX-owned C++ engine, production Rust transport, libcurl
-dependency, telemetry SDK, GraphQL client, REST generator, or WebSocket engine
-in the 1.0 architecture. The SSE parser is a small `alphax` sub-library over the
+dependency, telemetry SDK, GraphQL client, or WebSocket engine in the 1.0
+architecture. The direct typed REST generator is dev-time tooling, not a second
+runtime. The SSE parser is a small `alphax` sub-library over the
 existing HTTP stream, and the WebSocket contract is a separate lifecycle seam
 adapted by the deployment packages. The optional `alphax_http` package is only an
 `http.Client` compatibility seam; GraphQL and Chopper remain caller-owned.

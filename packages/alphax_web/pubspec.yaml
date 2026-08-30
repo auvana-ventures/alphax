@@ -1,6 +1,6 @@
 name: alphax_web
 description: Browser Fetch HTTP transport adapter for AlphaX with streaming, cancellation, and truthful capability reporting.
-version: 1.0.0-rc.4
+version: 1.0.0-rc.5
 homepage: https://github.com/auvana-ventures/alphax
 repository: https://github.com/auvana-ventures/alphax
 issue_tracker: https://github.com/auvana-ventures/alphax/issues
@@ -14,7 +14,7 @@ environment:
   sdk: ">=3.8.0 <4.0.0"
 
 dependencies:
-  alphax: ^1.0.0-rc.4
+  alphax: ^1.0.0-rc.5
   http: ^1.6.0
   web_socket: ^1.0.1
 

@@ -78,7 +78,8 @@ dependency.
 
 ## Install
 
-The coordinated `1.0.0-rc.4` release is published on pub.dev:
+The coordinated `1.0.0-rc.5` candidate is prepared for publication; the
+published `1.0.0-rc.4` release remains the hosted baseline until approval:
 
 ```sh
 flutter pub add alphax alphax_native
@@ -371,8 +372,8 @@ platform reports negotiation only after the operation completes.
 - [Waypoint reference app](https://github.com/auvana-ventures/alphax/tree/main/examples/waypoint)
 - [Migration guide](https://github.com/auvana-ventures/alphax/blob/main/docs/MIGRATION.md)
 
-The coordinated `1.0.0-rc.4` release is published on pub.dev. The completed
-rc.5 package/API family is now under the
+The coordinated `1.0.0-rc.5` candidate is prepared for publication. The
+completed rc.5 package/API family is now under the
 [1.0 feature freeze](../../docs/ALPHAX_1_0_FEATURE_FREEZE.md); no new features
-may be added before `1.0.0`. Version preparation belongs to the release task.
-`rc.3` is the historical predecessor.
+may be added before `1.0.0`. Publication remains a separate approved action;
+`rc.4` and `rc.3` are historical baselines.

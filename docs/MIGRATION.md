@@ -1,8 +1,105 @@
 # Migration guidance
 
-AlphaX 1.0.0-rc.4 exposes transport-neutral HTTP primitives. This guide maps
+AlphaX 1.0.0-rc.5 is the final feature RC before stable 1.0. This guide maps
 common `package:http` and Dio concepts; it is not a source-compatible port and
 does not promise a full Dio adapter.
+
+## rc.4 to rc.5
+
+rc.5 is largely additive. Existing rc.4 constructors, explicit transports,
+custom transports, and the Retrofit → Dio → `alphax_dio` path remain valid.
+
+### Native
+
+The rc.4 setup remains valid:
+
+```dart
+final client = AlphaXClient(
+  transport: await createAlphaXTransport(),
+);
+```
+
+For ordinary native Flutter setup, use the rc.5 façade:
+
+```dart
+import 'package:alphax_native/alphax_native.dart';
+
+final client = await createAlphaXClient();
+```
+
+`alphax_native` selects the existing platform transport and owns its lifecycle
+through the returned `AlphaXClient`. Explicit transport construction remains
+the control path for custom provider configuration.
+
+### Web
+
+Use the browser deployment façade with one import and one creation call:
+
+```dart
+import 'package:alphax_web/alphax_web.dart';
+
+final client = createAlphaXClient();
+```
+
+Fetch, CORS, TLS, proxy routing, cookies, and protocol reporting remain
+browser-owned. `WebFetchTransport()` and direct `AlphaXClient` construction
+remain valid for explicit assembly.
+
+### `package:http` ecosystems
+
+Applications using Chopper, GraphQL HTTP, generated clients, or another
+library that accepts `http.Client` can add the optional `alphax_http` seam:
+
+```dart
+import 'package:alphax_http/alphax_http.dart';
+import 'package:alphax_native/alphax_native.dart';
+
+final alpha = await createAlphaXClient();
+final httpClient = AlphaXHttpClient(alpha);
+```
+
+`AlphaXHttpClient` borrows `alpha`; closing the bridge does not close the
+underlying client. Close the AlphaX client at the application-owned lifecycle
+boundary.
+
+### SSE
+
+Import `package:alphax/sse.dart` and transform an existing AlphaX response
+stream with `AlphaXSseParser`. The parser is incremental and surfaces event,
+data, ID, and retry fields. Reconnection and `Last-Event-ID` remain caller
+policy; no migration to an automatic reconnect API is needed.
+
+### WebSocket
+
+WebSocket is a separate connector/session contract rather than an HTTP client
+method:
+
+```dart
+import 'package:alphax_native/alphax_native.dart';
+
+final connector = createAlphaXWebSocketConnector();
+final socket = await connector.connect(
+  Uri.parse('wss://example.com/socket'),
+  protocols: <String>['app.v1'],
+);
+```
+
+The session carries ordered text/binary messages and terminal close information.
+There is no automatic reconnect, replay, or universal custom-header support.
+Use the native or Web connector from the deployment package.
+
+### Direct typed REST
+
+New typed clients can use `alphax_generator` as development tooling. Generated
+services borrow a caller-owned `AlphaXClient` and call AlphaX directly; model
+serialization remains caller-owned. Existing Retrofit users have no migration:
+
+```text
+Retrofit → Dio → AlphaXDioAdapter → AlphaX
+```
+
+Keep that path and use `alphax_dio` when Retrofit is already part of the
+application.
 
 ## Client creation and methods
 

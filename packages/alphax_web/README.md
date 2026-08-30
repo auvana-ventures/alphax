@@ -61,8 +61,9 @@ flutter pub add alphax_web
 ```
 
 Do not add `alphax` directly just to use the ordinary Web API; it is already a
-runtime dependency of `alphax_web`. The coordinated package version remains
-governed by the release task.
+runtime dependency of `alphax_web`. The coordinated `1.0.0-rc.5` candidate is
+prepared for publication; the published rc.4 package remains the hosted
+baseline until approval.
 
 ## First request
 
@@ -293,6 +294,7 @@ transport and check its reported capabilities before configuring TLS, proxy, or
 protocol requirements. AlphaX will fail closed rather than pretending that the
 browser can enforce a control it cannot observe.
 
-The package is licensed under Apache-2.0. The rc.5 façade is additive to the
-existing Web transport and explicit rc.4 construction path; publication and
-coordinated versioning remain release-task work.
+The package is licensed under Apache-2.0. The coordinated `1.0.0-rc.5`
+candidate is prepared for publication. The rc.5 façade is additive to the
+existing Web transport and explicit rc.4 construction path; publication still
+requires separate approval.
