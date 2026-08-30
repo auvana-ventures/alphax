@@ -96,9 +96,9 @@ dependencies:
 `alphax_native` and `alphax_web` already depend on `alphax`, so an ordinary
 consumer does not need to declare the core package directly. `alphax` remains
 the direct choice for pure-Dart custom transports. Add `alphax_dio`,
-`alphax_transform`, or `alphax_test` only for those optional integration,
-workload, or development roles. The coordinated rc.5 version is not published
-yet; the release task owns version preparation.
+`alphax_http`, `alphax_transform`, or `alphax_test` only for those optional
+integration, workload, or development roles. The coordinated rc.5 version is
+not published yet; the release task owns version preparation.
 
 ## Choose by deployment path
 
@@ -110,6 +110,7 @@ Start with where the application runs, then add only the optional seam it needs:
 | Browser Web | [`alphax_web`](packages/alphax_web/README.md) | `createAlphaXClient()` |
 | Pure Dart/custom transport | [`alphax`](packages/alphax/README.md) | `AlphaXClient(transport: ...)` |
 | Existing Dio/Retrofit | [`alphax_dio`](packages/alphax_dio/README.md) plus a platform path | injected AlphaX client |
+| Existing `package:http` library | [`alphax_http`](packages/alphax_http/README.md) plus a platform path | injected `AlphaXHttpClient` |
 | Large buffered JSON | [`alphax_transform`](packages/alphax_transform/README.md) | explicit one-shot transform |
 | Testing | [`alphax_test`](packages/alphax_test/README.md) as a dev dependency | deterministic fakes and conformance helpers |
 
@@ -225,6 +226,33 @@ Implement the public `AlphaXTransport` contract and pass it to
 custom implementations must preserve cancellation, streaming, completion
 metrics, capability reporting, and close semantics. See the
 [customization guide](docs/USAGE_AND_CUSTOMIZATION.md#bring-your-own-transport).
+
+## Using a package that expects `package:http`?
+
+Install the optional [`alphax_http`](packages/alphax_http/README.md) seam (and
+keep the platform package that creates your AlphaX client):
+
+```sh
+flutter pub add alphax_http
+```
+
+This lets Chopper, GraphQL HTTP clients, generated clients with an injectable
+`http.Client`, and ordinary `package:http` SDKs use one configured AlphaX client:
+
+```dart
+import 'package:alphax_http/alphax_http.dart';
+import 'package:alphax_native/alphax_native.dart';
+
+final alpha = await createAlphaXClient();
+final httpClient = AlphaXHttpClient(alpha);
+```
+
+The bridge is an ecosystem escape hatch, not part of the ordinary AlphaX
+installation. It preserves package:http request/response streaming and
+standard error/status behavior, while AlphaX middleware, TLS, proxy, and
+transport selection remain below the bridge. AlphaX-only capabilities such as
+protocol metadata, completion metrics, progress, native file paths, and rich
+request controls require direct AlphaX usage.
 
 ## Using Retrofit
 
@@ -429,12 +457,15 @@ cannot authoritatively report H2/H3 and therefore does not advertise them.
 | [`alphax_native`](packages/alphax_native) | Native entry façade plus Dart IO, Cronet, and URLSession adapters | PUBLISHED_RC; additive rc.5 façade in source |
 | [`alphax_test`](packages/alphax_test) | Fakes and shared conformance helpers | PUBLISHED_RC; coordinated 1.0.0-rc.4 |
 | [`alphax_dio`](packages/alphax_dio) | Focused Dio 5.x `HttpClientAdapter` boundary | PUBLISHED_RC; coordinated 1.0.0-rc.4 |
+| [`alphax_http`](packages/alphax_http) | Optional `package:http` `BaseClient` compatibility seam | rc.5 source; not published |
 | [`alphax_web`](packages/alphax_web) | Web entry façade plus browser Fetch adapter | PUBLISHED_RC; additive rc.5 façade in source |
 | [`alphax_transform`](packages/alphax_transform) | Explicit one-shot isolate JSON transform for buffered payloads | PUBLISHED_RC; coordinated 1.0.0-rc.4 |
 
 There is no AlphaX-owned C++ engine, production Rust transport, libcurl
-dependency, telemetry SDK, GraphQL layer, REST generator, or WebSocket/SSE API
-in the 1.0 architecture. Retry, authentication, cookie, cache, and generic
+dependency, telemetry SDK, GraphQL client, REST generator, or WebSocket/SSE API
+in the 1.0 architecture. The optional `alphax_http` package is only an
+`http.Client` compatibility seam; GraphQL and Chopper remain caller-owned.
+Retry, authentication, cookie, cache, and generic
 resilience policies are opt-in pure-Dart middleware. Browser support is a
 separate `alphax_web` Fetch adapter rather than a native transport in the core.
 

@@ -14,6 +14,7 @@ workspace:
   - packages/alphax_test
   - packages/alphax_web
   - packages/alphax_transform
+  - packages/alphax_http
 
 dev_dependencies:
   lints: ^5.1.1

@@ -21,6 +21,8 @@ Supporting roles are opt-in:
 
 - Existing Dio/Retrofit: [`alphax_dio`](../packages/alphax_dio/README.md) plus
   the platform deployment package and the application's Dio/Retrofit tooling.
+- A library that expects `package:http`: [`alphax_http`](../packages/alphax_http/README.md)
+  plus the platform deployment package and the application's framework/SDK.
 - Large buffered JSON after profiling: [`alphax_transform`](../packages/alphax_transform/README.md).
 - Application tests: [`alphax_test`](../packages/alphax_test/README.md) as a
   dev dependency.
@@ -166,6 +168,52 @@ the generic Dart stream path.
 Flutter channel, native handle, or browser types in a custom transport's public
 contract. Use [`alphax_test`](../packages/alphax_test/README.md) and its
 conformance helper when validating an implementation.
+
+## 3a. Using a package that expects `package:http`
+
+Use the optional `alphax_http` compatibility seam when an existing library takes
+an injected `package:http` client. The normal path remains one long-lived
+AlphaX client wrapped once:
+
+```dart
+import 'package:alphax_http/alphax_http.dart';
+import 'package:alphax_native/alphax_native.dart';
+
+final alpha = await createAlphaXClient(
+  middleware: <AlphaXMiddleware>[/* AlphaX policies */],
+  tlsPolicy: const AlphaXTlsPolicy.platformDefault(),
+  proxyPolicy: const AlphaXProxyPolicy.system(),
+);
+final httpClient = AlphaXHttpClient(alpha);
+```
+
+Pass `httpClient` to Chopper, a GraphQL HTTP link, a generated client, or any
+SDK that accepts `http.Client`. The compatibility package does not depend on
+those frameworks and does not create an AlphaX client or transport inside
+`send`.
+
+The adapter borrows `alpha`: `httpClient.close()` is idempotent and blocks new
+requests, but leaves the underlying AlphaX client and active response streams
+usable. The owner of `alpha` must call `await alpha.close()` when its scope ends.
+The adapter maps `AbortableRequest.abortTrigger` to AlphaX cancellation, but
+`package:http` has no general contract for AlphaX cancellation reasons,
+timeout phases, progress callbacks, protocol preference/requirement, actual
+protocol, fallback metadata, completion metrics, native file paths, or rich
+TLS/proxy construction controls. Configure the underlying AlphaX client first
+for policies that belong below the compatibility boundary, and use AlphaX
+directly when those request-level facts or controls are required.
+
+For a streamed request body, the AlphaX transport receives the cancellation
+token, but the adapter cannot independently cancel the body subscription because
+`BaseClient` exposes no separate body-cancellation hook. Response-subscription
+cancellation is forwarded to the underlying AlphaX stream when that stream
+supports cancellation.
+
+`followRedirects` and `maxRedirects` map to AlphaX's follow/manual redirect
+policy. AlphaX still applies its credential-stripping and secure TLS/proxy
+behavior. AlphaX has no authoritative reason phrase, persistent-connection
+flag, or package:http redirect-hop field, so the bridge preserves unknowns as
+unknown/default interface values.
 
 ### Configuration scope at a glance
 
@@ -631,8 +679,9 @@ extension has been validated.
 | `json_serializable` / Freezed | Caller DTO/code-generation layer; fixture-validated. |
 | `built_value` | Caller serialization layer; no AlphaX adapter required. |
 | OpenAPI-generated Dio clients | Conditional `alphax_dio` use when Dio is injectable. |
-| Chopper | Not integrated; its `http.Client` boundary is separate. |
-| GraphQL clients | Not integrated; use the client's HTTP/link transport. |
+| Chopper | Supported through `alphax_http` when the service uses an injectable `http.Client`; no dedicated adapter. |
+| GraphQL HTTP links | Supported through `alphax_http` when the link accepts an injectable `http.Client`; GraphQL semantics remain caller-owned. |
+| OpenAPI-generated `package:http` clients | Supported when the generated client exposes an injectable `http.Client`; generator validation remains bounded. |
 | gRPC | Out of AlphaX's REST/HTTP-client scope. |
 | WebSocket | Out of AlphaX's HTTP transport scope; use a WebSocket package. |
 | SSE | No parser/integration; callers may parse an AlphaX response stream. |
