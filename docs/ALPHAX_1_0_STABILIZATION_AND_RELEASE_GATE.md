@@ -288,6 +288,12 @@ The stabilization validation run passed:
   and
 - `git diff --check`.
 
+The post-push repository CI run `33319057837` for the stabilization commit was
+fully green: Dart packages (format, analysis, tests, package metadata, FFI,
+and contract/harness checks), native prototypes on Ubuntu and macOS, and the
+Android plugin compile gate all passed. The only CI annotations were GitHub
+Action Node.js 20 deprecation notices, unrelated to AlphaX behavior.
+
 The two OpenAPI formatter changes correct a real current-SDK CI gate failure;
 they do not change behavior. No benchmark was run.
 
