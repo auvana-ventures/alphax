@@ -47,6 +47,11 @@ fixture/application dependencies only; none enters the runtime graph.
 The package uses the repository's coordinated source version
 `1.0.0-rc.4`. No rc.5 package was published and no version policy was changed.
 
+A clean Flutter consumer fixture declared only `alphax_http` and
+`alphax_native` directly. It imported `alphax_http` and `alphax_native`, with
+`alphax` and `http` resolved transitively, and passed its local production
+transport smoke test. A direct `alphax` declaration was not required.
+
 ## 3. Ownership model
 
 `AlphaXHttpClient(alphaClient)` borrows the injected client. The adapter does
@@ -272,9 +277,10 @@ standard injection seam, subject to the capability limitations above.
 
 `dart pub publish --dry-run` listed only the intended package files: changelog,
 license, README, analysis options, public library, one private implementation,
-pubspec, and two tests. The compressed archive was 12 KB. The pre-commit run
-reported only the expected local dirty-git-state warning; package validation
-reported no content, path, secret, fixture-output, or signing-material issue.
+pubspec, and two tests. The compressed archive was 12 KB. The final post-commit
+run completed with 0 warnings. The earlier pre-commit run reported only the
+expected local dirty-git-state warning; package validation reported no content,
+path, secret, fixture-output, or signing-material issue.
 
 Dependency inspection confirmed the runtime graph is limited to `alphax` and
 `http`. No fixture build output or temporary generated source is shipped.
