@@ -112,3 +112,6 @@ zero warnings; and publication remains intentionally unperformed.
   consumer/platform fixtures, audits, and clean zero-warning package dry-runs.
 - 2026-08-30: Stable preparation report completed with outcome
   `ALPHAX 1.0.0 PREPARED FOR PUBLICATION`.
+- 2026-08-30: Report and completed task record committed as
+  `e9cfa2e` (`docs: record AlphaX 1.0 preparation`); final push and
+  `HEAD == origin/main` verification remain the handoff gate.
