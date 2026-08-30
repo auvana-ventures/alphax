@@ -84,12 +84,15 @@ transforms; it does not add a worker pool or automatic buffering threshold.
 
 | Platform | Stable boundary |
 | --- | --- |
-| Android | Cronet/HttpEngine provider; H1/H2/H3 are provider and network dependent |
+| Android | Cronet/HttpEngine; provider/network-dependent H1/H2/H3 |
 | iOS | URLSession; H1/H2/H3 are provider and network dependent |
 | macOS | URLSession; H1/H2/H3 are provider and network dependent |
 | Linux | Dart IO H1 fallback |
-| Windows | Dart IO H1 fallback; `WINDOWS_SUPPORTED_UNVERIFIED_IN_CURRENT_GATE` |
-| Web | Browser Fetch/WebSocket; TLS, CORS, proxy, origin, and protocol behavior remain browser-owned |
+| Windows | Dart IO H1 fallback |
+| Web | Browser Fetch/WebSocket; browser owns TLS/CORS/proxy/origin/protocol |
+
+Windows remains classified as
+`WINDOWS_SUPPORTED_UNVERIFIED_IN_CURRENT_GATE`.
 
 ## Known boundaries
 
