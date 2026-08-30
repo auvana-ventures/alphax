@@ -13,7 +13,7 @@ Use AlphaX transports and policies underneath an existing Dio application.</p>
 <p align="center">
   <a href="https://github.com/auvana-ventures/alphax/blob/main/docs/MIGRATION.md">Migration guide</a> ·
   <a href="https://github.com/auvana-ventures/alphax/blob/main/docs/USAGE_AND_CUSTOMIZATION.md">Usage and customization</a> ·
-  <a href="https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_native">Native transports</a> ·
+  <a href="https://pub.dev/packages/alphax_native">Native transports</a> ·
   <a href="https://github.com/auvana-ventures/alphax/blob/main/LICENSE">Apache-2.0</a>
 </p>
 
@@ -57,16 +57,15 @@ or a claim of full Dio source compatibility.
 ## When should I choose this package?
 
 Choose `alphax_dio` for an existing Dio codebase. Choose
-[`alphax`](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax) directly for a new application that does not
-need Dio's API. Add [`alphax_native`](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_native) to select
-platform transports, and add [`alphax_test`](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_test) as a
+[`alphax`](https://pub.dev/packages/alphax) directly for a new application that does not
+need Dio's API. Add [`alphax_native`](https://pub.dev/packages/alphax_native) to select
+platform transports, and add [`alphax_test`](https://pub.dev/packages/alphax_test) as a
 development dependency for deterministic tests.
 
 ## Install
 
-The coordinated `1.0.0` package line is prepared for stable publication;
-hosted users continue to resolve the published `1.0.0-rc.5` candidate until
-that publication is approved. The rc.4 package is a historical baseline:
+AlphaX 1.0.0 is the current stable release. The adapter is focused on the
+existing Dio 5.x boundary; it does not change Dio's own API or policies:
 
 ```sh
 flutter pub add dio alphax alphax_native alphax_dio
@@ -309,12 +308,14 @@ Known 1.0 boundaries:
 
 ## Continue learning
 
-- [Core AlphaX API](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax)
-- [Native platform transports](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_native)
-- [Testing helpers](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_test)
+- [Core AlphaX API](https://pub.dev/packages/alphax)
+- [Native platform transports](https://pub.dev/packages/alphax_native)
+- [Web transport](https://pub.dev/packages/alphax_web)
+- [Testing helpers](https://pub.dev/packages/alphax_test)
+- [package:http bridge](https://pub.dev/packages/alphax_http)
 - [Usage and customization guide](https://github.com/auvana-ventures/alphax/blob/main/docs/USAGE_AND_CUSTOMIZATION.md)
 - [Waypoint reference app](https://github.com/auvana-ventures/alphax/tree/main/examples/waypoint)
 - [Dio and package:http migration guide](https://github.com/auvana-ventures/alphax/blob/main/docs/MIGRATION.md)
 
-The coordinated `1.0.0` release remains a focused Dio 5.x adapter, not full
-Dio source/API compatibility.
+AlphaX 1.0.0 remains a focused Dio 5.x adapter, not full Dio source/API
+compatibility.

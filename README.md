@@ -7,119 +7,116 @@
   </picture>
 </p>
 
-<p align="center"><strong>Transport-independent HTTP for Dart and Flutter.</strong><br>
-One request, response, streaming, file-transfer, cancellation, policy, and
-protocol model across the transports that each platform can actually provide.</p>
+<p align="center"><strong>One client API. Native transport where it matters. Honest protocol reporting.</strong><br>
+Cross-platform HTTP for Dart and Flutter, with streaming, files, policies, and
+the transport each platform can actually provide.</p>
 
 <p align="center">
-  <a href="docs/ALPHAX_1_0_FEATURE_FREEZE.md">1.0 feature freeze</a> ·
+  <a href="docs/ALPHAX_1_0_RELEASE_NOTES.md">AlphaX 1.0</a> ·
   <a href="docs/USAGE_AND_CUSTOMIZATION.md">Usage and customization</a> ·
   <a href="examples/waypoint/README.md">Waypoint example</a> ·
   <a href="docs/MIGRATION.md">Migration guide</a> ·
   <a href="LICENSE">Apache-2.0</a>
 </p>
 
+## What is AlphaX?
+
+AlphaX is a cross-platform HTTP client and policy layer for Dart and Flutter.
+It gives application code one request, response, streaming, file, cancellation,
+timeout, middleware, and error model while the deployment package selects the
+transport that belongs to the platform.
+
+The stable `1.0.0` package family is published. AlphaX does not guarantee H3,
+claim universal performance, or pretend that browser APIs expose native
+controls they do not provide.
+
 ## At a glance
 
-| Area | AlphaX 1.0 RC |
+| Area | AlphaX 1.0 provides |
 | --- | --- |
-| API | One typed, transport-neutral client for requests, responses, streams, files, cancellation, timeouts, redirects, and normalized errors |
-| Transports | Dart IO fallback, Android Cronet/HttpEngine, Apple URLSession, and a separate browser Fetch adapter |
-| Protocols | H1/H2/H3 where the Android or Apple provider negotiates them; H1 on Dart IO; browser protocol remains unknown to Dart |
-| Policies | Opt-in authentication, replay-aware retries, cookies, private HTTP caching, and a generic circuit breaker |
-| Streaming protocols | Incremental SSE parser over the existing AlphaX response stream plus a separate WebSocket lifecycle contract; reconnect remains caller-owned |
-| Security | Verified TLS defaults, platform-scoped SPKI pinning, proxy policy, capability checks, and fail-closed unsupported controls |
+| Client API | Requests, responses, headers, bodies, streams, files, cancellation, timeouts, redirects, and normalized errors |
+| Native transports | Android Cronet/HttpEngine, Apple URLSession, and Dart IO fallback through `alphax_native` |
+| Browser transport | Fetch through `alphax_web`, with browser-owned TLS, CORS, proxy, cookie, and protocol behavior |
+| Protocols | H1/H2/H3 where a native provider negotiates them; H1 Dart IO fallback; browser protocol metadata remains unknown to Dart |
+| Policies | Opt-in authentication, replay-aware retries, cookies, private cache, and resilience middleware |
+| Streaming protocols | Incremental SSE parsing and a separate text/binary WebSocket lifecycle; reconnect remains caller-owned |
+
+## Quick start
+
+For native Flutter, install one deployment package and use one entry import:
+
+```sh
+flutter pub add alphax_native
+```
+
+```dart
+import 'package:alphax_native/alphax_native.dart';
+
+Future<void> main() async {
+  final client = await createAlphaXClient();
+  try {
+    final response = await client.get(Uri.https('example.com', '/'));
+    print('${response.statusCode}: ${await response.readAsString()}');
+  } finally {
+    await client.close();
+  }
+}
+```
+
+The factory creates one reusable client and selects Cronet/HttpEngine on
+Android, URLSession on iOS/macOS, or Dart IO on Linux/Windows. For Web, install
+`alphax_web` and use the same-named synchronous factory:
+
+```dart
+import 'package:alphax_web/alphax_web.dart';
+
+final client = createAlphaXClient();
+```
+
+## Choose the package by deployment path
+
+Install the direct package for the application boundary, then add only the
+optional package for the job you need:
+
+| Package | Purpose |
+| --- | --- |
+| [`alphax`](https://pub.dev/packages/alphax) | Core client, request/response contracts, policies, streaming, files, SSE, and WebSocket contract |
+| [`alphax_native`](https://pub.dev/packages/alphax_native) | Native Flutter transports and automatic client factory |
+| [`alphax_web`](https://pub.dev/packages/alphax_web) | Browser Fetch transport and browser WebSocket connector |
+| [`alphax_dio`](https://pub.dev/packages/alphax_dio) | Focused Dio `HttpClientAdapter` for existing Dio/Retrofit applications |
+| [`alphax_http`](https://pub.dev/packages/alphax_http) | `package:http` bridge for Chopper, GraphQL HTTP, and injectable SDKs |
+| [`alphax_generator`](https://pub.dev/packages/alphax_generator) | Dev-time direct typed REST source generation |
+| [`alphax_transform`](https://pub.dev/packages/alphax_transform) | Optional one-shot JSON transform for already-buffered payloads |
+| [`alphax_test`](https://pub.dev/packages/alphax_test) | Development-only deterministic fakes and conformance helpers |
+
+Native and Web deployment packages already depend on `alphax`, so ordinary
+applications do not need to declare the core package directly. Pure Dart
+applications choose `alphax` and provide an `AlphaXTransport` implementation.
+
+## Platform and transport matrix
+
+| Platform | Recommended transport | Protocol boundary |
+| --- | --- | --- |
+| Android | Cronet / supported HttpEngine provider | H1/H2/H3 where the provider, server, and network negotiate it |
+| iOS | URLSession | H1/H2/H3 where the provider, server, and network negotiate it |
+| macOS | URLSession | H1/H2/H3 where the provider, server, and network negotiate it |
+| Linux | Dart IO | H1 fallback; H2/H3 are not advertised |
+| Windows | Dart IO | H1 fallback; current-gate validation remains unverified |
+| Web | Browser Fetch | Browser-managed TLS/proxy/protocol behavior; Dart cannot report the negotiated HTTP version authoritatively |
+
+H3 is opportunistic, never guaranteed, and depends on the provider, server,
+proxy, and network. A protocol preference may fall back; a protocol requirement
+fails closed when the exact protocol cannot be observed or enforced.
 
 ## Why AlphaX?
 
-- Keep application request code independent of a particular transport engine.
-- Inspect completion-time protocol metadata instead of assuming that a preferred
-  protocol was negotiated.
-- Compose application policies explicitly, with conservative defaults for
-  retries, authentication, cookies, caching, and resilience.
-- Stream response and file-transfer work with cancellation and bounded delivery
-  where the selected platform transport supports it.
-
-## Status
-
-**AlphaX `1.0.0` is prepared for stable publication.** The eight-package
-stable family is versioned in this source tree; hosted users continue to
-resolve the published `1.0.0-rc.5` family until stable publication is approved.
-The feature surface is frozen under the
-[1.0 feature freeze](docs/ALPHAX_1_0_FEATURE_FREEZE.md). See the
-[rc.5 publication report](docs/ALPHAX_1_0_RC_5_PUBLICATION_REPORT.md) for the
-hosted candidate evidence. `rc.4` and `rc.3` are historical baselines.
-
-AlphaX makes no universal H3, speed, zero-copy, or “fastest client” claim.
-
-## Install
-
-Start with the deployment package for your target. The coordinated `1.0.0`
-packages are prepared to resolve transitively through the deployment path:
-
-```sh
-# Android, iOS, macOS, Linux, or Windows
-flutter pub add alphax_native
-
-# Browser Fetch
-flutter pub add alphax_web
-
-# Pure Dart with a custom transport
-dart pub add alphax
-
-# Existing Dio application on native Flutter
-flutter pub add dio alphax_native alphax_dio
-
-# Optional one-shot large-payload JSON transform
-dart pub add alphax alphax_transform
-```
-
-`alphax` has no Flutter SDK dependency. A pure-Dart application can use it with
-its own `AlphaXTransport`; native Flutter applications use `alphax_native` as
-their direct AlphaX package. Add `alphax_test` as a development dependency
-when you want deterministic transport tests.
-
-### Pin a coordinated deployment path explicitly
-
-Pin the platform integration package directly in a native Flutter application:
-
-```yaml
-dependencies:
-  alphax_native: ^1.0.0
-```
-
-For Web, use the equivalent direct dependency:
-
-```yaml
-dependencies:
-  alphax_web: ^1.0.0
-```
-
-`alphax_native` and `alphax_web` already depend on `alphax`, so an ordinary
-consumer does not need to declare the core package directly. `alphax` remains
-the direct choice for pure-Dart custom transports. Add `alphax_dio`,
-`alphax_http`, `alphax_transform`, or `alphax_test` only for those optional
-integration, workload, or development roles.
-
-## Choose by deployment path
-
-Start with where the application runs, then add only the optional seam it needs:
-
-| Deployment path | Direct package | Entry point |
-| --- | --- | --- |
-| Native Flutter | [`alphax_native`](packages/alphax_native/README.md) | `createAlphaXClient()` |
-| Browser Web | [`alphax_web`](packages/alphax_web/README.md) | `createAlphaXClient()` |
-| Pure Dart/custom transport | [`alphax`](packages/alphax/README.md) | `AlphaXClient(transport: ...)` |
-| Existing Dio/Retrofit | [`alphax_dio`](packages/alphax_dio/README.md) plus a platform path | injected AlphaX client |
-| Existing `package:http` library | [`alphax_http`](packages/alphax_http/README.md) plus a platform path | injected `AlphaXHttpClient` |
-| New direct typed REST API | [`alphax_generator`](packages/alphax_generator/README.md) as dev tooling plus a platform path | generated `AlphaXClient` service |
-| Large buffered JSON | [`alphax_transform`](packages/alphax_transform/README.md) | explicit one-shot transform |
-| Testing | [`alphax_test`](packages/alphax_test/README.md) as a dev dependency | deterministic fakes and conformance helpers |
-
-The deployment packages re-export the public `alphax` API. This keeps the
-ordinary native and Web import to one package while preserving `alphax` as the
-canonical pure-Dart contract namespace. These are package roles, not separate
-networking products.
+- Keep request code independent of a particular transport engine.
+- Use platform-native HTTP implementations where they are available.
+- Inspect the protocol that actually completed a request instead of assuming H3.
+- Compose opt-in authentication, retry, cookie, cache, and resilience policies.
+- Stream responses and file transfers with cancellation and bounded delivery.
+- Keep existing Dio, Retrofit, `package:http`, Chopper, and GraphQL HTTP code at
+  its normal adapter seam.
 
 ## Choose a starting point
 
@@ -130,48 +127,12 @@ networking products.
 | Parse Server-Sent Events | [Server-Sent Events](#server-sent-events) |
 | Open a WebSocket | [WebSocket](#websocket) |
 | Upload or download a file | [Upload and download](#upload-and-download) |
-| Prefer H3 and see what completed | [Capabilities and protocol reporting](#capabilities-and-protocol-reporting) |
+| Inspect protocol completion | [Capabilities and protocol reporting](#capabilities-and-protocol-reporting) |
 | Add retries, tokens, cookies, cache, or resilience | [Policy guide](docs/POLICIES.md) |
 | Configure TLS, pins, or proxies | [Native transport guide](packages/alphax_native/README.md#configure-tls-and-proxy-behavior) |
-| Understand every configuration boundary | [Usage and customization guide](docs/USAGE_AND_CUSTOMIZATION.md) |
-| Keep an existing Dio application | [`alphax_dio`](packages/alphax_dio/README.md) |
-| Test without a network | [`alphax_test`](packages/alphax_test/README.md) |
-| Offload a profiled large JSON transform | [`alphax_transform`](packages/alphax_transform/README.md) |
-
-## Quick start
-
-```dart
-import 'package:alphax_native/alphax_native.dart';
-
-Future<void> main() async {
-  final client = await createAlphaXClient();
-  try {
-    final response = await client.get(Uri.https('example.com', '/'));
-    print('${response.statusCode}: ${await response.readAsString()}');
-
-    // A transport may learn the protocol only after the body completes.
-    final finalMetrics = await response.completionMetrics;
-    print('negotiated protocol: ${finalMetrics.negotiatedProtocol.name}');
-  } finally {
-    await client.close();
-  }
-}
-```
-
-`createAlphaXClient()` creates one `AlphaXClient` and delegates transport
-selection to `createAlphaXTransport()`: Cronet/HttpEngine on Android, URLSession
-on iOS/macOS, and Dart IO on Linux/Windows. Web is a separate package boundary:
-
-```dart
-import 'package:alphax_web/alphax_web.dart';
-
-final webClient = createAlphaXClient();
-```
-
-Create one configured client for an API or session and reuse it; the client
-owns its transport and middleware state. Close it when that scope ends. The
-factory does not enable retries, cookies, cache, authentication, resilience,
-or background JSON parsing.
+| Keep an existing Dio application | [`alphax_dio`](https://pub.dev/packages/alphax_dio) |
+| Test without a network | [`alphax_test`](https://pub.dev/packages/alphax_test) |
+| Offload a profiled JSON transform | [`alphax_transform`](https://pub.dev/packages/alphax_transform) |
 
 ## Choose your level of control
 
@@ -202,7 +163,7 @@ provider/browser decides which platform operations can honor it.
 
 ### Take control of the transport
 
-The explicit rc.4 transport path remains available for troubleshooting, testing,
+Explicit transport construction remains available for troubleshooting, testing,
 or a deliberate provider choice:
 
 ```dart
@@ -315,10 +276,9 @@ an additional AlphaX-owned choice, not a Retrofit replacement.
 
 ## Ecosystem compatibility
 
-The following boundaries were validated for rc.5 and are frozen for 1.0.
-Compatibility means the existing library accepts the documented injection
-seam; it does not transfer
-ownership of that library's protocol or serialization semantics to AlphaX.
+These compatibility paths use the existing library injection seams; they do not
+transfer ownership of that library's protocol or serialization semantics to
+AlphaX.
 
 | Ecosystem | Classification | Path |
 | --- | --- | --- |
@@ -331,8 +291,7 @@ ownership of that library's protocol or serialization semantics to AlphaX.
 | GraphQL WebSocket | `PROOF_ONLY` | Caller bridge → AlphaX WebSocket session |
 | gRPC | `DEFERRED_POST_1_0` | Separate RPC/runtime boundary |
 
-See the [full bounded-optionals review](docs/ALPHAX_RC5_BOUNDED_OPTIONALS_REVIEW.md)
-and the compile-tested [OpenAPI](examples/openapi_template_proof/README.md) and
+See the compile-tested [OpenAPI](examples/openapi_template_proof/README.md) and
 [Protobuf](examples/protobuf_interop/README.md) recipes. These results do not
 add GraphQL, OpenAPI, Protobuf, or gRPC runtime packages to AlphaX.
 
@@ -386,8 +345,8 @@ by the application.
 Retrofit remains the API/code-generation layer, Dio remains the application
 client, and AlphaX owns the injected transport and policy boundary. Add
 `retrofit` and `retrofit_generator` to the application/tooling package; they
-are not dependencies of AlphaX. The maintained Retrofit fixture used for this
-RC review generated and exercised typed JSON, nullable and wrapped responses,
+are not dependencies of AlphaX. The maintained generator fixture covers typed
+JSON, nullable and wrapped responses,
 streaming, cancellation, multipart file upload, errors, redirects, and
 progress through this same adapter path. See [Using Retrofit in the full user
 guide](docs/USAGE_AND_CUSTOMIZATION.md#using-retrofit).
@@ -608,14 +567,14 @@ cannot authoritatively report H2/H3 and therefore does not advertise them.
 
 | Package | Purpose | 1.0 status |
 | --- | --- | --- |
-| [`alphax`](packages/alphax) | Pure-Dart transport-neutral HTTP and WebSocket contracts | `PREPARED_1_0`; `1.0.0` |
-| [`alphax_native`](packages/alphax_native) | Native entry façade, HTTP adapters, and Dart IO WebSocket connector | `PREPARED_1_0`; `1.0.0` |
-| [`alphax_test`](packages/alphax_test) | Fakes and shared conformance helpers | `PREPARED_1_0`; `1.0.0` |
-| [`alphax_dio`](packages/alphax_dio) | Focused Dio 5.x `HttpClientAdapter` boundary | `PREPARED_1_0`; `1.0.0` |
-| [`alphax_http`](packages/alphax_http) | Optional `package:http` `BaseClient` compatibility seam | `PREPARED_1_0`; `1.0.0` |
-| [`alphax_web`](packages/alphax_web) | Web entry façade, browser Fetch adapter, and browser WebSocket connector | `PREPARED_1_0`; `1.0.0` |
-| [`alphax_transform`](packages/alphax_transform) | Explicit one-shot isolate JSON transform for buffered payloads | `PREPARED_1_0`; `1.0.0` |
-| [`alphax_generator`](packages/alphax_generator) | Dev-time direct AlphaX typed REST source generator | `PREPARED_1_0`; `1.0.0` |
+| [`alphax`](packages/alphax) | Pure-Dart transport-neutral HTTP and WebSocket contracts | Published `1.0.0` |
+| [`alphax_native`](packages/alphax_native) | Native entry façade, HTTP adapters, and Dart IO WebSocket connector | Published `1.0.0` |
+| [`alphax_test`](packages/alphax_test) | Fakes and shared conformance helpers | Published `1.0.0` |
+| [`alphax_dio`](packages/alphax_dio) | Focused Dio 5.x `HttpClientAdapter` boundary | Published `1.0.0` |
+| [`alphax_http`](packages/alphax_http) | Optional `package:http` `BaseClient` compatibility seam | Published `1.0.0` |
+| [`alphax_web`](packages/alphax_web) | Web entry façade, browser Fetch adapter, and browser WebSocket connector | Published `1.0.0` |
+| [`alphax_transform`](packages/alphax_transform) | Explicit one-shot isolate JSON transform for buffered payloads | Published `1.0.0` |
+| [`alphax_generator`](packages/alphax_generator) | Dev-time direct AlphaX typed REST source generator | Published `1.0.0` |
 
 There is no AlphaX-owned C++ engine, production Rust transport, libcurl
 dependency, telemetry SDK, GraphQL client, or WebSocket engine in the 1.0
@@ -703,11 +662,11 @@ Dart application
             └── WebSocket connector → browser WebSocket
 ```
 
-See the [1.0 feature freeze](docs/ALPHAX_1_0_FEATURE_FREEZE.md),
+See the [AlphaX 1.0 release notes](docs/ALPHAX_1_0_RELEASE_NOTES.md), the
 [accepted transport ADR](docs/decisions/0004-platform-native-mobile-transports.md),
 the [1.0 requirements audit](docs/ALPHAX_1_0_REQUIREMENTS_AUDIT.md),
-and [Phase 1E validation report](docs/phase1e-cross-transport-validation.md).
-Historical Phase 0 benchmark results remain evidence for measured HTTP/1.1
+and the [cross-transport validation report](docs/phase1e-cross-transport-validation.md).
+Historical benchmark results remain evidence for measured HTTP/1.1
 workloads; see the [historical benchmark documentation](docs/benchmarks.md) and
 its linked result summaries. They were not rewritten as H2/H3 performance
 claims.

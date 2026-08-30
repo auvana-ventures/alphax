@@ -1,5 +1,5 @@
 name: alphax_http
-description: A package:http compatibility bridge backed by AlphaXClient.
+description: package:http Client bridge backed by AlphaXClient for Chopper, GraphQL HTTP, and injectable SDKs.
 version: 1.0.0
 homepage: https://github.com/auvana-ventures/alphax
 repository: https://github.com/auvana-ventures/alphax

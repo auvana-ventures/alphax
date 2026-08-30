@@ -1,5 +1,5 @@
 PODS:
-  - alphax_native (1.0.0-rc.1):
+  - alphax_native (1.0.0):
     - Flutter
   - Flutter (1.0.0)
 
@@ -14,7 +14,7 @@ EXTERNAL SOURCES:
     :path: Flutter
 
 SPEC CHECKSUMS:
-  alphax_native: 6deed102160398ad27468f73bc206c6cee598362
+  alphax_native: a2b05c8a433016fea58760632cb96f374753a690
   Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47
 
 PODFILE CHECKSUM: 3ba3a73b1b12adcf321a227a745625fe0888cc82

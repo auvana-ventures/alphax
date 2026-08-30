@@ -11,6 +11,15 @@ Use it for Chopper, GraphQL HTTP clients, generated clients that accept an
 injected `http.Client`, and ordinary SDKs built on `package:http`. Direct AlphaX
 users do not need this package.
 
+Related packages:
+
+- [`alphax`](https://pub.dev/packages/alphax) for direct AlphaX usage;
+- [`alphax_native`](https://pub.dev/packages/alphax_native) for native Flutter
+  transport selection;
+- [`alphax_web`](https://pub.dev/packages/alphax_web) for browser Fetch; and
+- [`alphax_test`](https://pub.dev/packages/alphax_test) for deterministic test
+  transports.
+
 ## Basic use
 
 Create and configure AlphaX first, then wrap the long-lived client:

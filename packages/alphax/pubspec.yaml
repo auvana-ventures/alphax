@@ -1,14 +1,15 @@
 name: alphax
-description: Transport-independent HTTP client contracts for Dart and Flutter.
+description: Cross-platform HTTP client API for Dart and Flutter with streaming, retries, caching, protocol control, middleware, and native transport integrations.
 version: 1.0.0
 homepage: https://github.com/auvana-ventures/alphax
 repository: https://github.com/auvana-ventures/alphax
 issue_tracker: https://github.com/auvana-ventures/alphax/issues
 topics:
-  - networking
   - http
-  - flutter
-  - dart
+  - networking
+  - middleware
+  - streaming
+  - websocket
 resolution: workspace
 environment:
   sdk: ">=3.8.0 <4.0.0"

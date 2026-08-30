@@ -1,8 +1,7 @@
 # AlphaX 1.0
 
-AlphaX 1.0 is the stable package line prepared from the published 1.0.0-rc.5
-candidate. The source tree contains the final stable metadata; package
-publication is a separate release action.
+AlphaX 1.0.0 is the current stable release. This document summarizes the
+published package family and its user-facing capabilities.
 
 ## What AlphaX is
 
@@ -30,7 +29,7 @@ browser-owned.
 
 Secure platform TLS defaults, host-scoped pinning where supported, explicit
 proxy policy, authentication middleware, cookies, caching, retries, and
-resilience are composed through the frozen AlphaX client and transport
+resilience are composed through the stable AlphaX client and transport
 contracts. Unsupported security or proxy controls fail honestly rather than
 silently weakening the request.
 
@@ -107,5 +106,4 @@ remain provider concerns.
 ## Migrating from rc.5
 
 If an application already uses `1.0.0-rc.5`, update the coordinated package
-constraints to `1.0.0` after stable publication. No API or source migration is
-required.
+constraints to `1.0.0`. No API or source migration is required.

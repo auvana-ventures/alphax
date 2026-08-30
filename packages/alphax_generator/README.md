@@ -10,7 +10,13 @@ AlphaX annotations → alphax_generator → AlphaXRequest → AlphaXClient
 
 It is for applications that want a direct AlphaX typed API without adding Dio,
 Retrofit, or `package:http`. Existing Retrofit applications remain supported
-through [`alphax_dio`](../alphax_dio/README.md).
+through [`alphax_dio`](https://pub.dev/packages/alphax_dio).
+
+For deployment, use [`alphax_native`](https://pub.dev/packages/alphax_native),
+[`alphax_web`](https://pub.dev/packages/alphax_web), or
+[`alphax`](https://pub.dev/packages/alphax) with a custom transport. The
+generator is development tooling; generated applications do not use its
+analyzer or source-generation dependencies at runtime.
 
 ## Setup
 

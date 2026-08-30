@@ -1,5 +1,5 @@
 name: alphax_native
-description: Platform transport adapters for AlphaX using Dart IO, Cronet, and URLSession.
+description: Native Flutter HTTP transports for AlphaX using Android Cronet, Apple URLSession, and a Dart IO fallback.
 version: 1.0.0
 homepage: https://github.com/auvana-ventures/alphax
 repository: https://github.com/auvana-ventures/alphax

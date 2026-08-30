@@ -11,7 +11,7 @@
 Use the platform networking stack where it is supported, with a truthful Dart IO fallback.</p>
 
 <p align="center">
-  <a href="https://github.com/auvana-ventures/alphax/blob/main/docs/ALPHAX_1_0_RELEASE_GATE.md">Platform matrix</a> ·
+  <a href="https://github.com/auvana-ventures/alphax/blob/main/docs/ALPHAX_1_0_RELEASE_NOTES.md">AlphaX 1.0</a> ·
   <a href="https://github.com/auvana-ventures/alphax/tree/main/examples/waypoint">Waypoint example</a> ·
   <a href="https://github.com/auvana-ventures/alphax/blob/main/LICENSE">Apache-2.0</a>
 </p>
@@ -38,7 +38,7 @@ Use the platform networking stack where it is supported, with a truthful Dart IO
 `alphax_native` gives an AlphaX application the platform transport selected for
 each supported target while keeping the same Dart request code everywhere. It
 supplies Dart IO, Android Cronet/HttpEngine, and Apple URLSession adapters
-behind the transport-neutral [`alphax`](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax) API. The
+behind the transport-neutral [`alphax`](https://pub.dev/packages/alphax) API. The
 package entry point re-exports that public API, so ordinary native users need
 only this package import.
 
@@ -61,9 +61,10 @@ fails closed when an explicit protocol requirement cannot be met.
 
 Choose `alphax_native` for a new Flutter application or when an existing
 AlphaX application needs the platform transport implementations. Use
-[`alphax`](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax) alone for transport contracts and a custom
-transport, or use [`alphax_dio`](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_dio) if your application
-already uses Dio.
+[`alphax`](https://pub.dev/packages/alphax) alone for transport contracts and a custom
+transport, or use [`alphax_dio`](https://pub.dev/packages/alphax_dio) if your application
+already uses Dio. Add [`alphax_test`](https://pub.dev/packages/alphax_test) for
+deterministic test transports.
 
 ## Install
 
@@ -75,9 +76,7 @@ flutter pub add alphax_native
 
 Do not add `alphax` directly just to use the ordinary native API; it is already
 declared by `alphax_native` and is available through its public entry import.
-The coordinated `1.0.0` package line is prepared for stable publication;
-hosted users continue to resolve the published `1.0.0-rc.5` candidate until
-that publication is approved. rc.4 is a historical baseline.
+AlphaX `1.0.0` is the current stable release.
 
 The Android provider is resolved through Gradle and Apple packaging uses
 CocoaPods. No copied Cronet binary is bundled in the pub package. Swift
@@ -155,7 +154,7 @@ client; it does not use Dio or Retrofit. See
 [`alphax_generator`](../alphax_generator/README.md) and the
 [compile-tested native fixture](../../examples/typed_rest).
 
-## Automatic selection (advanced)
+## Automatic transport selection
 
 For native Dart VM and Flutter targets, `createAlphaXTransport` selects the recommended
 AlphaX adapter without application-level `Platform.is...` branching:
@@ -208,7 +207,7 @@ corresponding platforms.
 | macOS 12+ | URLSession | H1/H2/H3 where the OS, server, proxy, and network negotiate it |
 | Linux | Dart IO | H1 only; H2/H3 are not advertised |
 | Windows | Dart IO | H1 only; H2/H3 are not advertised |
-| Web | Not provided by this native plugin | Add [`alphax_web`](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_web) for browser Fetch |
+| Web | Not provided by this native plugin | Add [`alphax_web`](https://pub.dev/packages/alphax_web) for browser Fetch |
 
 ## Common jobs
 
@@ -425,28 +424,30 @@ guide](https://github.com/auvana-ventures/alphax/blob/main/docs/POLICIES.md).
 
 - It does not guarantee H3 on every request or every network.
 - It does not provide the browser transport; use the separate
-  [`alphax_web`](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_web) package for Web.
+  [`alphax_web`](https://pub.dev/packages/alphax_web) package for Web.
 - It does not expose Cronet, URLSession, Flutter channel, FFI, C++, Rust, or
   libcurl types through the core API.
 - It does not make unsupported TLS or proxy policies silently succeed.
 - It makes no universal performance, zero-copy, or “fastest client” claim.
 
 Authentication, cookies, caching, retries, and generic resilience are opt-in
-pure-Dart middleware from [`alphax`](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax). This package only
+pure-Dart middleware from [`alphax`](https://pub.dev/packages/alphax). This package only
 selects and implements native/Dart IO transports; it does not enable those
 policies automatically.
 
 ## Continue learning
 
-- [Core AlphaX API](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax)
-- [Dio adapter](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_dio)
-- [Testing helpers](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_test)
+- [Core AlphaX API](https://pub.dev/packages/alphax)
+- [Browser Fetch transport](https://pub.dev/packages/alphax_web)
+- [Dio adapter](https://pub.dev/packages/alphax_dio)
+- [package:http bridge](https://pub.dev/packages/alphax_http)
+- [Testing helpers](https://pub.dev/packages/alphax_test)
 - [Waypoint reference app](https://github.com/auvana-ventures/alphax/tree/main/examples/waypoint)
 - [Migration guide](https://github.com/auvana-ventures/alphax/blob/main/docs/MIGRATION.md)
 - [Usage and customization guide](https://github.com/auvana-ventures/alphax/blob/main/docs/USAGE_AND_CUSTOMIZATION.md)
-- [1.0 platform and protocol matrix](https://github.com/auvana-ventures/alphax/blob/main/docs/ALPHAX_1_0_RELEASE_GATE.md)
+- [1.0 release notes](https://github.com/auvana-ventures/alphax/blob/main/docs/ALPHAX_1_0_RELEASE_NOTES.md)
 
-The coordinated `1.0.0` package line is prepared for stable publication.
-Android, iOS, and macOS support remains provider/platform dependent, while
-Dart IO is the truthful fallback on Linux and Windows. The stable façade is
-additive and does not remove any explicit rc.4 construction path.
+AlphaX `1.0.0` is the current stable release. Android, iOS, and macOS support
+remains provider/platform dependent, while Dart IO is the truthful fallback on
+Linux and Windows. The façade is additive and the explicit transport APIs
+remain available for controlled provider selection.

@@ -1,5 +1,5 @@
 name: alphax_test
-description: Deterministic test transports and fixtures for AlphaX.
+description: Deterministic fake transports, responses, streams, and conformance helpers for testing AlphaX applications.
 version: 1.0.0
 homepage: https://github.com/auvana-ventures/alphax
 repository: https://github.com/auvana-ventures/alphax

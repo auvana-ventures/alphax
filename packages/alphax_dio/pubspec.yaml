@@ -1,5 +1,5 @@
 name: alphax_dio
-description: Dio HttpClientAdapter compatibility boundary backed by AlphaX.
+description: Dio HttpClientAdapter backed by AlphaX transports for existing Dio and Retrofit applications.
 version: 1.0.0
 homepage: https://github.com/auvana-ventures/alphax
 repository: https://github.com/auvana-ventures/alphax
@@ -8,7 +8,7 @@ topics:
   - networking
   - http
   - dio
-  - dart
+  - retrofit
 resolution: workspace
 environment:
   sdk: ">=3.8.0 <4.0.0"

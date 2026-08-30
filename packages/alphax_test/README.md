@@ -11,7 +11,7 @@
 Exercise requests, streams, failures, policies, and file transfers without a live network.</p>
 
 <p align="center">
-  <a href="https://github.com/auvana-ventures/alphax/tree/main/packages/alphax">Core API</a> ·
+  <a href="https://pub.dev/packages/alphax">Core API</a> ·
   <a href="https://github.com/auvana-ventures/alphax/tree/main/examples/waypoint">Waypoint example</a> ·
   <a href="https://github.com/auvana-ventures/alphax/blob/main/LICENSE">Apache-2.0</a>
 </p>
@@ -57,9 +57,8 @@ not required in a production dependency list.
 
 ## Install
 
-The coordinated `1.0.0` package line is prepared for stable publication;
-hosted users continue to resolve the published `1.0.0-rc.5` candidate until
-that publication is approved. rc.4 is a historical baseline:
+AlphaX 1.0.0 is the current stable release. Add this package only as a
+development dependency; it does not replace the production transport:
 
 ```sh
 dart pub add --dev alphax_test
@@ -207,12 +206,14 @@ pattern.
 
 ## Continue learning
 
-- [Core AlphaX API](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax)
+- [Core AlphaX API](https://pub.dev/packages/alphax)
 - [Usage and customization guide](https://github.com/auvana-ventures/alphax/blob/main/docs/USAGE_AND_CUSTOMIZATION.md)
-- [Native platform transports](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_native)
-- [Dio adapter](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_dio)
+- [Native platform transports](https://pub.dev/packages/alphax_native)
+- [Web transport](https://pub.dev/packages/alphax_web)
+- [Dio adapter](https://pub.dev/packages/alphax_dio)
+- [package:http bridge](https://pub.dev/packages/alphax_http)
 - [Waypoint reference app](https://github.com/auvana-ventures/alphax/tree/main/examples/waypoint)
-- [1.0 testing and conformance scope](https://github.com/auvana-ventures/alphax/blob/main/docs/ALPHAX_1_0_FEATURE_FREEZE.md)
+- [Transport conformance examples](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_test/test)
 
-The coordinated `1.0.0` package is a development dependency only and does not
+The stable `1.0.0` package is a development dependency only and does not
 provide a production transport.

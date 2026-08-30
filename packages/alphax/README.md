@@ -7,11 +7,11 @@
   </picture>
 </p>
 
-<p align="center"><strong>The transport-neutral AlphaX API.</strong><br>
-Write request code once and choose the transport at the application boundary.</p>
+<p align="center"><strong>The core AlphaX HTTP client API.</strong><br>
+Write request code once and choose the deployment transport at the application boundary.</p>
 
 <p align="center">
-  <a href="https://github.com/auvana-ventures/alphax/blob/main/docs/ALPHAX_1_0_FEATURE_FREEZE.md">1.0 feature freeze</a> ·
+  <a href="https://github.com/auvana-ventures/alphax/blob/main/docs/ALPHAX_1_0_RELEASE_NOTES.md">AlphaX 1.0</a> ·
   <a href="https://github.com/auvana-ventures/alphax/blob/main/docs/USAGE_AND_CUSTOMIZATION.md">Usage and customization</a> ·
   <a href="https://github.com/auvana-ventures/alphax/tree/main/examples/waypoint">Waypoint example</a> ·
   <a href="https://github.com/auvana-ventures/alphax/blob/main/LICENSE">Apache-2.0</a>
@@ -30,15 +30,15 @@ Write request code once and choose the transport at the application boundary.</p
 ## Start here
 
 1. Install `alphax` with the transport package for your target.
-2. Run [your first request](#your-first-request).
+2. Run [your first request](#quick-start).
 3. Choose a task from [common jobs](#common-jobs).
 4. Add policies only after reading the [defaults](#understand-defaults-before-adding-policies)
    and [policy guide](https://github.com/auvana-ventures/alphax/blob/main/docs/POLICIES.md).
 
-`alphax` is the transport-independent HTTP client foundation for Dart and
-Flutter. Write request code once, then run it with Dart IO, Android Cronet,
-Apple URLSession, or a separate browser adapter without changing your request,
-response, streaming, file, cancellation, timeout, or error-handling code.
+`alphax` is the core HTTP client and policy layer for Dart and Flutter. Write
+request code once, then run it with Dart IO, Android Cronet, Apple URLSession,
+or a separate browser adapter without changing your request, response,
+streaming, file, cancellation, timeout, or error-handling code.
 Its dedicated WebSocket sub-library defines the portable full-duplex lifecycle;
 it does not select or implement a WebSocket provider.
 
@@ -55,11 +55,10 @@ Use `alphax` when you want:
 - opt-in retry, authentication, cookie, cache, and generic resilience
   middleware with safe replay defaults.
 
-`alphax` does not open a network connection by itself. It defines the contracts
-and client facade; choose a transport from
-[`alphax_native`](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_native),
-[`alphax_web`](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_web), or provide another
-`AlphaXTransport` implementation.
+`alphax` does not select a provider by itself. For a normal application, choose
+[`alphax_native`](https://pub.dev/packages/alphax_native) or
+[`alphax_web`](https://pub.dev/packages/alphax_web). For a pure-Dart or test
+environment, provide an `AlphaXTransport` implementation directly.
 
 For the normal native-platform choice, use
 `createAlphaXTransport()` from `alphax_native`. That factory belongs outside
@@ -72,23 +71,62 @@ or Dart IO. Web remains an explicit `WebFetchTransport()` choice from
 Choose `alphax` for a new HTTP integration or when you want to keep your
 application independent of a particular networking engine. If you already use
 Dio and want to preserve Dio request code, use
-[`alphax_dio`](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_dio) instead. If you need deterministic
-tests, add [`alphax_test`](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_test) as a development
+[`alphax_dio`](https://pub.dev/packages/alphax_dio). For a library that accepts
+`package:http`, use [`alphax_http`](https://pub.dev/packages/alphax_http). If
+you need deterministic tests, add
+[`alphax_test`](https://pub.dev/packages/alphax_test) as a development
 dependency.
+
+## Choose related packages
+
+| Package | Use it for |
+| --- | --- |
+| [`alphax_native`](https://pub.dev/packages/alphax_native) | Native Flutter HTTP transports and automatic client creation |
+| [`alphax_web`](https://pub.dev/packages/alphax_web) | Browser Fetch and browser WebSocket integration |
+| [`alphax_dio`](https://pub.dev/packages/alphax_dio) | Existing Dio or Retrofit applications |
+| [`alphax_http`](https://pub.dev/packages/alphax_http) | Chopper, GraphQL HTTP, or any injectable `http.Client` consumer |
+| [`alphax_generator`](https://pub.dev/packages/alphax_generator) | Dev-time direct typed REST generation |
+| [`alphax_test`](https://pub.dev/packages/alphax_test) | Deterministic fakes and transport conformance tests |
+| [`alphax_transform`](https://pub.dev/packages/alphax_transform) | Explicit one-shot transforms for already-buffered JSON |
 
 ## Install
 
-The coordinated `1.0.0` package line is prepared for stable publication. Until
-that publication is approved, hosted users resolve the published `1.0.0-rc.5`
-candidate. The `rc.4` release is a historical baseline:
+The stable `1.0.0` package is published. Add a deployment package for a
+concrete platform, or provide your own transport when staying pure Dart:
 
 ```sh
-flutter pub add alphax alphax_native
+flutter pub add alphax_native
 ```
 
-`alphax` itself has no Flutter SDK dependency and can be used from pure Dart.
-The example below uses the automatic factory supplied by `alphax_native`; a
-pure-Dart application may inject its own `AlphaXTransport` instead.
+For a pure-Dart custom transport, use `dart pub add alphax`. `alphax` itself
+has no Flutter SDK dependency, and native/Web deployment packages already
+depend on it.
+
+## Quick start
+
+For native Flutter, use the deployment façade and one import:
+
+```dart
+import 'package:alphax_native/alphax_native.dart';
+
+Future<void> main() async {
+  final client = await createAlphaXClient();
+  try {
+    final response = await client.get(Uri.https('example.com', '/health'));
+    print('${response.statusCode}: ${await response.readAsString()}');
+  } finally {
+    await client.close();
+  }
+}
+```
+
+The same request API works with `alphax_web` in a browser or with a custom
+`AlphaXTransport` in pure Dart. Reuse one client for its application scope and
+close it when that scope ends.
+
+The package-local [`example/main.dart`](example/main.dart) uses a deterministic
+transport because `alphax` is pure Dart and does not bundle a platform provider.
+For a real native or browser request, use the deployment package shown above.
 
 ## Typed REST generation
 
@@ -127,10 +165,10 @@ dependencies. The full compile-tested examples are in
 custom-transport hand-off is in
 [`examples/typed_rest_dart`](../../examples/typed_rest_dart).
 
-### Bounded interoperability
+### Ecosystem compatibility
 
-The rc.5 ecosystem checks are the evidence for the frozen 1.0 seams without
-adding framework runtime dependencies to `alphax`:
+These integrations use their normal caller-owned seams without adding
+framework runtime dependencies to `alphax`:
 
 - Dio and Retrofit use `alphax_dio`;
 - Chopper, GraphQL HTTP, and injectable generated `package:http` clients use
@@ -143,12 +181,10 @@ adding framework runtime dependencies to `alphax`:
 - GraphQL WebSocket use is caller-layer proof only and does not add a GraphQL
   adapter or runtime package.
 
-These classifications and their limitations are recorded in the
-[bounded-optionals review](../../docs/ALPHAX_RC5_BOUNDED_OPTIONALS_REVIEW.md).
-The package/API family is now under the
-[1.0 feature freeze](../../docs/ALPHAX_1_0_FEATURE_FREEZE.md).
+See the [usage and customization guide](https://github.com/auvana-ventures/alphax/blob/main/docs/USAGE_AND_CUSTOMIZATION.md)
+for the current boundaries and responsibilities.
 
-## Your first request
+## Explicit transport construction
 
 This is a complete small client: create a transport, send a request, read the
 body, and close the client when the work is finished.
@@ -171,7 +207,7 @@ Future<void> main() async {
 The native factory removes platform branching from normal application setup.
 Inject `DartIoTransport()`, `AndroidCronetTransport.create()`,
 `AppleUrlSessionTransport.create()`, or `WebFetchTransport()` explicitly when
-you need a deliberate provider. See [`alphax_native`](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_native)
+you need a deliberate provider. See [`alphax_native`](https://pub.dev/packages/alphax_native)
 and the [usage guide](https://github.com/auvana-ventures/alphax/blob/main/docs/USAGE_AND_CUSTOMIZATION.md)
 for the selection boundary.
 
@@ -328,7 +364,7 @@ cancellation, completion, and close semantics.
 
 ## What this package includes
 
-The frozen public API includes request and response types, headers and bodies,
+The stable public API includes request and response types, headers and bodies,
 streaming, file-transfer contracts, cancellation, timeouts, redirects,
 middleware, capabilities, protocol preference and requirement, completion-time
 metrics, TLS and proxy policy models, normalized errors, the incremental SSE
@@ -343,7 +379,7 @@ platform reports negotiation only after the operation completes.
 ## Boundaries to keep in mind
 
 - It does not include a native transport implementation by itself.
-- Web support is provided by the separate [`alphax_web`](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_web)
+- Web support is provided by the separate [`alphax_web`](https://pub.dev/packages/alphax_web)
   package; importing `alphax` alone does not make Web available.
 - WebSocket provider connectors are provided by the deployment packages; the
   core contract does not own native HTTP transport selection, browser policy,
@@ -363,18 +399,18 @@ platform reports negotiation only after the operation completes.
 
 ## Continue learning
 
-- [Choose a package in the root README](https://github.com/auvana-ventures/alphax#which-package-do-i-need)
+- [Choose a package in the root README](https://github.com/auvana-ventures/alphax#choose-the-package-by-deployment-path)
 - [Usage and customization guide](https://github.com/auvana-ventures/alphax/blob/main/docs/USAGE_AND_CUSTOMIZATION.md)
-- [Native platform transports](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_native)
-- [Browser Fetch transport](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_web)
-- [Dio adapter](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_dio)
-- [Testing helpers](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_test)
+- [Native platform transports](https://pub.dev/packages/alphax_native)
+- [Browser Fetch transport](https://pub.dev/packages/alphax_web)
+- [Dio adapter](https://pub.dev/packages/alphax_dio)
+- [Testing helpers](https://pub.dev/packages/alphax_test)
 - [Policy defaults and customization](https://github.com/auvana-ventures/alphax/blob/main/docs/POLICIES.md)
 - [Waypoint reference app](https://github.com/auvana-ventures/alphax/tree/main/examples/waypoint)
 - [Migration guide](https://github.com/auvana-ventures/alphax/blob/main/docs/MIGRATION.md)
 
-The coordinated `1.0.0` package line is prepared for stable publication. The
-completed package/API family remains under the
-[1.0 feature freeze](../../docs/ALPHAX_1_0_FEATURE_FREEZE.md); no new features
-may be added before stable publication; `rc.4` and `rc.3` are historical
-baselines.
+AlphaX `1.0.0` is the current stable release. See the
+[release notes](https://github.com/auvana-ventures/alphax/blob/main/docs/ALPHAX_1_0_RELEASE_NOTES.md)
+for the supported package family and the
+[usage guide](https://github.com/auvana-ventures/alphax/blob/main/docs/USAGE_AND_CUSTOMIZATION.md)
+for deployment and policy details.

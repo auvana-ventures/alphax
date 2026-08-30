@@ -1,5 +1,5 @@
 name: alphax_generator
-description: Dev-time source generator for direct AlphaX typed REST clients.
+description: Dev-time source generator for typed REST clients that call AlphaXClient directly.
 version: 1.0.0
 homepage: https://github.com/auvana-ventures/alphax
 repository: https://github.com/auvana-ventures/alphax

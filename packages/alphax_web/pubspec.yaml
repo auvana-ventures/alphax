@@ -1,14 +1,15 @@
 name: alphax_web
-description: Browser Fetch HTTP transport adapter for AlphaX with streaming, cancellation, and truthful capability reporting.
+description: Browser Fetch HTTP and WebSocket integration for AlphaX with streaming, cancellation, and browser-owned security boundaries.
 version: 1.0.0
 homepage: https://github.com/auvana-ventures/alphax
 repository: https://github.com/auvana-ventures/alphax
 issue_tracker: https://github.com/auvana-ventures/alphax/issues
 topics:
-  - networking
   - http
   - web
   - flutter
+  - streaming
+  - websocket
 resolution: workspace
 environment:
   sdk: ">=3.8.0 <4.0.0"

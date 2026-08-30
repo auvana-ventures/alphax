@@ -11,9 +11,9 @@
 Keep the request API while respecting the browser's security and networking controls.</p>
 
 <p align="center">
-  <a href="https://github.com/auvana-ventures/alphax/tree/main/packages/alphax">Core API</a> ·
+  <a href="https://pub.dev/packages/alphax">Core API</a> ·
   <a href="https://github.com/auvana-ventures/alphax/blob/main/docs/USAGE_AND_CUSTOMIZATION.md">Usage and customization</a> ·
-  <a href="https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_native">Native transports</a> ·
+  <a href="https://pub.dev/packages/alphax_native">Native transports</a> ·
   <a href="https://github.com/auvana-ventures/alphax/blob/main/LICENSE">Apache-2.0</a>
 </p>
 
@@ -61,10 +61,9 @@ flutter pub add alphax_web
 ```
 
 Do not add `alphax` directly just to use the ordinary Web API; it is already a
-runtime dependency of `alphax_web`. The coordinated `1.0.0` package line is
-prepared for stable publication; hosted users continue to resolve the
-published `1.0.0-rc.5` candidate until that publication is approved. rc.4 is a
-historical baseline.
+runtime dependency of `alphax_web`. AlphaX 1.0.0 is the current stable release.
+Existing explicit transport construction remains available for controlled or
+custom setups.
 
 ## First request
 
@@ -110,7 +109,7 @@ TLS, proxy routing, CORS, redirects, connection reuse, and protocol negotiation
 remain browser-owned. `withCredentials` controls browser-managed credential
 mode; it is not a native TLS, proxy, or cookie policy.
 
-For explicit assembly and custom transports, the rc.4 path remains available:
+For explicit assembly and custom transports, the existing path remains available:
 
 ```dart
 final client = AlphaXClient(
@@ -286,8 +285,9 @@ certificate-bypass path. The compile-tested example is
 - Redirect behavior and credential handling remain subject to browser Fetch and
   CORS rules.
 
-Use [`alphax_native`](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_native) for Android, iOS, macOS,
-Linux, and Windows transport adapters. Use [`alphax`](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax)
+Use [`alphax_native`](https://pub.dev/packages/alphax_native) for Android, iOS,
+macOS, Linux, and Windows transport adapters. Use
+[`alphax`](https://pub.dev/packages/alphax)
 directly when you provide another transport.
 
 If a browser limitation is unacceptable, move that operation to a native
@@ -295,6 +295,12 @@ transport and check its reported capabilities before configuring TLS, proxy, or
 protocol requirements. AlphaX will fail closed rather than pretending that the
 browser can enforce a control it cannot observe.
 
-The package is licensed under Apache-2.0. The coordinated `1.0.0` package line
-is prepared for stable publication. The stable façade is additive to the
-existing Web transport and explicit rc.4 construction path.
+For direct AlphaX usage, see [`alphax`](https://pub.dev/packages/alphax). For
+native Flutter transports, use [`alphax_native`](https://pub.dev/packages/alphax_native).
+Add [`alphax_generator`](https://pub.dev/packages/alphax_generator) for direct
+typed REST generation or [`alphax_test`](https://pub.dev/packages/alphax_test)
+for deterministic test transports.
+
+The package is licensed under Apache-2.0. AlphaX 1.0.0 is the current stable
+release. The browser façade is additive to the existing Web transport and
+explicit transport construction path.

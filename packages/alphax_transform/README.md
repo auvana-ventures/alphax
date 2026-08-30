@@ -12,7 +12,7 @@ Keep ordinary response decoding simple, and opt into an isolate only when the
 application's responsiveness measurements justify it.</p>
 
 <p align="center">
-  <a href="https://github.com/auvana-ventures/alphax/tree/main/packages/alphax">Core API</a> ·
+  <a href="https://pub.dev/packages/alphax">Core API</a> ·
   <a href="https://github.com/auvana-ventures/alphax/blob/main/docs/USAGE_AND_CUSTOMIZATION.md">Usage and customization</a> ·
   <a href="https://github.com/auvana-ventures/alphax/blob/main/docs/ALPHAX_TRANSFORM_EXTENSION_DESIGN.md">Design</a> ·
   <a href="https://github.com/auvana-ventures/alphax/blob/main/LICENSE">Apache-2.0</a>
@@ -82,6 +82,13 @@ this package does not change that core API or claim that conversion is free.
 A compile-tested package-local example is available at
 [`example/main.dart`](example/main.dart).
 
+## Related packages
+
+- [Core AlphaX API](https://pub.dev/packages/alphax)
+- [Native transports](https://pub.dev/packages/alphax_native)
+- [Web transport](https://pub.dev/packages/alphax_web)
+- [Testing helpers](https://pub.dev/packages/alphax_test)
+
 ## Native execution
 
 On Dart VM and native Flutter targets, each call uses one fresh `Isolate.run`.
@@ -148,8 +155,8 @@ that is appropriate for the application.
 
 ## Measured guidance
 
-The following guidance comes from the retained Task 37 deterministic parsing
-study, not a universal threshold:
+The following guidance comes from deterministic parsing measurements, not a
+universal threshold:
 
 | Payload | Measured direction |
 | --- | --- |
@@ -177,8 +184,6 @@ The package adds no dependency from `alphax` to `alphax_transform` and does not
 change any AlphaX transport, response, stream, cancellation, or protocol
 contract. It is independently publishable and remains optional.
 
-The coordinated `1.0.0` package line includes this optional package and is
-prepared for stable publication; hosted users continue to resolve the
-published `1.0.0-rc.5` candidate until that publication is approved. `rc.4`
-and `rc.3` are historical predecessors; rc.3 did not include
-`alphax_transform`.
+AlphaX 1.0.0 is the current stable release. This package remains an optional
+extension for applications that have measured caller-isolate pressure while
+decoding large buffered JSON responses.

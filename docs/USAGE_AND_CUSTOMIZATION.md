@@ -1,12 +1,9 @@
 # AlphaX usage and customization
 
-This is the user guide for the AlphaX source tree. The coordinated `1.0.0`
-package family is prepared for stable publication; hosted users continue to
-resolve the published `1.0.0-rc.5` family until stable publication is approved.
-The feature surface is frozen under the [1.0 feature
-freeze](ALPHAX_1_0_FEATURE_FREEZE.md). See the [rc.5 publication
-report](ALPHAX_1_0_RC_5_PUBLICATION_REPORT.md) for the hosted candidate
-evidence. `rc.4` and `rc.3` are historical baselines.
+This is the user guide for the AlphaX 1.0.0 stable package family. Choose a
+deployment package first, then add optional adapters or tooling only when your
+application needs them. The [release notes](ALPHAX_1_0_RELEASE_NOTES.md)
+summarize the stable user-facing capabilities.
 
 ## 1. Choose the deployment path
 
@@ -134,7 +131,7 @@ the selected provider or browser can reject a policy it cannot honor.
 ### Take control of the transport
 
 Inject a concrete adapter when you need a deterministic or deliberate choice.
-This is the unchanged explicit rc.4 path:
+This is the existing explicit transport path:
 
 ```dart
 import 'package:alphax_native/alphax_native.dart';
@@ -762,7 +759,7 @@ annotations and generated Dio constructor. The integration path is:
 retrofit generated client → Dio → AlphaXDioAdapter → AlphaX
 ```
 
-The following wiring uses the public APIs verified by the Task 45 generated
+The following wiring uses the public APIs verified by the generated Retrofit
 fixture (the `UsersApi` type is produced by `retrofit_generator` from the
 application's annotated interface):
 
@@ -833,7 +830,7 @@ package, or claim universal OpenAPI-generator compatibility.
 The official OpenAPI template result is a bounded proof, not a mature SDK
 generator. See the [OpenAPI proof](../examples/openapi_template_proof/README.md),
 the [Protobuf recipe](../examples/protobuf_interop/README.md), and the
-[frozen compatibility matrix](ALPHAX_RC5_BOUNDED_OPTIONALS_REVIEW.md).
+[ecosystem compatibility summary](../README.md#ecosystem-compatibility).
 
 ## 16. `package:http` comparison
 
