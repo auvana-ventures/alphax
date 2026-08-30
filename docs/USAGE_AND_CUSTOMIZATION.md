@@ -1,13 +1,11 @@
 # AlphaX usage and customization
 
 This is the user guide for the AlphaX source tree. The coordinated
-`1.0.0-rc.5` candidate is prepared for publication; the six rc.4 packages
-remain the published hosted baseline and `alphax_http`/`alphax_generator` join
-the eight-package rc.5 family. Committed rc.5 feature work A–E and bounded
-F/G/H resolution are complete under the [1.0 feature freeze](ALPHAX_1_0_FEATURE_FREEZE.md).
-See the [rc.5 release-preparation report](ALPHAX_1_0_RC_5_RELEASE_PREPARATION.md)
-for the coordinated publication set and validation evidence. No rc.5 package
-has been published. `rc.4` and `rc.3` are historical baselines.
+`1.0.0-rc.5` package family is published on pub.dev. Committed rc.5 feature
+work A–E and bounded F/G/H resolution are complete under the [1.0 feature
+freeze](ALPHAX_1_0_FEATURE_FREEZE.md). See the [rc.5 publication
+report](ALPHAX_1_0_RC_5_PUBLICATION_REPORT.md) for hosted package and consumer
+verification. `rc.4` and `rc.3` are historical baselines.
 
 ## 1. Choose the deployment path
 

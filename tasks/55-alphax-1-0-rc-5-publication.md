@@ -1,6 +1,6 @@
 # Task 55 — AlphaX 1.0.0-rc.5 Publication
 
-Status: [*] In Progress
+Status: [x] Completed
 
 ## Goal
 
@@ -61,16 +61,16 @@ AlphaX maintainers / Codex implementation.
 
 - [x] Read the freeze, scope, ADR, bounded-optionals, and release-preparation
   evidence and reserve Task 55.
-- [*] Reconfirm the release source, package manifests, dependency graph, clean
+- [x] Reconfirm the release source, package manifests, dependency graph, clean
   release-owned state, archive contents, dry-runs, and security/path audit.
-- [ ] Publish `alphax`, `alphax_test`, `alphax_native`, `alphax_web`,
+- [x] Publish `alphax`, `alphax_test`, `alphax_native`, `alphax_web`,
   `alphax_dio`, `alphax_transform`, `alphax_http`, and `alphax_generator` in
   order, verifying hosted resolution after each package.
-- [ ] Run clean hosted-consumer and retained fixture validation without local
+- [x] Run clean hosted-consumer and retained fixture validation without local
   path overrides.
-- [ ] Update current-facing external examples to rc.5 and commit those changes
+- [x] Update current-facing external examples to rc.5 and commit those changes
   separately after hosted validation.
-- [ ] Complete the publication report, update this task with evidence, push
+- [x] Complete the publication report, update this task with evidence, push
   owned commits, and stop with stabilization-only status.
 
 ## Validation
@@ -91,17 +91,21 @@ full Task 54 suite unless a material source/package change is discovered:
 
 ## Next Action
 
-Finish the immediate pre-publication gate, then publish sequentially. Stop on
-the first publication or hosted-resolution failure.
+Return for maintainer approval of **ALPHAX 1.0 STABILIZATION AND RELEASE GATE**.
+Do not publish stable `1.0.0`, tag, create a GitHub release, add features, or
+start an rc.6 feature cycle.
 
 ## Blockers
 
-None currently.
+None. The documented non-blocking limitations are recorded in the publication
+report.
 
 ## Outcome
 
-In progress. Publication and hosted-consumer results will be appended after the
-approved release sequence completes.
+Completed. All eight approved packages were published as `1.0.0-rc.5` in the
+mandatory order. Hosted consumers and current-facing examples resolved the
+published packages successfully. The full evidence is in
+`docs/ALPHAX_1_0_RC_5_PUBLICATION_REPORT.md`.
 
 ## References
 
@@ -111,9 +115,20 @@ approved release sequence completes.
 - `docs/ALPHAX_RC5_BOUNDED_OPTIONALS_REVIEW.md`
 - `docs/ALPHAX_1_0_RC_5_RELEASE_PREPARATION.md`
 - `tasks/54-alphax-1-0-rc-5-release-preparation.md`
+- `docs/ALPHAX_1_0_RC_5_PUBLICATION_REPORT.md`
 
 ## History
 
 - 2026-08-30: Created after explicit approval to publish the prepared
   `1.0.0-rc.5` release. No feature work, benchmark, tag, GitHub release, or
   stable publication is authorized.
+- 2026-08-30: Published all eight packages in the approved order and verified
+  pub.dev metadata, hosted archives, checksums, dependency resolution, and
+  clean hosted consumers. The first `alphax` command had a propagation-delay
+  ambiguity; the immutable-version response and archive/API checks confirmed
+  its accepted upload. No package failed or was skipped.
+- 2026-08-30: Advanced `examples/basic` and `examples/waypoint` to hosted rc.5,
+  passed their normal hosted gates, and pushed separate commit `9cf20ba`.
+- 2026-08-30: Completed the publication report, current-facing publication
+  status corrections, and stabilization-only handoff. No tag, GitHub release,
+  stable publication, feature, benchmark, or rc.6 work was started.

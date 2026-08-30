@@ -23,11 +23,10 @@ The frozen family is the existing coordinated AlphaX package set:
 - `alphax_transform` optional large-JSON transform; and
 - `alphax_test` development/test helpers.
 
-The coordinated package versions are prepared at `1.0.0-rc.5` by the release
-preparation task. The package set, validation evidence, and publication plan
-are recorded in the [rc.5 release-preparation report](ALPHAX_1_0_RC_5_RELEASE_PREPARATION.md).
-Publication remains a separate approved action; no package is published by this
-preparation step.
+The coordinated package versions were prepared at `1.0.0-rc.5` by the release
+preparation task and were subsequently published together. The package set,
+validation evidence, and hosted-consumer results are recorded in the [rc.5
+publication report](ALPHAX_1_0_RC_5_PUBLICATION_REPORT.md).
 
 ## Completed rc.5 features
 
@@ -80,4 +79,4 @@ rc.5 preparation
   → 1.0.0
 ```
 
-The next task is **ALPHAX 1.0.0-RC.5 RELEASE PREPARATION**.
+The next task is **ALPHAX 1.0 STABILIZATION AND RELEASE GATE**.

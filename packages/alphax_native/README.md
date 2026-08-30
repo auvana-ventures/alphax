@@ -75,8 +75,8 @@ flutter pub add alphax_native
 
 Do not add `alphax` directly just to use the ordinary native API; it is already
 declared by `alphax_native` and is available through its public entry import.
-The coordinated `1.0.0-rc.5` candidate is prepared for publication; the
-published rc.4 package remains the hosted baseline until approval.
+The coordinated `1.0.0-rc.5` release is published on pub.dev; rc.4 is a
+historical baseline.
 
 The Android provider is resolved through Gradle and Apple packaging uses
 CocoaPods. No copied Cronet binary is bundled in the pub package. Swift
@@ -445,7 +445,7 @@ policies automatically.
 - [Usage and customization guide](https://github.com/auvana-ventures/alphax/blob/main/docs/USAGE_AND_CUSTOMIZATION.md)
 - [1.0 platform and protocol matrix](https://github.com/auvana-ventures/alphax/blob/main/docs/ALPHAX_1_0_RELEASE_GATE.md)
 
-The coordinated `1.0.0-rc.5` candidate is prepared for publication. Android,
-iOS, and macOS support remains provider/platform dependent, while Dart IO is
-the truthful fallback on Linux and Windows. The rc.5 façade is additive and
-does not remove any explicit rc.4 construction path.
+The coordinated `1.0.0-rc.5` release is published. Android, iOS, and macOS
+support remains provider/platform dependent, while Dart IO is the truthful
+fallback on Linux and Windows. The rc.5 façade is additive and does not
+remove any explicit rc.4 construction path.
