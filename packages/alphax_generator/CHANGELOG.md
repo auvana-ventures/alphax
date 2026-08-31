@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.1 - 2026-08-31
+
+- Refreshed stable tooling metadata and documentation links; no runtime or
+  public API changes.
+
 ## 1.0.0 - 2026-08-30
 
 - First stable release of the direct AlphaX typed REST tooling; generated

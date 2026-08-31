@@ -64,8 +64,8 @@ development dependency for deterministic tests.
 
 ## Install
 
-AlphaX 1.0.0 is the current stable release. The adapter is focused on the
-existing Dio 5.x boundary; it does not change Dio's own API or policies:
+The `1.0.1` release keeps this package focused on the existing Dio 5.x
+boundary; it does not change Dio's own API or policies:
 
 ```sh
 flutter pub add dio alphax alphax_native alphax_dio
@@ -296,7 +296,7 @@ injected AlphaX client/transport. The Dio adapter does not invent per-request
 native security controls. Keep certificate verification enabled, never use
 trust-all configuration, and never log proxy credentials or pin material.
 
-Known 1.0 boundaries:
+Known boundaries:
 
 - not full Dio source/API compatibility;
 - Web uses the separate `alphax_web` Fetch adapter; this Dio adapter does not
@@ -317,5 +317,5 @@ Known 1.0 boundaries:
 - [Waypoint reference app](https://github.com/auvana-ventures/alphax/tree/main/examples/waypoint)
 - [Dio and package:http migration guide](https://github.com/auvana-ventures/alphax/blob/main/docs/MIGRATION.md)
 
-AlphaX 1.0.0 remains a focused Dio 5.x adapter, not full Dio source/API
+AlphaX remains a focused Dio 5.x adapter, not full Dio source/API
 compatibility.

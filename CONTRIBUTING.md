@@ -1,6 +1,6 @@
 # Contributing to AlphaX
 
-AlphaX `1.0.0` is the current stable release. Contributions should preserve the
+AlphaX is a stable package family. Contributions should preserve the
 public Dart contract's independence from any one native stack and keep changes
 focused on correctness, security, compatibility, documentation, and supported
 platform conformance unless a new feature has been explicitly approved.

@@ -12,7 +12,8 @@ Cross-platform HTTP for Dart and Flutter, with streaming, files, policies, and
 the transport each platform can actually provide.</p>
 
 <p align="center">
-  <a href="docs/ALPHAX_1_0_RELEASE_NOTES.md">AlphaX 1.0</a> ·
+  <a href="docs/ALPHAX_1_0_RELEASE_NOTES.md">Release notes</a> ·
+  <a href="docs/app-client.md">Application client</a> ·
   <a href="docs/USAGE_AND_CUSTOMIZATION.md">Usage and customization</a> ·
   <a href="examples/waypoint/README.md">Waypoint example</a> ·
   <a href="docs/MIGRATION.md">Migration guide</a> ·
@@ -26,14 +27,17 @@ It gives application code one request, response, streaming, file, cancellation,
 timeout, middleware, and error model while the deployment package selects the
 transport that belongs to the platform.
 
-The stable `1.0.0` package family is published. AlphaX does not guarantee H3,
+The stable `1.0.0` package family remains compatible. The additive `1.1.0`
+application-facing facade makes ordinary requests approachable without changing
+the lower-level client or transport contracts. AlphaX does not guarantee H3,
 claim universal performance, or pretend that browser APIs expose native
 controls they do not provide.
 
 ## At a glance
 
-| Area | AlphaX 1.0 provides |
+| Area | AlphaX provides |
 | --- | --- |
+| Application API | `AlphaXAppClient` for base URLs, string paths, query parameters, headers, JSON data, timeout, cancellation, and raw responses |
 | Client API | Requests, responses, headers, bodies, streams, files, cancellation, timeouts, redirects, and normalized errors |
 | Native transports | Android Cronet/HttpEngine, Apple URLSession, and Dart IO fallback through `alphax_native` |
 | Browser transport | Fetch through `alphax_web`, with browser-owned TLS, CORS, proxy, cookie, and protocol behavior |
@@ -53,9 +57,11 @@ flutter pub add alphax_native
 import 'package:alphax_native/alphax_native.dart';
 
 Future<void> main() async {
-  final client = await createAlphaXClient();
+  final client = await createAlphaXAppClient(
+    baseUrl: 'https://example.com',
+  );
   try {
-    final response = await client.get(Uri.https('example.com', '/'));
+    final response = await client.get('/');
     print('${response.statusCode}: ${await response.readAsString()}');
   } finally {
     await client.close();
@@ -63,14 +69,38 @@ Future<void> main() async {
 }
 ```
 
-The factory creates one reusable client and selects Cronet/HttpEngine on
-Android, URLSession on iOS/macOS, or Dart IO on Linux/Windows. For Web, install
-`alphax_web` and use the same-named synchronous factory:
+The application-facing factory creates one reusable client and selects
+Cronet/HttpEngine on Android, URLSession on iOS/macOS, or Dart IO on
+Linux/Windows. For Web, install `alphax_web` and use the same-named async
+factory:
 
 ```dart
 import 'package:alphax_web/alphax_web.dart';
 
-final client = createAlphaXClient();
+Future<void> main() async {
+  final client = await createAlphaXAppClient(
+    baseUrl: 'https://example.com',
+  );
+  try {
+    final response = await client.get('/');
+    print('${response.statusCode}: ${await response.readAsString()}');
+  } finally {
+    await client.close();
+  }
+}
+```
+
+The response is the raw `AlphaXResponse`, so callers can read text, JSON, bytes,
+or the response stream without an extra transformation layer. For JSON data,
+pass a `Map` or other value accepted by `AlphaXBody.json`:
+
+```dart
+final response = await client.post(
+  '/users',
+  queryParameters: {'source': 'signup'},
+  headers: {'Authorization': 'Bearer token'},
+  data: {'name': 'Example'},
+);
 ```
 
 ### One Flutter project targeting native and Web
@@ -83,8 +113,8 @@ compiled for the browser.
 
 ```yaml
 dependencies:
-  alphax_native: ^1.0.0
-  alphax_web: ^1.0.0
+  alphax_native: ^1.1.0
+  alphax_web: ^1.1.0
 ```
 
 For example, keep the platform choice in a small application-owned layer:
@@ -99,14 +129,16 @@ export 'alpha_client_native.dart'
 // lib/networking/alpha_client_native.dart
 import 'package:alphax_native/alphax_native.dart' as native;
 
-Future<native.AlphaXClient> createAppClient() => native.createAlphaXClient();
+Future<native.AlphaXAppClient> createAppClient() =>
+    native.createAlphaXAppClient(baseUrl: 'https://example.com');
 ```
 
 ```dart
 // lib/networking/alpha_client_web.dart
 import 'package:alphax_web/alphax_web.dart' as web;
 
-Future<web.AlphaXClient> createAppClient() async => web.createAlphaXClient();
+Future<web.AlphaXAppClient> createAppClient() =>
+    web.createAlphaXAppClient(baseUrl: 'https://example.com');
 ```
 
 Shared application code then imports only the app-owned entry point:
@@ -115,8 +147,10 @@ Shared application code then imports only the app-owned entry point:
 final client = await createAppClient();
 ```
 
-Both façades return the same `AlphaXClient` core type. The platform-specific
-choice changes the provider, not the request code.
+Both factories return the same `AlphaXAppClient` shape. The platform-specific
+choice changes the provider, not the request code. Keep this conditional layer
+below the single-platform quick start; it is only needed when one Flutter
+project targets both native and Web.
 
 ## Choose the package by deployment path
 
@@ -183,9 +217,10 @@ fails closed when the exact protocol cannot be observed or enforced.
 
 ### Start simple
 
-Add `alphax_native`, import its entry point, and use `createAlphaXClient()`.
-Normal request code does not need platform branching or manual transport
-assembly. For Web, add `alphax_web` and use its same-named synchronous factory.
+Add `alphax_native`, import its entry point, and use
+`createAlphaXAppClient(baseUrl: ...)`. Normal request code does not need
+platform branching, URI construction, or manual transport assembly. For Web,
+add `alphax_web` and use its same-named async factory.
 
 ### Configure portable policies
 
@@ -193,7 +228,8 @@ Configure the existing client middleware and transport-construction policies at
 the native façade:
 
 ```dart
-Future<AlphaXClient> createConfiguredClient() => createAlphaXClient(
+Future<AlphaXAppClient> createConfiguredClient() => createAlphaXAppClient(
+  baseUrl: 'https://api.example.com',
   middleware: <AlphaXMiddleware>[AlphaXRetryMiddleware()],
   tlsPolicy: const AlphaXTlsPolicy.platformDefault(),
   proxyPolicy: const AlphaXProxyPolicy.system(),
@@ -201,7 +237,7 @@ Future<AlphaXClient> createConfiguredClient() => createAlphaXClient(
 ```
 
 Web accepts middleware and browser credential mode through
-`createAlphaXClient(withCredentials: true)`. Timeout, cancellation, redirect,
+`createAlphaXAppClient(baseUrl: ..., withCredentials: true)`. Timeout, cancellation, redirect,
 progress, protocol preference, and protocol requirement remain request-level
 settings. These controls express application intent while the selected
 provider/browser decides which platform operations can honor it.
@@ -279,10 +315,10 @@ generator belongs in development tooling:
 
 ```yaml
 dependencies:
-  alphax_native: ^1.0.0
+  alphax_native: ^1.1.0
 
 dev_dependencies:
-  alphax_generator: ^1.0.0
+  alphax_generator: ^1.0.1
   build_runner: ^2.16.0
 ```
 
@@ -402,7 +438,7 @@ AlphaX keeps application policy explicit:
 
 | Behavior | Default |
 | --- | --- |
-| Transport | Native `createAlphaXClient()` delegates to `createAlphaXTransport()`; Web `createAlphaXClient()` constructs browser Fetch; `alphax` core still requires injection. |
+| Transport | Native/Web `createAlphaXAppClient(baseUrl: ...)` creates the Level 1 application facade; raw `createAlphaXClient()` and `alphax` core still support explicit low-level construction/injection. |
 | Retry, authentication, cookies, cache, resilience | Off until middleware is added. |
 | TLS | Verified platform trust. |
 | Proxy | System-managed routing on the selected transport. |
@@ -594,7 +630,7 @@ final response = await client.send(
 
 ## Platform and protocol support
 
-| Target | Transport | 1.0 protocol boundary |
+| Target | Transport | Protocol boundary |
 | --- | --- | --- |
 | Android API 24+ | Supported non-fallback Cronet/HttpEngine provider | H1/H2/H3; the provider and network determine whether an individual request uses H3 |
 | iOS 15+ | URLSession | H1/H2/H3; the OS, provider, server, and network determine the negotiated protocol |
@@ -610,19 +646,19 @@ cannot authoritatively report H2/H3 and therefore does not advertise them.
 
 ## Supporting package roles
 
-| Package | Purpose | 1.0 status |
+| Package | Purpose |
 | --- | --- | --- |
-| [`alphax`](packages/alphax) | Pure-Dart transport-neutral HTTP and WebSocket contracts | Published `1.0.0` |
-| [`alphax_native`](packages/alphax_native) | Native entry façade, HTTP adapters, and Dart IO WebSocket connector | Published `1.0.0` |
-| [`alphax_test`](packages/alphax_test) | Fakes and shared conformance helpers | Published `1.0.0` |
-| [`alphax_dio`](packages/alphax_dio) | Focused Dio 5.x `HttpClientAdapter` boundary | Published `1.0.0` |
-| [`alphax_http`](packages/alphax_http) | Optional `package:http` `BaseClient` compatibility seam | Published `1.0.0` |
-| [`alphax_web`](packages/alphax_web) | Web entry façade, browser Fetch adapter, and browser WebSocket connector | Published `1.0.0` |
-| [`alphax_transform`](packages/alphax_transform) | Explicit one-shot isolate JSON transform for buffered payloads | Published `1.0.0` |
-| [`alphax_generator`](packages/alphax_generator) | Dev-time direct AlphaX typed REST source generator | Published `1.0.0` |
+| [`alphax`](packages/alphax) | Pure-Dart transport-neutral HTTP and WebSocket contracts, plus the application-facing `AlphaXAppClient` |
+| [`alphax_native`](packages/alphax_native) | Native entry façade, HTTP adapters, WebSocket connector, and `createAlphaXAppClient(...)` |
+| [`alphax_test`](packages/alphax_test) | Fakes and shared conformance helpers |
+| [`alphax_dio`](packages/alphax_dio) | Focused Dio 5.x `HttpClientAdapter` boundary |
+| [`alphax_http`](packages/alphax_http) | Optional `package:http` `BaseClient` compatibility seam |
+| [`alphax_web`](packages/alphax_web) | Web entry façade, browser Fetch adapter, WebSocket connector, and `createAlphaXAppClient(...)` |
+| [`alphax_transform`](packages/alphax_transform) | Explicit one-shot isolate JSON transform for buffered payloads |
+| [`alphax_generator`](packages/alphax_generator) | Dev-time direct AlphaX typed REST source generator |
 
 There is no AlphaX-owned C++ engine, production Rust transport, libcurl
-dependency, telemetry SDK, GraphQL client, or WebSocket engine in the 1.0
+dependency, telemetry SDK, GraphQL client, or WebSocket engine in the current
 architecture. The direct typed REST generator is dev-time tooling, not a second
 runtime. The SSE parser is a small `alphax` sub-library over the
 existing HTTP stream, and the WebSocket contract is a separate lifecycle seam
@@ -651,9 +687,9 @@ explicitly.
 The selected Android Cronet API is system-proxy-only, while Apple uses
 URLSession/CFNetwork proxy configuration and rejects explicit HTTPS-proxy
 configuration. `AlphaXClientIdentity` is an opaque security-reference model;
-mTLS is not implemented by the 1.0 adapters.
+mTLS is not implemented by the current adapters.
 
-Known 1.0 limitations are Linux/Windows H1-only fallback, browser protocol
+Known current limitations are Linux/Windows H1-only fallback, browser protocol
 metadata being unavailable, unimplemented mTLS, unavailable explicit HTTPS-
 proxy endpoint parity, Android custom trust anchors being unsupported by the
 selected provider, Dart IO and browser SPKI pinning being unsupported, and
@@ -696,8 +732,10 @@ the integration packages:
 ```text
 Dart application
       ├── alphax (pure-Dart contracts)
-      │     └── AlphaXClient(transport: ...)
+      │     ├── AlphaXAppClient (application-facing facade)
+      │     └── AlphaXClient(transport: ...) (advanced/raw path)
       ├── alphax_native entry facade
+      │     ├── createAlphaXAppClient() → AlphaXAppClient
       │     └── createAlphaXClient() → createAlphaXTransport()
       │     ├── Dart IO fallback
       │     ├── Android Cronet/HttpEngine

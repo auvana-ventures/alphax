@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.0 - 2026-08-31
+
+- Added browser-backed `createAlphaXAppClient(...)` with the same async
+  application-facing request shape as native.
+- Existing Fetch factory/transport construction and browser-owned
+  security/protocol boundaries remain unchanged.
+
 ## 1.0.0 - 2026-08-30
 
 - First stable browser deployment release. Fetch, WebSocket, façade, and

@@ -184,6 +184,5 @@ The package adds no dependency from `alphax` to `alphax_transform` and does not
 change any AlphaX transport, response, stream, cancellation, or protocol
 contract. It is independently publishable and remains optional.
 
-AlphaX 1.0.0 is the current stable release. This package remains an optional
-extension for applications that have measured caller-isolate pressure while
-decoding large buffered JSON responses.
+This package remains an optional extension for applications that have measured
+caller-isolate pressure while decoding large buffered JSON responses.

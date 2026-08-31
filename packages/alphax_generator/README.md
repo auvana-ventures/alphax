@@ -25,10 +25,10 @@ boundary and add the generator only to development tooling:
 
 ```yaml
 dependencies:
-  alphax_native: ^1.0.0
+  alphax_native: ^1.1.0
 
 dev_dependencies:
-  alphax_generator: ^1.0.0
+  alphax_generator: ^1.0.1
   build_runner: ^2.16.0
 ```
 

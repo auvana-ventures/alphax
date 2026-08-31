@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.0 - 2026-08-31
+
+- Added `createAlphaXAppClient(...)`, which selects the existing native
+  transport path and returns the application-facing facade with async
+  construction and explicit ownership.
+- Existing `createAlphaXClient()` and explicit transport APIs remain
+  unchanged.
+
 ## 1.0.0 - 2026-08-30
 
 - First stable native deployment release. The one-import façade, platform

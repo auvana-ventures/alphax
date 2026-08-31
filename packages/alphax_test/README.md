@@ -57,8 +57,8 @@ not required in a production dependency list.
 
 ## Install
 
-AlphaX 1.0.0 is the current stable release. Add this package only as a
-development dependency; it does not replace the production transport:
+Add this package only as a development dependency; it does not replace the
+production transport:
 
 ```sh
 dart pub add --dev alphax_test
@@ -215,5 +215,5 @@ pattern.
 - [Waypoint reference app](https://github.com/auvana-ventures/alphax/tree/main/examples/waypoint)
 - [Transport conformance examples](https://github.com/auvana-ventures/alphax/tree/main/packages/alphax_test/test)
 
-The stable `1.0.0` package is a development dependency only and does not
-provide a production transport.
+The stable AlphaX package family is a development dependency only through this
+package and does not provide a production transport.

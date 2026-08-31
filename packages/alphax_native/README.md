@@ -11,7 +11,7 @@
 Use the platform networking stack where it is supported, with a truthful Dart IO fallback.</p>
 
 <p align="center">
-  <a href="https://github.com/auvana-ventures/alphax/blob/main/docs/ALPHAX_1_0_RELEASE_NOTES.md">AlphaX 1.0</a> ·
+  <a href="https://github.com/auvana-ventures/alphax/blob/main/docs/ALPHAX_1_0_RELEASE_NOTES.md">Release notes</a> ·
   <a href="https://github.com/auvana-ventures/alphax/tree/main/examples/waypoint">Waypoint example</a> ·
   <a href="https://github.com/auvana-ventures/alphax/blob/main/LICENSE">Apache-2.0</a>
 </p>
@@ -29,8 +29,8 @@ Use the platform networking stack where it is supported, with a truthful Dart IO
 
 1. Add `alphax_native` to the application. Its runtime dependency supplies the
    core AlphaX API transitively.
-2. Use [`createAlphaXClient`](#simple-native-client) for the normal platform
-   choice.
+2. Use [`createAlphaXAppClient`](#simple-native-client) for the normal
+   application path.
 3. Keep the request code shared across platforms.
 4. Read [TLS and proxy behavior](#configure-tls-and-proxy-behavior) before
    enabling optional security or routing controls.
@@ -76,24 +76,27 @@ flutter pub add alphax_native
 
 Do not add `alphax` directly just to use the ordinary native API; it is already
 declared by `alphax_native` and is available through its public entry import.
-AlphaX `1.0.0` is the current stable release.
+The `1.1.0` release adds the application-facing `createAlphaXAppClient(...)`
+factory while retaining the lower-level client and transport APIs.
 
 The Android provider is resolved through Gradle and Apple packaging uses
 CocoaPods. No copied Cronet binary is bundled in the pub package. Swift
-Package Manager integration is deferred for 1.0.
+Package Manager integration is not part of the current package.
 
 ## Simple native client
 
-The recommended setup creates one reusable `AlphaXClient` and selects the
+The recommended setup creates one reusable `AlphaXAppClient` and selects the
 native transport for the current platform:
 
 ```dart
 import 'package:alphax_native/alphax_native.dart';
 
 Future<void> main() async {
-  final client = await createAlphaXClient();
+  final client = await createAlphaXAppClient(
+    baseUrl: 'https://example.com',
+  );
   try {
-    final response = await client.get(Uri.https('example.com', '/'));
+    final response = await client.get('/');
     print('${response.statusCode}: ${await response.readAsString()}');
   } finally {
     await client.close();
@@ -101,8 +104,11 @@ Future<void> main() async {
 }
 ```
 
-The client owns the one selected transport. Reuse it for all requests in the
-owning scope and close it when that scope ends.
+The application facade owns the underlying client created by the factory.
+Reuse it for all requests in the owning scope and close it when that scope
+ends. See the [application client guide](https://github.com/auvana-ventures/alphax/blob/main/docs/app-client.md)
+for base URLs, query parameters, headers, JSON data, cancellation, and the
+borrowed-client alternative.
 
 The same one-import flow is kept in the compile-tested
 [`example/main.dart`](example/main.dart). The advanced
@@ -117,7 +123,8 @@ TLS/proxy policies:
 ```dart
 import 'package:alphax_native/alphax_native.dart';
 
-Future<AlphaXClient> createConfiguredClient() => createAlphaXClient(
+Future<AlphaXAppClient> createConfiguredClient() => createAlphaXAppClient(
+  baseUrl: 'https://api.example.com',
   middleware: <AlphaXMiddleware>[AlphaXRetryMiddleware()],
   tlsPolicy: const AlphaXTlsPolicy.platformDefault(),
   proxyPolicy: const AlphaXProxyPolicy.system(),
@@ -410,8 +417,8 @@ the route or trust behavior.
 | `system()` proxy | Supported | Provider/system managed | Supported |
 | `direct()` proxy | Supported | Unsupported by the selected provider | Supported |
 | Explicit `http(...)` proxy | Supported, including Basic auth | Unsupported by the selected provider | Supported, including HTTPS CONNECT where CFNetwork permits |
-| Explicit `https(...)` proxy endpoint | Unsupported | Unsupported | Unsupported by the shared 1.0 mapping |
-| mTLS/client identity | Unsupported in 1.0 | Unsupported in the selected provider | Unsupported in 1.0 |
+| Explicit `https(...)` proxy endpoint | Unsupported | Unsupported | Unsupported by the shared mapping |
+| mTLS/client identity | Unsupported | Unsupported in the selected provider | Unsupported |
 
 An HTTP proxy endpoint can carry an HTTPS destination through CONNECT; that is
 different from configuring an HTTPS proxy endpoint. Never use trust-all
@@ -447,7 +454,7 @@ policies automatically.
 - [Usage and customization guide](https://github.com/auvana-ventures/alphax/blob/main/docs/USAGE_AND_CUSTOMIZATION.md)
 - [1.0 release notes](https://github.com/auvana-ventures/alphax/blob/main/docs/ALPHAX_1_0_RELEASE_NOTES.md)
 
-AlphaX `1.0.0` is the current stable release. Android, iOS, and macOS support
-remains provider/platform dependent, while Dart IO is the truthful fallback on
-Linux and Windows. The façade is additive and the explicit transport APIs
-remain available for controlled provider selection.
+The `1.1.0` release adds the application-facing native factory. Android, iOS,
+and macOS support remains provider/platform dependent, while Dart IO is the
+truthful fallback on Linux and Windows. The facade is additive and the
+explicit transport APIs remain available for controlled provider selection.

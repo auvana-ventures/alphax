@@ -1,9 +1,10 @@
 # AlphaX usage and customization
 
-This is the user guide for the AlphaX 1.0.0 stable package family. Choose a
-deployment package first, then add optional adapters or tooling only when your
-application needs them. The [release notes](ALPHAX_1_0_RELEASE_NOTES.md)
-summarize the stable user-facing capabilities.
+This is the user guide for the AlphaX stable package family. Choose a
+deployment package first, then use the application-facing facade for ordinary
+requests. Add optional adapters or tooling only when your application needs
+them. The [release notes](ALPHAX_1_0_RELEASE_NOTES.md) summarize the stable
+user-facing capabilities.
 
 ## 1. Choose the deployment path
 
@@ -13,8 +14,8 @@ deployment package directly:
 
 | Deployment path | Direct package | Ordinary entry |
 | --- | --- | --- |
-| Native Flutter | [`alphax_native`](../packages/alphax_native/README.md) | `createAlphaXClient()` |
-| Browser Web | [`alphax_web`](../packages/alphax_web/README.md) | `createAlphaXClient()` |
+| Native Flutter | [`alphax_native`](../packages/alphax_native/README.md) | `createAlphaXAppClient(baseUrl: ...)` |
+| Browser Web | [`alphax_web`](../packages/alphax_web/README.md) | `createAlphaXAppClient(baseUrl: ...)` |
 | Pure Dart/custom transport | [`alphax`](../packages/alphax/README.md) | `AlphaXClient(transport: ...)` |
 
 Supporting roles are opt-in:
@@ -34,14 +35,14 @@ For native Flutter, the direct AlphaX declaration is sufficient because
 
 ```yaml
 dependencies:
-  alphax_native: ^1.0.0
+  alphax_native: ^1.1.0
 ```
 
 For browser Web, use the equivalent:
 
 ```yaml
 dependencies:
-  alphax_web: ^1.0.0
+  alphax_web: ^1.1.0
 ```
 
 ## 2. The quickest start
@@ -52,9 +53,11 @@ dependencies:
 import 'package:alphax_native/alphax_native.dart';
 
 Future<void> main() async {
-  final client = await createAlphaXClient();
+  final client = await createAlphaXAppClient(
+    baseUrl: 'https://example.com',
+  );
   try {
-    final response = await client.get(Uri.https('example.com', '/health'));
+    final response = await client.get('/health');
     print('${response.statusCode}: ${await response.readAsString()}');
   } finally {
     await client.close();
@@ -62,7 +65,7 @@ Future<void> main() async {
 }
 ```
 
-`createAlphaXClient()` delegates selection to the existing
+`createAlphaXAppClient()` delegates selection to the existing
 `createAlphaXTransport()` logic: Android Cronet/HttpEngine, iOS/macOS URLSession,
 or the reusable Dart IO fallback on other native Dart VM platforms. It
 initializes exactly one transport before completing. Reuse the resulting client
@@ -73,11 +76,22 @@ for the lifetime of the feature or application scope.
 ```dart
 import 'package:alphax_web/alphax_web.dart';
 
-final client = createAlphaXClient();
+Future<void> main() async {
+  final client = await createAlphaXAppClient(
+    baseUrl: 'https://example.com',
+  );
+  try {
+    final response = await client.get('/health');
+    print('${response.statusCode}: ${await response.readAsString()}');
+  } finally {
+    await client.close();
+  }
+}
 ```
 
-This is synchronous because `WebFetchTransport` is constructed synchronously.
-The package choice remains explicit: browser Fetch, CORS, TLS, proxy routing,
+The factory has the same async shape as the native entry point even though
+`WebFetchTransport` is constructed synchronously. The package choice remains
+explicit: browser Fetch, CORS, TLS, proxy routing,
 redirects, credentials, and protocol metadata remain browser-owned.
 
 `alphax` itself still requires transport injection:
@@ -95,7 +109,8 @@ final client = AlphaXClient(
 
 ### Start simple
 
-Use `createAlphaXClient()` from the package for the deployment path. The native
+Use `createAlphaXAppClient(baseUrl: ...)` from the package for the deployment
+path. The native
 factory makes the production platform choice without `Platform.isAndroid`/
 `Platform.isIOS` code in the application and uses verified platform TLS trust
 plus the system proxy policy. The Web factory remains browser-backed and does
@@ -107,7 +122,8 @@ Construct one native client with the existing ordered middleware and
 transport-construction policies:
 
 ```dart
-Future<AlphaXClient> createConfiguredClient() => createAlphaXClient(
+Future<AlphaXAppClient> createConfiguredClient() => createAlphaXAppClient(
+  baseUrl: 'https://api.example.com',
   middleware: <AlphaXMiddleware>[AlphaXRetryMiddleware()],
   tlsPolicy: const AlphaXTlsPolicy.platformDefault(),
   proxyPolicy: const AlphaXProxyPolicy.system(),
@@ -118,7 +134,8 @@ For Web, the supported factory options are middleware and browser credential
 mode:
 
 ```dart
-final webClient = createAlphaXClient(
+Future<AlphaXAppClient> createWebClient() => createAlphaXAppClient(
+  baseUrl: 'https://api.example.com',
   middleware: <AlphaXMiddleware>[AlphaXRetryMiddleware()],
   withCredentials: true,
 );
@@ -498,7 +515,7 @@ These values come from the public constructors and constants in `alphax`.
 
 | Feature | Default | Scope | Opt-in / limitation |
 | --- | --- | --- | --- |
-| Native transport selection | `createAlphaXClient()` delegates to `createAlphaXTransport()` | Transport setup | Web uses its explicit `createAlphaXClient()` facade; `alphax` core always requires injection. |
+| Native transport selection | `createAlphaXAppClient(baseUrl: ...)` delegates to the existing native transport selection | Transport setup | Raw `createAlphaXClient()` remains available for low-level configuration; Web uses its async app-client factory; `alphax` core always requires injection. |
 | TLS | Verified platform trust | Transport | Trust anchors, pins, and client identity are explicit and provider-dependent. |
 | Proxy | `AlphaXProxyPolicy.system()` | Transport | Direct and explicit proxy modes are provider-dependent. |
 | Protocol preference | `AlphaXProtocolPreference.auto` | Request | Actual protocol is provider/server/network-owned. |
@@ -557,7 +574,7 @@ Provider-specific controls intentionally remain narrow. AlphaX currently exposes
 portable TLS and proxy policy, not Cronet engine construction, URLSession
 configuration objects, raw provider handles, DoH, QUIC 0-RTT, migration, or
 provider logging. Those controls are either provider-managed, not portable, or
-not part of the 1.0 contract.
+not part of the current contract.
 
 ## 12. Policies: retries, auth, cookies, cache, and resilience
 
@@ -704,10 +721,10 @@ Retrofit, or `package:http` at runtime.
 
 ```yaml
 dependencies:
-  alphax_native: ^1.0.0
+  alphax_native: ^1.1.0
 
 dev_dependencies:
-  alphax_generator: ^1.0.0
+  alphax_generator: ^1.0.1
   build_runner: ^2.16.0
 ```
 

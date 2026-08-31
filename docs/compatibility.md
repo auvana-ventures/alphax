@@ -1,13 +1,13 @@
 # Compatibility
 
-AlphaX `1.0.0` is the current stable release. The `alphax` package targets Dart
+The AlphaX package family is stable. The `alphax` package targets Dart
 `>=3.8.0 <4.0.0` and has no Flutter SDK constraint. Choose the deployment
 package for the platform, then add an adapter or tooling package only when the
 application needs that integration.
 
 ## Platform support
 
-The 1.0 platform strategy is:
+The current platform strategy is:
 
 - Android API 24+: Cronet/HttpEngine provider, H1/H2/H3 where the selected
   provider and network path support them;

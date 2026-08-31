@@ -1,6 +1,6 @@
 name: alphax_web
-description: Browser Fetch HTTP and WebSocket integration for AlphaX with streaming, cancellation, and browser-owned security boundaries.
-version: 1.0.0
+description: Browser Fetch HTTP, WebSocket, and application-facing client integration for AlphaX with streaming, cancellation, and browser-owned security boundaries.
+version: 1.1.0
 homepage: https://github.com/auvana-ventures/alphax
 repository: https://github.com/auvana-ventures/alphax
 issue_tracker: https://github.com/auvana-ventures/alphax/issues
@@ -15,7 +15,7 @@ environment:
   sdk: ">=3.8.0 <4.0.0"
 
 dependencies:
-  alphax: ^1.0.0
+  alphax: ^1.1.0
   http: ^1.6.0
   web_socket: ^1.0.1
 

@@ -1,6 +1,6 @@
 name: alphax_test
 description: Deterministic fake transports, responses, streams, and conformance helpers for testing AlphaX applications.
-version: 1.0.0
+version: 1.0.1
 homepage: https://github.com/auvana-ventures/alphax
 repository: https://github.com/auvana-ventures/alphax
 issue_tracker: https://github.com/auvana-ventures/alphax/issues

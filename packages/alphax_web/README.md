@@ -31,7 +31,7 @@ Keep the request API while respecting the browser's security and networking cont
 
 1. Add `alphax_web`. Its runtime dependency supplies the core AlphaX API
    transitively.
-2. Create one client with `createAlphaXClient()`.
+2. Create one application client with `createAlphaXAppClient(baseUrl: ...)`.
 3. Configure CORS and browser credentials on the server/application boundary.
 4. Treat protocol metadata as `unknown`; browser controls remain browser-owned.
 
@@ -61,9 +61,9 @@ flutter pub add alphax_web
 ```
 
 Do not add `alphax` directly just to use the ordinary Web API; it is already a
-runtime dependency of `alphax_web`. AlphaX 1.0.0 is the current stable release.
-Existing explicit transport construction remains available for controlled or
-custom setups.
+runtime dependency of `alphax_web`. The `1.1.0` release adds the async
+application-facing factory. Existing explicit transport construction remains
+available for controlled or custom setups.
 
 ## First request
 
@@ -71,9 +71,11 @@ custom setups.
 import 'package:alphax_web/alphax_web.dart';
 
 Future<void> loadHealth() async {
-  final client = createAlphaXClient();
+  final client = await createAlphaXAppClient(
+    baseUrl: 'https://example.com',
+  );
   try {
-    final response = await client.get(Uri.https('example.com', '/health'));
+    final response = await client.get('/health');
     print('${response.statusCode}: ${await response.readAsString()}');
     print('protocol: ${(await response.completionMetrics).negotiatedProtocol.name}');
   } finally {
@@ -95,7 +97,8 @@ Web configuration remains limited to options the browser-backed transport can
 actually expose:
 
 ```dart
-final client = createAlphaXClient(
+Future<AlphaXAppClient> createConfiguredClient() => createAlphaXAppClient(
+  baseUrl: 'https://api.example.com',
   middleware: <AlphaXMiddleware>[
     AlphaXAuthenticationMiddleware(
       accessToken: () async => 'token-from-app',
@@ -301,6 +304,6 @@ Add [`alphax_generator`](https://pub.dev/packages/alphax_generator) for direct
 typed REST generation or [`alphax_test`](https://pub.dev/packages/alphax_test)
 for deterministic test transports.
 
-The package is licensed under Apache-2.0. AlphaX 1.0.0 is the current stable
-release. The browser façade is additive to the existing Web transport and
-explicit transport construction path.
+The package is licensed under Apache-2.0. The `1.1.0` release adds the
+application-facing browser factory. The browser facade is additive to the
+existing Web transport and explicit transport construction path.

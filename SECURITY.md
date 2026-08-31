@@ -1,9 +1,9 @@
 # AlphaX Security Policy
 
-AlphaX `1.0.0` is the current stable release. This policy covers the published
-AlphaX package family; older development snapshots and release candidates are
-not supported for production use. Do not send real credentials, personal data,
-or sensitive payloads to benchmark fixtures or development-only harnesses.
+This policy covers the published AlphaX package family; older development
+snapshots and release candidates are not supported for production use. Do not
+send real credentials, personal data, or sensitive payloads to benchmark
+fixtures or development-only harnesses.
 
 ## Reporting a vulnerability
 
@@ -41,7 +41,7 @@ not silently fall back to ordinary trust.
 Custom trust anchors are supported only where the selected provider advertises
 them. Dart IO SPKI pinning, Android custom anchors with the selected Cronet
 provider, and mTLS/client identity mapping are explicit unsupported boundaries
-in 1.0; none is emulated by disabling verification.
+by the current adapters; none is emulated by disabling verification.
 
 ## Proxy and credential handling
 
@@ -49,7 +49,8 @@ Proxy credentials are hop-by-hop and must not be copied into origin headers,
 telemetry, exception text, or debug logs. An explicit proxy policy that the
 selected provider cannot honor fails closed; AlphaX never silently switches to
 direct or system routing. HTTP CONNECT to an HTTPS destination is distinct from
-an explicit HTTPS-proxy endpoint, which is not supported uniformly in 1.0.
+an explicit HTTPS-proxy endpoint, which is not supported uniformly by the
+current adapters.
 
 ## Release and dependency hygiene
 

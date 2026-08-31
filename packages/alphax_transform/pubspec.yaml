@@ -1,6 +1,6 @@
 name: alphax_transform
 description: Optional one-shot isolate JSON transforms for large buffered AlphaX responses.
-version: 1.0.0
+version: 1.0.1
 homepage: https://github.com/auvana-ventures/alphax
 repository: https://github.com/auvana-ventures/alphax
 issue_tracker: https://github.com/auvana-ventures/alphax/issues

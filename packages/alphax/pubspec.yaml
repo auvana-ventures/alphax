@@ -1,6 +1,6 @@
 name: alphax
-description: Cross-platform HTTP client API for Dart and Flutter with streaming, retries, caching, protocol control, middleware, and native transport integrations.
-version: 1.0.0
+description: Cross-platform HTTP client for Dart and Flutter with an application facade, streaming, retries, caching, protocol control, middleware, and native transport integrations.
+version: 1.1.0
 homepage: https://github.com/auvana-ventures/alphax
 repository: https://github.com/auvana-ventures/alphax
 issue_tracker: https://github.com/auvana-ventures/alphax/issues

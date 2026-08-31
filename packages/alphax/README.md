@@ -11,7 +11,7 @@
 Write request code once and choose the deployment transport at the application boundary.</p>
 
 <p align="center">
-  <a href="https://github.com/auvana-ventures/alphax/blob/main/docs/ALPHAX_1_0_RELEASE_NOTES.md">AlphaX 1.0</a> ·
+  <a href="https://github.com/auvana-ventures/alphax/blob/main/docs/ALPHAX_1_0_RELEASE_NOTES.md">Release notes</a> ·
   <a href="https://github.com/auvana-ventures/alphax/blob/main/docs/USAGE_AND_CUSTOMIZATION.md">Usage and customization</a> ·
   <a href="https://github.com/auvana-ventures/alphax/tree/main/examples/waypoint">Waypoint example</a> ·
   <a href="https://github.com/auvana-ventures/alphax/blob/main/LICENSE">Apache-2.0</a>
@@ -35,7 +35,10 @@ Write request code once and choose the deployment transport at the application b
 4. Add policies only after reading the [defaults](#understand-defaults-before-adding-policies)
    and [policy guide](https://github.com/auvana-ventures/alphax/blob/main/docs/POLICIES.md).
 
-`alphax` is the core HTTP client and policy layer for Dart and Flutter. Write
+`alphax` is the core HTTP client and policy layer for Dart and Flutter. For
+ordinary application requests, use the additive `AlphaXAppClient` facade from
+`package:alphax/app_client.dart`; it accepts a validated base URL and familiar
+string paths while preserving raw responses and cancellation. Write
 request code once, then run it with Dart IO, Android Cronet, Apple URLSession,
 or a separate browser adapter without changing your request, response,
 streaming, file, cancellation, timeout, or error-handling code.
@@ -60,7 +63,7 @@ Use `alphax` when you want:
 [`alphax_web`](https://pub.dev/packages/alphax_web). For a pure-Dart or test
 environment, provide an `AlphaXTransport` implementation directly.
 
-For the normal native-platform choice, use
+For the lower-level native-platform choice, use
 `createAlphaXTransport()` from `alphax_native`. That factory belongs outside
 this pure-Dart package and selects Android Cronet/HttpEngine, Apple URLSession,
 or Dart IO. Web remains an explicit `WebFetchTransport()` choice from
@@ -91,8 +94,9 @@ dependency.
 
 ## Install
 
-The stable `1.0.0` package is published. Add a deployment package for a
-concrete platform, or provide your own transport when staying pure Dart:
+Add a deployment package for a concrete platform, or provide your own transport
+when staying pure Dart. The 1.1.0 application-facing facade is included in
+`alphax` and re-exported by the deployment packages:
 
 ```sh
 flutter pub add alphax_native
@@ -104,15 +108,17 @@ depend on it.
 
 ## Quick start
 
-For native Flutter, use the deployment façade and one import:
+For native Flutter, use the application-facing facade and one import:
 
 ```dart
 import 'package:alphax_native/alphax_native.dart';
 
 Future<void> main() async {
-  final client = await createAlphaXClient();
+  final client = await createAlphaXAppClient(
+    baseUrl: 'https://example.com',
+  );
   try {
-    final response = await client.get(Uri.https('example.com', '/health'));
+    final response = await client.get('/health');
     print('${response.statusCode}: ${await response.readAsString()}');
   } finally {
     await client.close();
@@ -120,9 +126,11 @@ Future<void> main() async {
 }
 ```
 
-The same request API works with `alphax_web` in a browser or with a custom
-`AlphaXTransport` in pure Dart. Reuse one client for its application scope and
-close it when that scope ends.
+The same request API works with `alphax_web` in a browser. For pure Dart,
+construct an `AlphaXClient` with your transport and wrap it with
+`AlphaXAppClient.borrowed(...)` (or use `.owned(...)` when the facade should
+close it). Reuse one client for its application scope and close it when that
+scope ends.
 
 The package-local [`example/main.dart`](example/main.dart) uses a deterministic
 transport because `alphax` is pure Dart and does not bundle a platform provider.
@@ -137,8 +145,8 @@ conditional export so shared application code uses one entry point:
 
 ```yaml
 dependencies:
-  alphax_native: ^1.0.0
-  alphax_web: ^1.0.0
+  alphax_native: ^1.1.0
+  alphax_web: ^1.1.0
 ```
 
 ```dart
@@ -147,9 +155,8 @@ export 'alpha_client_native.dart'
     if (dart.library.js_interop) 'alpha_client_web.dart';
 ```
 
-The native implementation can return `native.createAlphaXClient()` directly;
-the Web implementation can wrap its synchronous `createAlphaXClient()` in an
-`async` function. Shared code can then write:
+The native and Web implementations can both return the async
+`createAlphaXAppClient(...)` factory. Shared code can then write:
 
 ```dart
 final client = await createAppClient();
@@ -440,7 +447,8 @@ platform reports negotiation only after the operation completes.
 - [Waypoint reference app](https://github.com/auvana-ventures/alphax/tree/main/examples/waypoint)
 - [Migration guide](https://github.com/auvana-ventures/alphax/blob/main/docs/MIGRATION.md)
 
-AlphaX `1.0.0` is the current stable release. See the
+The `1.1.0` release adds the application-facing facade while preserving the
+stable core API. See the
 [release notes](https://github.com/auvana-ventures/alphax/blob/main/docs/ALPHAX_1_0_RELEASE_NOTES.md)
 for the supported package family and the
 [usage guide](https://github.com/auvana-ventures/alphax/blob/main/docs/USAGE_AND_CUSTOMIZATION.md)

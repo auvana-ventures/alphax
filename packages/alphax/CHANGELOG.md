@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.0 - 2026-08-31
+
+- Added the application-facing `AlphaXAppClient` for ordinary HTTP code with
+  validated base URLs, string paths, query/header convenience, JSON data,
+  overall timeout, cancellation forwarding, raw responses, and explicit
+  owned/borrowed lifecycle.
+- Existing `AlphaXClient`, request/body/response, streaming, policy, and
+  transport contracts remain available unchanged.
+
 ## 1.0.0 - 2026-08-30
 
 - First stable AlphaX release. The transport-independent API and frozen rc.5

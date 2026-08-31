@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.1 - 2026-08-31
+
+- Refreshed stable package metadata and documentation links; no runtime or
+  public API changes.
+
 ## 1.0.0 - 2026-08-30
 
 - First stable release of the deterministic AlphaX test helpers; the public
