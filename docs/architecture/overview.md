@@ -35,6 +35,10 @@ explicitly after the caller has buffered a response; it does not alter response
 semantics, transport backpressure, or protocol behavior. Browser builds fail
 closed rather than presenting synchronous browser work as background execution.
 
+The additive application-facing `AlphaXAppClient` is documented separately in
+the [application client guide](../app-client.md). It constructs ordinary
+AlphaX requests without changing the underlying client or transport contracts.
+
 The accepted 1.0 architecture does not use a C++ engine or a production Rust
 transport. A future change would require separate evidence plus an accepted ADR.
 

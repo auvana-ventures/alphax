@@ -68,6 +68,28 @@ void main() {
     }
   });
 
+  test('application facade factory wraps the selected client', () async {
+    final client = await createAlphaXAppClient(
+      baseUrl: 'https://example.com/api',
+      timeout: const Duration(seconds: 10),
+    );
+    try {
+      expect(client, isA<AlphaXAppClient>());
+    } finally {
+      await client.close();
+    }
+  });
+
+  test('application facade closes its initialized client if base validation fails', () async {
+    await expectLater(
+      createAlphaXAppClient(baseUrl: 'ftp://example.com'),
+      throwsArgumentError,
+    );
+    if (_usesPlatformChannel) {
+      expect(_closeCalls, 1);
+    }
+  });
+
   test('client close owns the selected transport and is idempotent', () async {
     final client = await createAlphaXClient();
     final transport = client.transport;

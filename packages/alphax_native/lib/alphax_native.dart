@@ -2,11 +2,13 @@
 library;
 
 export 'package:alphax/alphax.dart';
+export 'package:alphax/app_client.dart';
 export 'package:alphax/annotations.dart';
 export 'package:alphax/sse.dart';
 export 'package:alphax/websocket.dart';
 
 export 'src/alpha_x_client_factory.dart';
+export 'src/alpha_x_app_client_factory.dart';
 export 'src/dart_io_transport.dart';
 export 'src/android_cronet_transport.dart';
 export 'src/apple_url_session_transport.dart';

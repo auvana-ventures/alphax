@@ -1,0 +1,24 @@
+name: alphax_app_client_multiplatform_example
+description: Compile-tested conditional native/Web AlphaX application facade example.
+publish_to: none
+
+environment:
+  sdk: ">=3.8.0 <4.0.0"
+
+dependencies:
+  alphax_native:
+    path: ../../packages/alphax_native
+  alphax_web:
+    path: ../../packages/alphax_web
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
+
+dependency_overrides:
+  alphax:
+    path: ../../packages/alphax
+
+flutter:
+  uses-material-design: true

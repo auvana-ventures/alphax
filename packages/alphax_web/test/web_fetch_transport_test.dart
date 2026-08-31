@@ -20,6 +20,17 @@ void main() {
     expect((client.transport as WebFetchTransport).withCredentials, isTrue);
   });
 
+  test('application facade factory is asynchronous and owns its Fetch client', () async {
+    final client = await createAlphaXAppClient(
+      baseUrl: 'https://example.com/api',
+      timeout: const Duration(seconds: 10),
+      withCredentials: true,
+    );
+
+    expect(client, isA<AlphaXAppClient>());
+    await client.close();
+  });
+
   test('entry factory owns close and rejects requests after close', () async {
     final client = createAlphaXClient();
     final transport = client.transport;
