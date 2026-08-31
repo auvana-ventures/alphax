@@ -14,7 +14,7 @@ application's responsiveness measurements justify it.</p>
 <p align="center">
   <a href="https://pub.dev/packages/alphax">Core API</a> ·
   <a href="https://github.com/auvana-ventures/alphax/blob/main/docs/USAGE_AND_CUSTOMIZATION.md">Usage and customization</a> ·
-  <a href="https://github.com/auvana-ventures/alphax/blob/main/docs/ALPHAX_TRANSFORM_EXTENSION_DESIGN.md">Design</a> ·
+  <a href="https://github.com/auvana-ventures/alphax/blob/main/docs/USAGE_AND_CUSTOMIZATION.md#large-json-and-alphax_transform">Large JSON guidance</a> ·
   <a href="https://github.com/auvana-ventures/alphax/blob/main/LICENSE">Apache-2.0</a>
 </p>
 

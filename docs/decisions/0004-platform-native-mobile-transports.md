@@ -60,8 +60,10 @@ Adopt the following AlphaX 1.0 architecture:
 The required public contract includes protocol/capability discovery, negotiated
 protocol and fallback reporting, reusable client/session lifecycle, bounded
 streaming, file transfers, cancellation, timeout/error semantics, secure TLS
-defaults, proxy capability reporting, and transport-neutral metrics. The full
-boundary is defined in [`ALPHAX_1_0_SCOPE.md`](../ALPHAX_1_0_SCOPE.md).
+defaults, proxy capability reporting, and transport-neutral metrics. The
+current package and transport boundaries are summarized in the
+[architecture overview](../architecture/overview.md) and
+[transport contract](../architecture/transport_contract.md).
 
 ## Why Dart IO is not the sole 1.0 transport
 

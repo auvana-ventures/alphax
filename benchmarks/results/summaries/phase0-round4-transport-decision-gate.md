@@ -102,10 +102,10 @@ the worker and releases the easy handle and request state.
 
 The implementation is still a benchmark prototype, not a production engine.
 In particular, the worker serializes multi-handle progress and the FFI contract
-is intentionally smaller than the future AlphaX API. The architecture and
-ownership rules are documented in
-[`ffi_boundary.md`](../../../docs/architecture/ffi_boundary.md) and
-[`memory_model.md`](../../../docs/architecture/memory_model.md).
+is intentionally smaller than the future AlphaX API. The current production
+architecture and ownership rules are documented in the
+[`architecture overview`](../../../docs/architecture/overview.md) and
+[`transport contract`](../../../docs/architecture/transport_contract.md).
 
 ### Upload anomaly investigation
 

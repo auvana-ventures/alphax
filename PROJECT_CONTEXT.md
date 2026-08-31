@@ -14,18 +14,14 @@ baselines and adoption paths. AlphaX must earn differentiation through measured
 transport behavior, low-copy large transfers, poor-network behavior, metrics, and
 official modular capabilities.
 
-## Current phase
+## Current release
 
-Phase 0 research and transport validation are historical evidence. AlphaX
-`1.0.0-rc.5` is published, the final feature scope is frozen, and the
-`1.0.0` package family is prepared for stable publication. The rc.5-to-1.0
-migration is version-only; no stable package has been published from this
-source state yet. Android, macOS, and signed physical-iPhone H1/H2/H3
-correctness evidence remains retained; H3 remains provider- and
-network-dependent with truthful fallback. ADR 0004 and ADR 0011 remain
-accepted for the AlphaX 1.0 platform and release strategy. Only final release
-validation, documentation, packaging, and publication approval remain before
-stable 1.0.0.
+AlphaX `1.0.0` is the current stable release. Phase 0 research and transport
+validation remain historical evidence; the current platform and package
+boundaries are documented in the architecture overview and accepted ADRs. H3
+remains provider- and network-dependent with truthful fallback. Stabilization
+work must preserve the frozen public API and must not turn historical evidence
+into a broader capability claim.
 
 ## Package philosophy
 
@@ -74,13 +70,13 @@ not change architecture based solely on preference.
 
 ## Explicit non-goals
 
-The frozen 1.0 boundary does not include an offline queue, telemetry exporter,
+The stable 1.0 boundary does not include an offline queue, telemetry exporter,
 complete DevTools extension, full Dio API compatibility, GraphQL framework
 ownership, gRPC, a full OpenAPI compiler, custom QUIC/TLS controls, or a
-model-specific authentication framework. The published rc.5 family includes
+model-specific authentication framework. The published 1.0.0 family includes
 the direct typed REST generator, SSE/WebSocket contracts, and the validated
-compatibility seams described by the feature-freeze and publication reports;
-those surfaces are frozen during stabilization. The pure-Dart core includes
+compatibility seams described by the product documentation; those surfaces are
+stable. The pure-Dart core includes
 opt-in replay-aware retry, caller-owned token authentication, in-memory
 cookies/cache, and a generic circuit breaker. The separate `alphax_web`
 package provides browser Fetch support with unknown protocol metadata; it does
@@ -89,10 +85,8 @@ is an optional boundary and full Dio parity remains out of scope.
 
 ## Source documents
 
-- [Product vision](docs/prd/01_PRODUCT_VISION.md)
-- [Package architecture](docs/prd/02_REPOSITORY_PACKAGES.md)
-- [Native transport](docs/prd/03_NATIVE_TRANSPORT.md)
-- [API and Dio compatibility](docs/prd/04_API_DIO.md)
-- [Phase 0 implementation specification](docs/prd/12_PHASE_0_IMPLEMENTATION_SPEC.md)
 - [Architecture overview](docs/architecture/overview.md)
+- [Transport contract](docs/architecture/transport_contract.md)
+- [Compatibility guide](docs/compatibility.md)
 - [Architecture decisions](docs/decisions/)
+- [Contributing guide](CONTRIBUTING.md)

@@ -708,13 +708,12 @@ Dart application
 ```
 
 See the [AlphaX 1.0 release notes](docs/ALPHAX_1_0_RELEASE_NOTES.md), the
-[accepted transport ADR](docs/decisions/0004-platform-native-mobile-transports.md),
-the [1.0 requirements audit](docs/ALPHAX_1_0_REQUIREMENTS_AUDIT.md),
-and the [cross-transport validation report](docs/phase1e-cross-transport-validation.md).
-Historical benchmark results remain evidence for measured HTTP/1.1
-workloads; see the [historical benchmark documentation](docs/benchmarks.md) and
-its linked result summaries. They were not rewritten as H2/H3 performance
-claims.
+[compatibility guide](docs/compatibility.md), the
+[architecture overview](docs/architecture/overview.md), and the
+[accepted transport ADR](docs/decisions/0004-platform-native-mobile-transports.md).
+Historical benchmark sources and reviewed result summaries remain under
+[`benchmarks/`](benchmarks/); they are evidence for measured workloads, not
+H2/H3 performance claims.
 
 ## Contributing and license
 

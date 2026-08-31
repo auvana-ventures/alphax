@@ -1,9 +1,9 @@
 # AlphaX Security Policy
 
-AlphaX is preparing its first release candidate. `1.0.0-rc.1` is the only
-release-candidate version covered by this policy; older development snapshots
-are not supported for production use. Do not send real credentials, personal
-data, or sensitive payloads to benchmark fixtures or development-only harnesses.
+AlphaX `1.0.0` is the current stable release. This policy covers the published
+AlphaX package family; older development snapshots and release candidates are
+not supported for production use. Do not send real credentials, personal data,
+or sensitive payloads to benchmark fixtures or development-only harnesses.
 
 ## Reporting a vulnerability
 
@@ -53,8 +53,8 @@ an explicit HTTPS-proxy endpoint, which is not supported uniformly in 1.0.
 
 ## Release and dependency hygiene
 
-The RC ships no signing certificates, private keys, development-team values,
-benchmark endpoints, or machine-specific paths in production package defaults.
+Published packages ship no signing certificates, private keys, development-team
+values, benchmark endpoints, or machine-specific paths in production defaults.
 Android Cronet is resolved through the platform dependency graph, and Apple
 uses system URLSession frameworks; no third-party native binary is copied into
 the AlphaX package. Security-sensitive changes require tests, documentation,

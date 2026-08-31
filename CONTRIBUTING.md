@@ -1,16 +1,16 @@
 # Contributing to AlphaX
 
-AlphaX `1.0.0-rc.5` is published, the feature surface is frozen, and the
-`1.0.0` package family is prepared for stable publication. Contributions must
-stay within the stabilization and release allowance in
-`docs/ALPHAX_1_0_FEATURE_FREEZE.md` and keep the public Dart contract
-independent from any one native stack.
+AlphaX `1.0.0` is the current stable release. Contributions should preserve the
+public Dart contract's independence from any one native stack and keep changes
+focused on correctness, security, compatibility, documentation, and supported
+platform conformance unless a new feature has been explicitly approved.
 
 ## Before coding
 
-Read `PROJECT_CONTEXT.md`, the relevant PRD, architecture documents, and ADRs. For
-work that leaves repository changes, record the scope and validation in a task file
-under `tasks/`.
+Read `PROJECT_CONTEXT.md`, the relevant architecture documents, and ADRs. For
+work that leaves repository changes, describe the scope and validation in the
+issue or pull request. Local maintainer workflow records are not part of the
+public repository.
 
 ## Development
 
@@ -29,8 +29,9 @@ dart analyze
 dart test
 ```
 
-For native prototype changes, also run the relevant Make and Cargo checks described
-in `docs/benchmarks.md`.
+For native transport changes, also run the relevant platform and package checks
+described in the affected package documentation and CI configuration. Historical
+benchmark material is retained under `benchmarks/` for maintainers.
 
 ## Performance and security
 

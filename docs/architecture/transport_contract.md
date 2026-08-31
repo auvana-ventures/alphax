@@ -1,15 +1,14 @@
-# AlphaX Phase 1A Transport Contract
+# AlphaX Transport Contract
 
-Status: Phase 1A contract implemented; Dart IO, Android Cronet, Apple URLSession,
-and browser Fetch adapters implement the applicable portions. Cross-transport
-release validation and 1.0 API hardening are complete for RC review; platform
-capability limits remain explicit in the release gate.
+Status: Stable 1.0 contract. Dart IO, Android Cronet, Apple URLSession, and
+browser Fetch adapters implement their applicable portions; provider capability
+limits remain explicit.
 
 `packages/alphax` is pure Dart. The public contract is the seam that Dart IO,
 Android Cronet/HttpEngine, and Apple URLSession adapters must implement. It does
 not expose any native task, socket, file descriptor, FFI, or platform-channel
 type, and it makes no global H2/H3 claim: availability remains transport- and
-provider-specific until all required platform validation is complete.
+provider-specific.
 
 ## Transport surface
 

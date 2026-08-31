@@ -13,8 +13,8 @@ alphax
 AlphaXTransport
           │
           ├── Dart IO fallback/baseline
-          ├── Android Cronet/HttpEngine adapter (Phase 1C)
-          └── Apple URLSession adapter (Phase 1D)
+          ├── Android Cronet/HttpEngine adapter
+          └── Apple URLSession adapter
 ```
 
 `alphax_native` also exports `createAlphaXTransport()`. It is the automatic
@@ -76,11 +76,10 @@ leak implementation types into `alphax`.
 - Native ownership, callback lifetime, cancellation, and shutdown are explicit.
 - Planned capabilities must not be described as supported.
 
-## Phase progression
+## Current implementation
 
-Phase 0 and Phase 1A are complete. Phase 1B provides the Dart IO fallback,
-Phase 1C provides the validated Android Cronet adapter, and Phase 1D provides
-the shared Apple URLSession adapter with macOS and signed-iPhone correctness
-evidence. Phase 1E cross-transport release checks and Phase 1F API hardening,
-documentation, and release validation are complete for RC review. Retained
-focused platform evidence remains authoritative and is not rewritten.
+The stable package family uses the transport-neutral core with Dart IO as the
+fallback, Android Cronet/HttpEngine where the native provider is available,
+Apple URLSession on iOS and macOS, and browser Fetch in `alphax_web`. Optional
+features such as policy middleware, the large-payload transform, SSE, and the
+WebSocket contract remain layered above the transport boundary.
