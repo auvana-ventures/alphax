@@ -205,6 +205,11 @@ the same for every adapter. `DartIoTransport` is the supported fallback on
 Linux and Windows; Android and Apple adapters must be initialized on their
 corresponding platforms.
 
+For `DartIoTransport`, explicit request headers replace native defaults while
+retaining all caller-supplied values. For example, `Accept-Encoding: identity`
+replaces the default gzip offer. Unspecified headers retain native defaults,
+and response bytes remain in their wire encoding without automatic decompression.
+
 ## Platform support
 
 | Platform | Adapter | Protocol boundary |
