@@ -305,9 +305,7 @@ final class DartIoTransport extends AlphaXTransport {
         explicitContentLength = true;
         continue;
       }
-      for (final value in values) {
-        clientRequest.headers.add(name, value);
-      }
+      clientRequest.headers.set(name, values);
     }
 
     if (!explicitContentLength && body.contentLength != null) {
